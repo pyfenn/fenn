@@ -130,8 +130,6 @@ Thank you for your support!
 ### High Priority
 
 - **Documentation:** Write comprehensive documentation and examples.
-- **Security:** Improve user key management (e.g., WandB key) using `.env` file support.
-- **Configuration:** Add support for multiple/layered YAML files.
 
 ### Planned Features
 

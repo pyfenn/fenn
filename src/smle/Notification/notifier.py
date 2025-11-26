@@ -17,4 +17,4 @@ class Notifier:
             for service in self.services:
                 service.send_notification(message)
         except Exception as e:
-            print(e)
+            print(f"Failed to notify service: {e}")

@@ -2,7 +2,6 @@ import traceback
 import sys
 import os
 from colorama import Fore, Style
-import requests
 from typing import Callable, Optional, Any
 
 

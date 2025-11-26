@@ -1,6 +1,7 @@
-import requests
 import os
-from service import *
+from .service import Service
+import requests
+
 
 class Discord(Service):
     def __init__(self):
@@ -14,7 +15,7 @@ class Discord(Service):
             "username": "pysmle"
         }
 
-        result = requests.post(self._discord_webhook_url, json=data)
+        result = requests.post(self._discord_webhook_url, json=data, timeout=5)
 
         try:
             result.raise_for_status()

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fenn"
-version = "0.0.5"
+version = "0.0.6"
 description = "Friendly Environment for Neural Networks – a simple framework that automates the boring side of ML."
 
 authors = [

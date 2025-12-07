@@ -24,8 +24,8 @@ def execute(args: argparse.Namespace) -> None:
         source = templates_path/"dotenv"
         destination = root_dir / ".env"
     else:
-        print(f"{Fore.RED}[SMLE] Template not found for filetype {Fore.LIGHTYELLOW_EX}{args.filetype}{Fore.RED}.{Style.RESET_ALL}")
+        print(f"{Fore.RED}[FENN] Template not found for filetype {Fore.LIGHTYELLOW_EX}{args.filetype}{Fore.RED}.{Style.RESET_ALL}")
         sys.exit(1)
 
     copy_template(source, destination)
-    print(f"{Fore.GREEN}[SMLE] Initialized {Fore.LIGHTYELLOW_EX}{args.filetype}{Fore.GREEN} file in {Fore.LIGHTYELLOW_EX}{root_dir}{Fore.GREEN} directory.{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}[FENN] Initialized {Fore.LIGHTYELLOW_EX}{args.filetype}{Fore.GREEN} file in {Fore.LIGHTYELLOW_EX}{root_dir}{Fore.GREEN} directory.{Style.RESET_ALL}")

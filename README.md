@@ -45,7 +45,7 @@ The structure of the ``fenn.yaml`` file is:
 # Fenn Configuration (Modify Carefully)
 # ---------------------------------------
 
-project: project_name
+project: base
 
 # ---------------------------
 # Logging & Tracking
@@ -54,27 +54,13 @@ project: project_name
 logger:
   dir: logger
 
-wandb:
-  entity: your_wandb_account
-
 # ---------------------------------------
 # Example of User Section
 # ---------------------------------------
 
-seed: seed
-device: 'cpu'/'cuda'
-
-training:
-    epochs: n_epochs
-    lr: lr
-    weight_decay: wd
-    batch: batch_size
-
-testing:
-    batch: batch_size
+train:
+    lr: 0.001
 ```
-
-**Note.** fenn expects your Weights and Biases API key to be in the environment variable `WANDB_API_KEY`. You can put it in the `.env` file, but ensure `.env` is in your `.gitignore`.
 
 ### Write Your Code
 
@@ -88,7 +74,7 @@ app = FENN()
 @app.entrypoint
 def main(args):
     # 'args' contains your fenn.yaml configurations
-    print(f"Training with learning rate: {args['training']['lr']}")
+    print(f"Training with learning rate: {args['train']['lr']}")
 
     # Your logic here...
 
@@ -96,11 +82,11 @@ if __name__ == "__main__":
     app.run()
 ```
 
-By default, fenn will look for a configuration file named `fenn.yaml` in the current directory. If you would like to use a different name, a different location, or have multiple configuration files for different configurations, you can set the `config_file` property of fenn to the path of your file. You must assign the filename before calling `run()`.
+By default, fenn will look for a configuration file named `fenn.yaml` in the current directory. If you would like to use a different name, a different location, or have multiple configuration files for different configurations, you can call `set_config_file()` and update the path or the name of your configuration file. You must assign the filename before calling `run()`.
 
 ```python
 app = FENN()
-app.config_file = "my_file.yaml"
+app.set_config_file("my_file.yaml")
 ...
 app.run()
 ```

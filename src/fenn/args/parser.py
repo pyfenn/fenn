@@ -30,15 +30,14 @@ class Parser:
         logger = Logger()
 
         # Check if file exists BEFORE reading
-        default = "(default)" if self._config_file == "fenn.yaml" else ""
+        default = " (default)" if self._config_file == "fenn.yaml" else ""
 
         if not os.path.isfile(self._config_file):
+
             logger.system_exception(
-                f"Configuration file {self._config_file} {default} was not found."
+                f"Configuration file {self._config_file}{default} was not found."
             )
-            logger.system_info(
-                f"You can download a template using the {Fore.LIGHTYELLOW_EX}fenn pull{Style.RESET_ALL} command."
-            )
+
             raise FileNotFoundError(
                 0,
                 f"Configuration file {self._config_file} was not found.",

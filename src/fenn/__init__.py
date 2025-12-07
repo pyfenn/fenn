@@ -83,13 +83,12 @@ class FENN:
         finally:
             self._logger.stop()
 
-    @property
-    def config_file(self) -> str:
-        return self._config_file
-
-    @config_file.setter
-    def config_file(self, config_file: str) -> None:
+    def set_config_file(self, config_file: str) -> None:
         """
         The method to set the YAML file.
         """
         self._config_file = config_file
+
+    @property
+    def config_file(self) -> str:
+        return self._config_file

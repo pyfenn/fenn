@@ -12,11 +12,18 @@
 
 fenn is a lightweight Python framework that automates the "boring stuff" in Machine Learning projects. It handles configuration parsing, logging setup, and experiment tracking so you can focus on the model.
 
+
 ## Why fenn?
 
-* **Auto-Configuration:** `yaml` files are automatically parsed and injected into your entrypoint. No more hardcoded hyperparameters.
-* **Instant Logging:** All print statements and configs are automatically captured to local logs and remote trackers.
-* **Remote Monitoring:** Native integration with [Weights & Biases (WandB)](https://wandb.ai/) to monitor experiments from anywhere.
+- **Auto-Configuration**: YAML files are automatically parsed and injected into your entrypoint with CLI override support. No more hardcoded hyperparameters or scattered config logic.
+
+- **Unified Logging**: All logs, print statements, and experiment metadata are automatically captured to local files and remote tracking backends simultaneously with no manual setup required.
+
+- **Multi-Backend Monitoring**: Native integration with industry-standard trackers like (Weights & Biases)[https://wandb.ai/] (W&B) for centralized experiment tracking and (TensorBoard)[https://www.tensorflow.org/tensorboard] for real-time metric visualization
+
+- **Instant Notifications**: Get real-time alerts on **Discord** and **Telegram** when experiments start, complete, or fail—no polling or manual checks.
+
+- **Template Ready**: Built-in support for reproducible, shareable experiment templates (template pull system coming soon).
 
 ## Installation
 
@@ -97,6 +104,16 @@ app.run()
 python main.py
 ```
 
+## Roadmap
+
+- **ML Templates:** Automated creation of standard project structures.
+- **Model Tools:** Utilities for Neural Network creation, training, and testing.
+- **Notifications:** Email notification system for completed training runs.
+- **Data Tools:** Data exploration and visualization helpers.
+- **Analysis:** Result analysis tools (diagrams, confusion matrices, etc.).
+- **Integrations:** Support for TensorBoard and similar tracking tools.
+- **Testing:** Comprehensive unit and integration tests for the framework.
+
 ## Contributing
 
 Contributions are welcome!
@@ -109,20 +126,3 @@ We can then discuss a possible contribution together, answer any questions, and 
 **Please, before opening a pull request, consult our CONTRIBUTING.md**
 
 Thank you for your support!
-
-## Roadmap
-
-### High Priority
-
-- **Documentation:** Write comprehensive documentation and examples.
-
-### Planned Features
-
-- **ML Templates:** Automated creation of standard project structures.
-- **Model Tools:** Utilities for Neural Network creation, training, and testing.
-- **Notifications:** Email notification system for completed training runs.
-- **Data Tools:** Data exploration and visualization helpers.
-- **Analysis:** Result analysis tools (diagrams, confusion matrices, etc.).
-- **Integrations:** Support for TensorBoard and similar tracking tools.
-- **Testing:** Comprehensive unit and integration tests for the framework.
-

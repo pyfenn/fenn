@@ -8,3 +8,9 @@ diff.txt
 venv/
 .idea
 logger/
+
+
+# Tests
+coverage.xml
+.coverage
+.pytest_cache/

@@ -24,7 +24,7 @@ def execute(args: argparse.Namespace) -> None:
             - force: Whether to overwrite existing files
             - list: Whether to list available templates
     """
-    if args.list:
+    if getattr(args, 'list', False) is True:
         try:
             _list_templates()
         except NetworkError as e:

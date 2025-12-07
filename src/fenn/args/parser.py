@@ -36,10 +36,9 @@ class Parser:
             logger.system_exception(
                 f"Configuration file {self._config_file} {default} was not found."
             )
-            logger.system_exception(
-                f"Please use {Fore.LIGHTYELLOW_EX}fenn create yaml{Style.RESET_ALL} to create it."
+            logger.system_info(
+                f"You can download a template using the {Fore.LIGHTYELLOW_EX}fenn pull{Style.RESET_ALL} command."
             )
-
             raise FileNotFoundError(
                 0,
                 f"Configuration file {self._config_file} was not found.",

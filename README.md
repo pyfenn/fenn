@@ -28,10 +28,10 @@ pip install fenn
 
 ### Initialize a Project
 
-Run the CLI tool to generate a template and config file:
+Run the CLI tool to download a template and config file:
 
 ```bash
-fenn init
+fenn pull base
 ```
 
 ### Configuration

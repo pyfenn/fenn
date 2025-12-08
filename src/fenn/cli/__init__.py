@@ -11,6 +11,7 @@ def build_parser() -> argparse.ArgumentParser:
     # --- Level 2 ---
     p_pull.add_argument(
         "template",
+        nargs="?",
         help="Name of the template to download (e.g., 'base')",
     )
 
@@ -25,6 +26,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--force",
         action="store_true",
         help="Overwrite existing files if needed",
+    )
+
+    p_pull.add_argument(
+        "--list",
+        action="store_true",
+        help="List available templates in the repository",
     )
 
     p_pull.set_defaults(func=pull_command.execute)

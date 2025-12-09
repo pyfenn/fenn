@@ -1,0 +1,63 @@
+site_name: FENN
+site_url: https://pyfenn.org/
+site_description: FENN Friendly Environment for Neural Networks
+site_author: PyFenn
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+    - toc.integrate   # right-hand in-page TOC
+
+  palette:
+    - scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Introduction:
+      - whyfenn.md
+      - roadmap.md
+  - User Guide:
+      - Quickstart: quickstart.md
+  - Contributions:
+      - Contributing: contributing.md
+  - Features:
+      - Configuration: configuration.md
+      - Logger: logger.md
+      - Wandb: wandb.md
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/pyfenn/fenn
+      name: Source on GitHub
+
+

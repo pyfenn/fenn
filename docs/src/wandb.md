@@ -26,18 +26,18 @@ FENN uses a `fenn.yaml` file to centralize project configuration (training, logg
 
 Minimal example of `fenn.yaml` with W&B support:
 
+```
 wandb:
 entity: your_wandb_account
 key: your_wandb_key
-
-text
+```
 
 ## 3. Running an experiment
 
 Once the `fenn.yaml` file has been configured, including the `wandb` section, you can start an experiment by running your FENN entrypoint script as a standard Python program:
 
-python main.py
+`python main.py`
 
-text
+
 
 During execution, the script reads the configuration from `fenn.yaml`, initializes the W&B client, and sends configuration data and training metrics to your W&B project. When the run completes, you can open <https://wandb.ai>, navigate to the configured project, and inspect dashboards with loss and accuracy curves, stored experiment configurations, and any saved files such as models and logs.

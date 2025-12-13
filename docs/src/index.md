@@ -9,7 +9,7 @@
 
 **Stop writing boilerplate. Start training.**
 
-FENN is a lightweight Python framework that automates the “boring stuff” in Machine Learning projects so you can focus on the model. It handles configuration parsing, logging setup, and experiment tracking in a minimal, opinionated way.
+FENN is a lightweight Python framework that automates the **boring stuff** in Machine Learning projects so you can focus on the model. It handles configuration parsing, logging setup, and experiment tracking in a minimal, opinionated way.
 
 > **See also**  
 > Source code available at: <https://github.com/pyfenn/fenn>

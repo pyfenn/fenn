@@ -4,12 +4,12 @@ Welcome to the **fenn** project! This guide explains how to prepare your changes
 
 ## Initial Checks
 
-Before you start coding, read the main `README.md` and the [documentation](https://pyfenn.org/) to understand the project goals, basic usage, and current roadmap. [web:0]
+Before you start coding, read the main `README.md` and the [documentation](https://pyfenn.org/) to understand the project goals, basic usage, and current roadmap.  
 
 > **Tip**  
-> If you are unsure what to work on or want feedback on an idea, start a conversation on the project’s Discord server or in the GitHub discussion thread linked from the README so the maintainers can help you scope a useful contribution. [web:0]
+> If you are unsure what to work on or want feedback on an idea, start a conversation on the project’s Discord server or in the GitHub discussion thread linked from the README so the maintainers can help you scope a useful contribution.  
 
-Whenever possible, prefer small, focused changes over very large pull requests. If you plan a bigger feature or refactor, discuss it first to confirm that it fits the project direction. [web:0]
+Whenever possible, prefer small, focused changes over very large pull requests. If you plan a bigger feature or refactor, discuss it first to confirm that it fits the project direction. 
 
 ## Basic Git Workflow
 
@@ -58,7 +58,7 @@ Once your branch is ready: [web:0]
 
 ## Reporting Issues and Getting Help
 
-If you find a bug or have a feature request but do not plan to implement it yourself: [web:0]
+If you find a bug or have a feature request but do not plan to implement it yourself:  
 
 - Open a GitHub issue with a clear description of the problem or idea.  
 - For bugs, describe the expected behavior, the actual behavior, and how to reproduce it (include versions and environment details when possible).  

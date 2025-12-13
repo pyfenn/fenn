@@ -41,7 +41,10 @@ batch: batch_size
 
 By default, FENN will look for a configuration file named `fenn.yaml` in the current directory. If you would like to use a different name, a different location, or have multiple configuration files for different configurations, you can set the `config_file` property of FENN to the path of your file. You must assign the filename before calling `run()`:
 
+
+```
 app = FENN()
 app.config_file = "my_file.yaml"
 ...
 app.run()
+```

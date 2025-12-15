@@ -36,6 +36,8 @@ nav:
       - roadmap.md
   - User Guide:
       - Quickstart: quickstart.md
+      - Notifications: notification_system.md
+      - Fenn Pull: pull_command.md 
   - Contributions:
       - Contributing: contributing.md
   - Features:

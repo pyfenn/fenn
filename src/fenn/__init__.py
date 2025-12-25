@@ -18,7 +18,7 @@ class FENN:
 
         self._parser: Parser = Parser()
         self._keystore: KeyStore = KeyStore()
-        self._logger: Logger = Logger()   # Singleton
+        self._logger: Logger = Logger()
 
         # DISCLAIMER:
         # This class is the base class for all FENN applications.
@@ -40,7 +40,7 @@ class FENN:
         The method that executes the application's core logic.
         """
 
-        self._logger._original_print(
+        self._logger._logging_backend._original_print(
             "***********************************************************************************\n"
             f"{Style.BRIGHT}Hi, thank you for using the {Fore.GREEN}PyFenn{Style.RESET_ALL}{Style.BRIGHT} framework.{Style.RESET_ALL}\n"
             f"PyFenn is still in an {Fore.CYAN}alpha version{Style.RESET_ALL}.\n"

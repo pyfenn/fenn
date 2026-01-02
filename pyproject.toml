@@ -53,6 +53,11 @@ vision = [
   "torch>=2.9.1",
   "torchvision>=0.24.1"
 ]
+transformers = [
+  "peft ~= 0.18.0",
+  "transformers ~= 4.57.3"
+]
+
 test = [
   "pytest>=8.0.0",
   "pytest-cov>=7.0.0",

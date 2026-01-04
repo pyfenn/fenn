@@ -1,0 +1,1 @@
+from fenn.nn.linear.trainer import Trainer

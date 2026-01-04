@@ -3,7 +3,7 @@ import torch
 
 from fenn.logging import Logger
 
-class LinearTrainer:
+class Trainer:
 
     def __init__(self,
                  model,

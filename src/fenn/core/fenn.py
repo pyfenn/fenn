@@ -21,12 +21,14 @@ class Fenn:
         self._logger: Logger = Logger()
 
         # DISCLAIMER:
-        # This class is the base class for all FENN applications.
+        # This class is the base class for all Fenn applications.
         # It is designed to be subclassed, not instantiated directly.
         # Please do not modify this class unless you know what you are doing.
         self._config_file: str = None
 
         self._entrypoint_fn: Optional[Callable] = None
+
+        self._disable_disclaimer = False
 
     def entrypoint(self, entrypoint_fn: Callable) -> Callable:
         """
@@ -40,15 +42,17 @@ class Fenn:
         The method that executes the application's core logic.
         """
 
-        self._logger._logging_backend._original_print(
-            "***********************************************************************************\n"
-            f"{Style.BRIGHT}Hi, thank you for using the {Fore.GREEN}PyFenn{Style.RESET_ALL}{Style.BRIGHT} framework.{Style.RESET_ALL}\n"
-            f"PyFenn is still in an {Fore.CYAN}alpha version{Style.RESET_ALL}.\n"
-            "If you find a bug or inconsistency, if you want to contribute or request a feature,\nplease open an issue at "
-            f"{Fore.CYAN}https://github.com/pyfenn/fenn/issues{Style.RESET_ALL}.\n"
-            f"{Style.BRIGHT}Thank you for your support!{Style.RESET_ALL}\n"
-            "***********************************************************************************\n"
-        )
+        if not self._disable_disclaimer:
+            self._logger._logging_backend._original_print(
+                "***********************************************************************************\n"
+                f"{Style.BRIGHT}Hi, thank you for using the {Fore.GREEN}PyFenn{Style.RESET_ALL}{Style.BRIGHT} framework.{Style.RESET_ALL}\n"
+                f"PyFenn is still in an {Fore.CYAN}alpha version{Style.RESET_ALL}.\n"
+                "If you find a bug or inconsistency, if you want to contribute or request a feature,\nplease open an issue at "
+                f"{Fore.CYAN}https://github.com/pyfenn/fenn/issues{Style.RESET_ALL}.\n"
+                f"{Style.BRIGHT}Thank you for your support!{Style.RESET_ALL}\n"
+                f"{Fore.LIGHTYELLOW_EX}Use app.disable_disclaimer() to stop seeing this message.{Style.RESET_ALL}\n"
+                "***********************************************************************************\n"
+            )
 
         if not self._entrypoint_fn:
             raise RuntimeError(
@@ -82,6 +86,9 @@ class Fenn:
 
         finally:
             self._logger.stop()
+
+    def disable_disclaimer(self) -> None:
+        self._disable_disclaimer = True
 
     def set_config_file(self, config_file: str) -> None:
         """

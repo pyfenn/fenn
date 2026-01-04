@@ -64,6 +64,6 @@ def _list_templates() -> None:
     print(f"{Fore.GREEN}Available templates:{Style.RESET_ALL}")
     for template in templates:
         if not template.endswith("dev-only"):
-            print(f"  {Fore.LIGHTYELLOW_EX}{template}{Style.RESET_ALL}")
+            print(f" - {Fore.LIGHTYELLOW_EX}{template}{Style.RESET_ALL}")
 
     print(f"\n{Fore.CYAN}Use {Fore.LIGHTYELLOW_EX}fenn pull <template>{Fore.CYAN} to download a template.{Style.RESET_ALL}")

@@ -32,7 +32,11 @@ def execute(args: argparse.Namespace) -> None:
         print(f"{Fore.CYAN}Use {Fore.LIGHTYELLOW_EX}fenn list{Fore.CYAN} to see available templates.{Style.RESET_ALL}")
         sys.exit(1)
 
-    if target_dir.exists() and any(target_dir.iterdir()) and not force:
+    has_visible_files = any(
+        not item.name.startswith('.') for item in target_dir.iterdir()
+    )
+
+    if target_dir.exists() and has_visible_files and not force:
         print(
             f"{Fore.RED}Refusing to pull into non-empty directory "
             f"{Fore.LIGHTYELLOW_EX}{target_dir}{Fore.RED}. \n"

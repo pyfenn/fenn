@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from fenn.vision.color_mode import ensure_color_mode
+from fenn.experimental.vision import ensure_color_mode
 
 
 class TestEnsureColorMode:

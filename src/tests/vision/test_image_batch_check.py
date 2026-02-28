@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from fenn.vision import check_image_batch
+from fenn.experimental.vision import check_image_batch
 
 
 class TestCheckImageBatch:

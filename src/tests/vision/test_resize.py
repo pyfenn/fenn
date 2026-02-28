@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 try:
-    from fenn.vision import resize_batch
+    from fenn.experimental.vision import resize_batch
     RESIZE_AVAILABLE = True
 except ImportError:
     RESIZE_AVAILABLE = False

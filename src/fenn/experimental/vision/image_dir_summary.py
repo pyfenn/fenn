@@ -9,7 +9,7 @@ try:
 except ImportError:
     PIL_AVAILABLE = False
 
-from fenn.vision.vision_utils import normalize_color_mode
+from .vision_utils import normalize_color_mode
 
 logger = logging.getLogger(__name__)
 

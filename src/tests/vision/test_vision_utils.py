@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from fenn.vision.vision_utils import detect_format
+from fenn.experimental.vision import detect_format
 
 
 class TestDetectFormat:

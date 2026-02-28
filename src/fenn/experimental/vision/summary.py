@@ -1,7 +1,7 @@
 import numpy as np
 from typing import TypedDict, Literal, Any, Dict
 
-from fenn.vision.vision_utils import detect_format
+from .vision_utils import detect_format
 
 
 def _extract_shape_info(

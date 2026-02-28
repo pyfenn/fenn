@@ -5,7 +5,7 @@ from pathlib import Path
 from PIL import Image
 import numpy as np
 
-from fenn.vision.image_dir_summary import image_dir_summary
+from fenn.experimental.vision import image_dir_summary
 
 
 @pytest.fixture

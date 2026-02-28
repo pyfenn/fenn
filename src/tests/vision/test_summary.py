@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from fenn.vision.summary import image_summary
+from fenn.experimental.vision import image_summary
 
 
 class TestImageSummary:

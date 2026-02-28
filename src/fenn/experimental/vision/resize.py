@@ -8,7 +8,7 @@ try:
 except ImportError:
     TORCHVISION_AVAILABLE = False
 
-from fenn.vision.vision_utils import detect_format
+from .vision_utils import detect_format
 
 
 def resize_batch(

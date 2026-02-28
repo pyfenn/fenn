@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, List, Literal, TypedDict
 import numpy as np
 
-from fenn.vision.vision_utils import detect_format
+from .vision_utils import detect_format
 
 logger = logging.getLogger(__name__)
 

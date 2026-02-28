@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Literal
 
-from fenn.vision.vision_utils import detect_format, normalize_color_mode
+from .vision_utils import detect_format, normalize_color_mode
 
 
 def _gray_to_rgb(

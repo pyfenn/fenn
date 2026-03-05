@@ -122,7 +122,8 @@ class Trainer:
         predictions = []
         with torch.no_grad():
             for data, labels in data_loader:
-                data = data.to(self._device)
+            
+                data = self._move_to_device(data, self._device)
                 logits = self._model(data)
                 preds = torch.sigmoid(logits).squeeze(-1)
                 preds = (preds > 0.5).long()
@@ -134,13 +135,23 @@ class Trainer:
         predictions = []
         with torch.no_grad():
             for data, labels in data_loader:
-                data = data.to(self._device)
+                data = self._move_to_device(data, self._device)
                 logits = self._model(data)
                 preds = torch.argmax(logits, axis=1)
                 predictions.extend(preds.cpu().tolist())
         return predictions
 
-    def fit(self, train_loader, val_loader=None, start_epoch: int = 0):
+    def _move_to_device(self, batch, device):
+
+        if torch.is_tensor(batch):
+            return batch.to(device)
+        if isinstance(batch, (list, tuple)):
+            return type(batch)(self._move_to_device(x, device) for x in batch)
+        if isinstance(batch, dict):
+            return {k: self._move_to_device(v, device) for k, v in batch.items()}
+        return batch
+
+    def fit(self, train_loader, val_loader=None, val_epochs: int = 5, start_epoch: int = 0):
         """Train the model with optional validation and early stopping.
 
         The behaviour depends on the combination of `val_loader` and
@@ -156,6 +167,7 @@ class Trainer:
         Args:
             train_loader: DataLoader for training data.
             val_loader: DataLoader for validation data (optional).
+            val_epochs: How often to evaluate on validation set (in epochs).
             start_epoch: Epoch to resume training from.
 
         Returns:
@@ -172,7 +184,7 @@ class Trainer:
             n_batches = 0
 
             for data, labels in train_loader:
-                data = data.to(self._device)
+                data = self._move_to_device(data, self._device)
                 labels = labels.to(self._device)
 
                 outputs = self._model(data)
@@ -195,7 +207,8 @@ class Trainer:
             val_acc = None
             val_mean_loss = None
 
-            if val_loader is not None:
+            if val_loader is not None and (epoch - start_epoch) % val_epochs == 0:
+
                 self._model.eval()
                 val_labels = []
                 val_predictions = []
@@ -204,7 +217,7 @@ class Trainer:
 
                 with torch.no_grad():
                     for data, labels in val_loader:
-                        data = data.to(self._device)
+                        data = self._move_to_device(data, self._device)
                         labels = labels.to(self._device)
 
                         outputs = self._model(data)
@@ -278,6 +291,7 @@ class Trainer:
                 self._save_checkpoint(epoch, train_mean_loss, is_best=False)
 
         if self._return_model == "best" and val_loader is not None and best_state_dict is not None:
+            print(f"Loading best model with validation accuracy {self._best_acc:.4f}")
             self._model.load_state_dict(best_state_dict)
         elif self._return_model == "best" and val_loader is None:
             self._logger.system_info(

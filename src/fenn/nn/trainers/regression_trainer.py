@@ -5,21 +5,14 @@ from pathlib import Path
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from fenn.logging import Logger
 
-try: 
-    from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn, MofNCompleteColumn
-    HAS_RICH = True
-except ImportError:
-    HAS_RICH = False
-
-class Trainer:
-    """The base Trainer class for classification tasks."""
+class RegressionTrainer:
+    """The base Trainer class for regression tasks."""
 
     def __init__(self,
                  model,
                  loss_fn,
                  optim,
                  epochs,
-                 num_classes,
                  device="cpu",
                  return_model: str = "last",
                  checkpoint_dir: Optional[Union[Path, str]] = None,
@@ -37,7 +30,6 @@ class Trainer:
         self._loss_fn = loss_fn
         self._optimizer = optim
         self._epochs = epochs
-        self._num_classes = num_classes
         self._return_model = return_model.lower()
 
         if self._return_model not in {"last", "best"}:
@@ -122,29 +114,6 @@ class Trainer:
             torch.save(checkpoint, best_filepath)
             self._logger.system_info(f"Best model checkpoint saved to {best_filepath} with loss {loss:.4f}.")
 
-    def _binary_predict(self, data_loader):
-        self._model.eval()
-        predictions = []
-        with torch.no_grad():
-            for data, labels in data_loader:
-                data = self._move_to_device(data, self._device)
-                logits = self._model(data)
-                preds = torch.sigmoid(logits).squeeze(-1)
-                preds = (preds > 0.5).long()
-                predictions.extend(preds.cpu().tolist())
-        return predictions
-
-    def _multiclass_predict(self, data_loader):
-        self._model.eval()
-        predictions = []
-        with torch.no_grad():
-            for data, labels in data_loader:
-                data = self._move_to_device(data, self._device)
-                logits = self._model(data)
-                preds = torch.argmax(logits, dim=1)
-                predictions.extend(preds.cpu().tolist())
-        return predictions
-
     def _move_to_device(self, batch, device):
         if torch.is_tensor(batch):
             return batch.to(device)
@@ -178,29 +147,10 @@ class Trainer:
         """
 
         best_state_dict = None
-        
-        if HAS_RICH:
-            progress = Progress(
-                TextColumn("[bold blue]Epoch {task.fields[epoch]}/{task.fields[total_epochs]}"),
-                BarColumn(),
-                MofNCompleteColumn(),
-                TimeElapsedColumn(),
-                TextColumn("{task.fields[info]}"),
-            )
-            progress.start()
-            epoch_task = progress.add_task(
-                "Training",
-                total = self._epochs - start_epoch,
-                epoch = start_epoch,
-                total_epochs = self._epochs,
-                info=""
-            )
-            
         for epoch in range(start_epoch, self._epochs):
 
             # --- TRAIN ---
-            if not HAS_RICH:
-                self._logger.system_info(f"Epoch {epoch} started.")
+            self._logger.system_info(f"Epoch {epoch} started.")
             self._model.train()
             total_loss = 0.0
             n_batches = 0
@@ -223,11 +173,7 @@ class Trainer:
                 raise ValueError("train_loader produced 0 batches; cannot train.")
 
             train_mean_loss = total_loss / n_batches
-            
-            if HAS_RICH:
-                progress.update(epoch_task, advance=1, epoch=epoch+1, info=f"Train Mean Loss : {train_mean_loss:.4f}")
-            else:
-                print(f"Epoch {epoch}. Train Mean Loss: {train_mean_loss:.4f}")
+            print(f"Epoch {epoch}. Train Mean Loss: {train_mean_loss:.4f}")
 
             # --- NO VALIDATION ---
             if val_loader is None:
@@ -257,30 +203,20 @@ class Trainer:
                         val_total_loss += float(val_batch_loss.item())
                         val_n_batches += 1
 
-                        if self._num_classes == 2:
-                            logits = outputs
-                            preds = torch.sigmoid(logits).squeeze(-1)
-                            preds = (preds > 0.5).long()
-                        else:
-                            preds = torch.argmax(outputs, dim=1)
+                        logits = outputs
+                        preds = torch.sigmoid(logits).squeeze(-1)
 
                         val_predictions.extend(preds.cpu().tolist())
                         val_labels.extend(labels.cpu().tolist())
 
-                self._model.train()
-
                 if val_n_batches == 0:
                     raise ValueError("val_loader produced 0 batches; cannot validate.")
-                
-                if val_n_batches > 0:
-                    val_mean_loss = val_total_loss / val_n_batches
-                    val_acc = accuracy_score(val_labels, val_predictions)
-                    
-                    if HAS_RICH:
-                        progress.update(epoch_task, info=f"Train Mean Loss: {train_mean_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}")
-                    else:
-                        print(f"Epoch {epoch}. Validation Loss: {val_mean_loss:.4f}")
-                        print(f"Epoch {epoch}. Validation Accuracy: {val_acc:.4f}")
+
+                val_mean_loss = val_total_loss / val_n_batches
+                val_acc = accuracy_score(val_labels, val_predictions)
+
+                print(f"Epoch {epoch}. Validation Loss: {val_mean_loss:.4f}")
+                print(f"Epoch {epoch}. Validation Accuracy: {val_acc:.4f}")
 
                 if val_acc > self._best_acc:
                     self._best_acc = val_acc
@@ -323,22 +259,21 @@ class Trainer:
                     "return_model='best' requested but best_state_dict has not been updated; returning last model."
                 )
             else:
-                if HAS_RICH:
-                    progress.console.print(f"[green]Loading best model with validation accuracy {self._best_acc:.4f}[/green]")
-                else:
-                    print(f"Loading best model with validation accuracy {self._best_acc:.4f}")
+                print(f"Loading best model with validation accuracy {self._best_acc:.4f}")
                 self._model.load_state_dict(best_state_dict)
 
-        if HAS_RICH:
-            progress.stop()
-            
         return self._model
 
     def predict(self, data_loader):
-        if self._num_classes == 2:
-            return self._binary_predict(data_loader)
-        else:
-            return self._multiclass_predict(data_loader)
+        self._model.eval()
+        predictions = []
+        with torch.no_grad():
+            for data, _ in data_loader:
+                data = self._move_to_device(data, self._device)
+                logits = self._model(data)
+                preds = logits.squeeze(-1)
+                predictions.extend(preds.cpu().tolist())
+        return predictions
 
     def load_checkpoint(self, checkpoint_path: Union[Path, str]):
         """Load a checkpoint from the given path.

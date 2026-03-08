@@ -68,6 +68,9 @@ test = [
 rich = [
   "rich>=13.0.0"
 ]
+extra = [
+  "loguru~=0.7.3"
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

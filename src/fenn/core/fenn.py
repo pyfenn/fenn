@@ -4,7 +4,7 @@ from typing import Callable, Optional, Any
 from fenn.args import Parser
 from fenn.logging import Logger
 from fenn.secrets.keystore import KeyStore
-from fenn.utils import generate_haiku_id
+from fenn.utils import generate_session_id
 
 
 class Fenn:
@@ -14,7 +14,7 @@ class Fenn:
 
     def __init__(self) -> None:
 
-        self._session_id: str = generate_haiku_id()
+        self._session_id: str =  generate_session_id()
 
         self._parser: Parser = Parser()
         self._keystore: KeyStore = KeyStore()

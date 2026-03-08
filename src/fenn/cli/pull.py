@@ -8,6 +8,13 @@ from pathlib import Path
 import requests
 from colorama import Fore, Style
 
+try:
+    from rich.console import Console
+    from rich.progress import Progress, DownloadColumn, BarColumn, TextColumn, TimeElapsedColumn
+    HAS_RICH = True
+except ImportError:
+    HAS_RICH = False
+
 TEMPLATES_REPO = "pyfenn/templates"
 REPO_NAME = "templates"
 GITHUB_API_BASE = "https://api.github.com"
@@ -37,11 +44,14 @@ def execute(args: argparse.Namespace) -> None:
     )
 
     if target_dir.exists() and has_visible_files and not force:
-        print(
-            f"{Fore.RED}Refusing to pull into non-empty directory "
-            f"{Fore.LIGHTYELLOW_EX}{target_dir}{Fore.RED}. \n"
-            f"Use {Fore.LIGHTYELLOW_EX}--force{Fore.RED} to override existing files.{Style.RESET_ALL}"
-        )
+        if HAS_RICH:
+            Console().print(f"[red]Refusing to pull into non-empty directory [yellow]{target_dir}[/yellow].\nUse [yellow]--force[/yellow] to override existing files.[/red]")
+        else:
+            print(
+                f"{Fore.RED}Refusing to pull into non-empty directory "
+                f"{Fore.LIGHTYELLOW_EX}{target_dir}{Fore.RED}. \n"
+                f"Use {Fore.LIGHTYELLOW_EX}--force{Fore.RED} to override existing files.{Style.RESET_ALL}"
+            )
         sys.exit(1)
 
     try:
@@ -107,8 +117,22 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
     # Extract only the specific template directory from the archive
     with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
         try:
-            for chunk in response.iter_content(chunk_size=8192):
-                tmp_file.write(chunk)
+            if HAS_RICH:
+                console = Console()
+                with Progress(
+                    TextColumn("[bold blue]Downloading {task.fields[template]}"),
+                    BarColumn(),
+                    DownloadColumn(),
+                    TimeElapsedColumn(),
+                    console=console,
+                ) as progress:
+                    task = progress.add_task("Downloading", template=template_name, total=None)
+                    for chunk in response.iter_content(chunk_size=8192):
+                        tmp_file.write(chunk)
+                        progress.update(task, advance=len(chunk))
+            else:
+                for chunk in response.iter_content(chunk_size=8192):
+                    tmp_file.write(chunk)
             tmp_file.flush()
 
             with zipfile.ZipFile(tmp_file.name, 'r') as zip_ref:

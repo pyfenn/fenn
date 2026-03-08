@@ -8,6 +8,13 @@ from fenn.logging.backends.baseLogger import baseLogger
 
 from colorama import Fore, Style
 
+try:
+    from rich.console import Console
+    _rich_console = Console()
+    HAS_RICH = True
+except ImportError:
+    HAS_RICH = False
+
 # ==========================================================
 # CUSTOM LOGGING BACKEND (file + print override)
 # ==========================================================
@@ -21,16 +28,25 @@ class LoggingBackend(baseLogger):
 
     # ---- public (system tags) ----
     def system_info(self, message: str) -> None:
-        tag = f"{Fore.GREEN}[INFO]{Style.RESET_ALL}"
-        self._system_print(f"{tag} {message}")
+        if HAS_RICH:
+            _rich_console.print(f"[bold green][INFO][/bold green] {message}")
+        else:
+            tag = f"{Fore.GREEN}[INFO]{Style.RESET_ALL}"
+            self._system_print(f"{tag} {message}")
 
     def system_warning(self, message: str) -> None:
-        tag = f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL}"
-        self._system_print(f"{tag} {message}")
+        if HAS_RICH:
+            _rich_console.print(f"[bold yellow][WARNING][/bold yellow] {message}")
+        else:
+            tag = f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL}"
+            self._system_print(f"{tag} {message}")
 
     def system_exception(self, message: str) -> None:
-        tag = f"{Fore.RED}[EXCEPTION]{Style.RESET_ALL}"
-        self._system_print(f"{tag} {message}")
+        if HAS_RICH:
+            _rich_console.print(f"[bold red][EXCEPTION][/bold red] {message}")
+        else:
+            tag = f"{Fore.RED}[EXCEPTION]{Style.RESET_ALL}"
+            self._system_print(f"{tag} {message}")
 
     # ---- public (user logs: no tags) ----
     def user_info(self, message: str) -> None:

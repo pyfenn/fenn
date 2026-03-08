@@ -44,11 +44,11 @@ class LoRATrainer(Trainer):
             checkpoint_name: Base name for checkpoint files.
             save_best: Whether to save the best model based on loss.
         """
-        
+
         if lora_config:
             if not PEFT_AVAILABLE:
                 raise ImportError("peft is not installed. Please install it to use LoRATrainer with lora_config.")
-            
+
             # Wrap the model with PEFT
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()

@@ -115,12 +115,14 @@ class Trainer:
             filename = f"{self._checkpoint_name}_epoch_{epoch}.pt"
             filepath = self._checkpoint_dir / filename
             torch.save(checkpoint, filepath)
-            self._logger.system_info(f"Checkpoint saved at epoch {epoch} to {filepath}.")
+            if not HAS_RICH:
+                self._logger.system_info(f"Checkpoint saved at epoch {epoch} to {filepath}.")
 
         else:
             best_filepath = self._checkpoint_dir / f"{self._checkpoint_name}_best.pt"
             torch.save(checkpoint, best_filepath)
-            self._logger.system_info(f"Best model checkpoint saved to {best_filepath} with loss {loss:.4f}.")
+            if not HAS_RICH:
+                self._logger.system_info(f"Best model checkpoint saved to {best_filepath} with loss {loss:.4f}.")
 
     def _binary_predict(self, data_loader):
         self._model.eval()
@@ -185,7 +187,6 @@ class Trainer:
                 BarColumn(),
                 MofNCompleteColumn(),
                 TimeElapsedColumn(),
-                TextColumn("{task.fields[info]}"),
             )
             progress.start()
             epoch_task = progress.add_task(
@@ -193,7 +194,6 @@ class Trainer:
                 total = self._epochs - start_epoch,
                 epoch = start_epoch,
                 total_epochs = self._epochs,
-                info=""
             )
             
         for epoch in range(start_epoch, self._epochs):
@@ -225,7 +225,8 @@ class Trainer:
             train_mean_loss = total_loss / n_batches
             
             if HAS_RICH:
-                progress.update(epoch_task, advance=1, epoch=epoch+1, info=f"Train Mean Loss : {train_mean_loss:.4f}")
+                progress.update(epoch_task, advance=1, epoch=epoch+1)
+                progress.console.print(f"[bold blue]Epoch {epoch+1}/{self._epochs}[/bold blue] Train Mean Loss: {train_mean_loss:.4f}")
             else:
                 print(f"Epoch {epoch}. Train Mean Loss: {train_mean_loss:.4f}")
 
@@ -277,7 +278,7 @@ class Trainer:
                     val_acc = accuracy_score(val_labels, val_predictions)
                     
                     if HAS_RICH:
-                        progress.update(epoch_task, info=f"Train Mean Loss: {train_mean_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}")
+                        progress.console.print(f"[bold blue]Epoch {epoch+1}/{self._epochs}[/bold blue] Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}")
                     else:
                         print(f"Epoch {epoch}. Validation Loss: {val_mean_loss:.4f}")
                         print(f"Epoch {epoch}. Validation Accuracy: {val_acc:.4f}")

@@ -107,8 +107,15 @@ class Logger:
                 color = colors[i % len(colors)]
                 colored_parts.append(f"{color}{part}{Style.RESET_ALL}")
             
-            self._logging_backend.user_info(f"{'/'.join(colored_parts)}: {v}")
 
+            if hasattr(self._logging_backend, "write_config"):
+                self._logging_backend.write_config(f"{'/'.join(colored_parts)}: {v}")
+            else:
+                self._logging_backend.user_info(f"{'/'.join(colored_parts)}: {v}")
+
+        if hasattr(self._logging_backend, "flush_config_table"):
+            self._logging_backend.flush_config_table()
+        
         if self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.write_config(message)
 

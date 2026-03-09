@@ -8,12 +8,9 @@ from pathlib import Path
 import requests
 from colorama import Fore, Style
 
-try:
-    from rich.console import Console
-    from rich.table import Table
-    HAS_RICH = True
-except ImportError:
-    HAS_RICH = False
+from rich.console import Console
+from rich.table import Table
+
 TEMPLATES_REPO = "pyfenn/templates"
 REPO_NAME = "templates"
 GITHUB_API_BASE = "https://api.github.com"
@@ -66,19 +63,12 @@ def _list_templates() -> None:
         return
 
     templates.sort()
-    if HAS_RICH:
-        console = Console()
-        table = Table(title="Available Templates")
-        table.add_column("Template", style="yellow")
-        for template in templates:
-            if not template.endswith("dev-only"):
-                table.add_row(template)
-        console.print(table)
-        console.print("[cyan]Use [yellow]fenn pull <template>[/yellow] to download a template.[/cyan]")
-    else:
-        print(f"{Fore.GREEN}Available templates:{Style.RESET_ALL}")
-        for template in templates:
-            if not template.endswith("dev-only"):
-                print(f" - {Fore.LIGHTYELLOW_EX}{template}{Style.RESET_ALL}")
-
-        print(f"\n{Fore.CYAN}Use {Fore.LIGHTYELLOW_EX}fenn pull <template>{Fore.CYAN} to download a template.{Style.RESET_ALL}")
+    
+    console = Console()
+    table = Table(title="")
+    table.add_column(f"Available templates", style="", width=50)
+    for template in templates:
+        if not template.endswith("dev-only"):
+            table.add_row(f"- {template}")
+    console.print(table)
+    console.print("[cyan]Use [yellow]fenn pull <template>[/yellow] to download a template.[/cyan]")

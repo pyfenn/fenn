@@ -38,7 +38,7 @@ dependencies = [
   "colorama>=0.4.6",
   "requests>=2.32.5",
   "python-dotenv>=1.2.1",
-  "resend>=2.0.0"
+  "resend>=2.0.0",
 ]
 
 requires-python = ">=3.11"
@@ -69,6 +69,9 @@ extra = [
   "rich~=13.0.0"
   "loguru~=0.7.3"
 ]
+dev = [
+    "ruff>=0.15.5",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -85,3 +88,9 @@ fenn = "fenn.cli:main"
 [tool.pytest.ini_options]
 testpaths = ["src/tests"]
 norecursedirs = ["tests", "venv", ".venv", "__pycache__", "*.egg"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "Q"]
+
+[tool.ruff]
+include = ["pyproject.toml", "src/**/*.py"]

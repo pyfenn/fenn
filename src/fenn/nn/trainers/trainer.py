@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union, cast
 
@@ -76,6 +77,8 @@ class Trainer:
 
         self._best_state: Optional[TrainingState] = None
         """Best training state based on validation loss."""
+
+        self._best_model: Optional[torch.nn.Module] = None
 
         # checkpoint setup
         self._checkpoint = checkpoint_config
@@ -257,8 +260,6 @@ class Trainer:
                         val_predictions.extend(preds.cpu().tolist())
                         val_labels.extend(labels.cpu().tolist())
 
-                self._model.train()
-
                 if val_n_batches == 0:
                     raise ValueError("val_loader produced 0 batches; cannot validate.")
 
@@ -282,6 +283,9 @@ class Trainer:
                         model_state_dict=self._model.state_dict(),
                         optimizer_state_dict=self._optimizer.state_dict(),
                     )
+                    self._best_model = deepcopy(self._model)
+                    self._best_model.load_state_dict(self._best_state.model_state_dict)  # pyright: ignore[reportArgumentType]
+
                     if self._checkpoint is not None:
                         self._checkpoint.save(self._best_state, is_best=True)
 

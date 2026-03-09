@@ -65,10 +65,8 @@ test = [
   "Faker>=25.0.0"
 ]
 
-rich = [
-  "rich>=13.0.0"
-]
 extra = [
+  "rich~=13.0.0"
   "loguru~=0.7.3"
 ]
 

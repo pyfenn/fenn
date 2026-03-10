@@ -66,7 +66,6 @@ class ClassificationTrainer(Trainer):
         self._logger = Logger()
         self._num_classes = num_classes
         self.multi_label = multi_label
-        self._task_type = "classification"
 
         if num_classes < 1:
             raise ValueError("num_classes must be >= 1")

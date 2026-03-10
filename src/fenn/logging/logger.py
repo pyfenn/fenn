@@ -10,12 +10,6 @@ from fenn.logging.backends.tensorboard import TensorboardBackend
 from fenn.logging.backends.wandb import WandbBackend
 from fenn.secrets.keystore import KeyStore
 
-try:
-    from fenn.logging.backends.loguru import LoguruBackend
-    _LOGURU_AVAILABLE = True
-except ImportError:
-    _LOGURU_AVAILABLE = False
-
 class Logger:
     """Singleton logging system for Fenn (facade over multiple backends)."""
 
@@ -37,7 +31,7 @@ class Logger:
         self._parser = Parser()
         self._keystore = KeyStore()
 
-        self._logging_backend = LoguruBackend() if _LOGURU_AVAILABLE else LoggingBackend()
+        self._logging_backend = LoggingBackend()
         self._fnxml_backend = FnXmlBackend()
 
         self._wandb_backend = WandbBackend(

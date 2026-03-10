@@ -9,9 +9,11 @@ venv/
 .idea
 logger/
 site/
+.venv/
 
 
 # Tests
 coverage.xml
 .coverage
 .pytest_cache/
+venv/

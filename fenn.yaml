@@ -1,0 +1,28 @@
+# ---------------------------------------
+# Fenn Configuration (Modify Carefully)
+# ---------------------------------------
+
+project: mlp
+
+logger:
+  dir: logger
+
+# ---------------------------------------
+# User Section
+# ---------------------------------------
+general:
+  device: cuda
+
+train:
+  seed: 42
+  batch: 16
+  epochs: 30
+  lr: 1e-3
+
+test:
+  size: 0.2
+  batch: 16
+
+checkpoint:
+  save_dir: ./models
+  epochs: 5

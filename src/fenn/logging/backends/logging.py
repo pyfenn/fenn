@@ -10,13 +10,23 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 from fenn.args import Parser
-from fenn.logging.backends.baseLogger import baseLogger
 from colorama import Fore, Style
+
 
 # ==========================================================
 # CUSTOM LOGGING BACKEND (file + print override)
 # ==========================================================
-class LoggingBackend(baseLogger):
+
+try:
+    from loguru import logger
+    _LOGURU_AVAILABLE = True
+    print(f"[DEBUG] Loguru available, using LoguruBackend for logging.")
+except ImportError:
+    _LOGURU_AVAILABLE = False
+    logger = None
+    print(f"[DEBUG] Loguru not available, using custom LoggingBackend for logging.")
+
+class LoggingBackend():
     def __init__(self) -> None:
         self._console = Console()
         self._original_print = builtins.print
@@ -25,6 +35,7 @@ class LoggingBackend(baseLogger):
         self._enabled = False
         self._print_sink: Optional[Callable[[str, datetime], None]] = None
         self._config_table: Optional[Table] = None
+        self._file_handler_id = None
 
     # ---- public (system tags) ----
     def system_info(self, message: str) -> None:
@@ -69,15 +80,25 @@ class LoggingBackend(baseLogger):
         os.makedirs(log_root, exist_ok=True)
         os.makedirs(log_dir, exist_ok=True)
 
-        # truncate/create
-        with open(self._log_file, "w", encoding="utf-8") as f:
-            f.write("")
+        if _LOGURU_AVAILABLE and logger is not None:
+            logger.remove()  
+            self._file_handler_id = logger.add(
+                self._log_file,
+                level="DEBUG",
+                format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+                mode="w",
+            )
+        else:
+            with open(self._log_file, "w", encoding="utf-8") as f:
+                f.write("")
 
-        # override global print
         builtins.print = self._log_print
         self._enabled = True
 
     def stop(self) -> None:
+        if _LOGURU_AVAILABLE and logger is not None and self._file_handler_id is not None:
+            logger.remove(self._file_handler_id)
+            self._file_handler_id = None
         if self._enabled:
             builtins.print = self._original_print
             self._enabled = False
@@ -103,14 +124,22 @@ class LoggingBackend(baseLogger):
     ) -> None:
         message = sep.join(map(str, objects))
 
-        if self._log_file:
+        if _LOGURU_AVAILABLE and logger is not None:
             clean_message = self._ansi_escape.sub("", message)
-            timestamp_dt = datetime.now().replace(microsecond=0)
-            timestamp = timestamp_dt.isoformat(" ")
-            with open(self._log_file, "a", encoding="utf-8") as f:
-                f.write(f"[{timestamp}] {clean_message}\n")
+            logger.info(clean_message)
+            
             if self._print_sink is not None:
+                timestamp_dt = datetime.now().replace(microsecond=0)
                 self._print_sink(clean_message, timestamp_dt)
+        else:
+            if self._log_file:
+                clean_message = self._ansi_escape.sub("", message)
+                timestamp_dt = datetime.now().replace(microsecond=0)
+                timestamp = timestamp_dt.isoformat(" ")
+                with open(self._log_file, "a", encoding="utf-8") as f:
+                    f.write(f"[{timestamp}] {clean_message}\n")
+                if self._print_sink is not None:
+                    self._print_sink(clean_message, timestamp_dt)
 
         self._original_print(*objects, sep=sep, end=end, file=file, flush=flush)
 

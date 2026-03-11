@@ -1,6 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 from typing import Optional, Union, cast
+from abc import ABC ,abstractmethod
 
 import torch
 import torch.nn
@@ -24,15 +25,15 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-class Trainer:
-    """The base Trainer class for classification tasks."""
+class Trainer(ABC):
+    """The base Trainer abstract class for classification/Regression tasks."""
 
+    @abstractmethod
     def __init__(
         self,
         model: torch.nn.Module,
         loss_fn: torch.nn.Module,
         optim: torch.optim.Optimizer,
-        num_classes: int,
         device: Union[torch.device, str] = "cpu",
         early_stopping_patience: Optional[int] = None,
         checkpoint_config: Optional[Checkpoint] = None,
@@ -52,7 +53,7 @@ class Trainer:
         self._logger = Logger()
 
         self._loss_fn = loss_fn
-        self._num_classes = num_classes
+        self._num_classes = 2
         self._device = torch.device(device)
 
         # training state at epoch 0
@@ -114,6 +115,7 @@ class Trainer:
 
         return False
 
+    @abstractmethod
     def fit(
         self,
         train_loader: DataLoader,
@@ -244,7 +246,7 @@ class Trainer:
                     val_mean_loss = val_total_loss / val_n_batches
                     val_acc = accuracy_score(val_labels, val_predictions)
                 
-                    progress.console.print(f"[bold blue]Epoch {epoch+1}/{epochs + 1}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}")
+                    progress.console.print(f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}")
                     
 
                 state.val_loss = val_total_loss / val_n_batches
@@ -343,6 +345,7 @@ class Trainer:
         new_state = self._checkpoint.load_best()
         self._replace_state(new_state)
 
+    @abstractmethod
     def predict(self, dataloader_or_batch: Union[DataLoader, torch.Tensor]):
         """Predicts the output of the model for a given dataloader or batch.
 

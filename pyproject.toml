@@ -1,0 +1,98 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fenn"
+version = "0.1.5"
+description = "Friendly Environment for Neural Networks – a simple framework that automates the boring side of ML."
+
+authors = [
+  { name="Alessio Russo", email="alessio.russo.ar98@gmail.com" },
+]
+
+readme = "README.md"
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "PyYAML>=6.0.3",
+  "wandb>=0.23.0",
+  "numpy>=2,<2.3.0",
+  "pandas>=2.3.3",
+  "matplotlib>=3.10.7",
+  "scikit-learn>=1.7.2",
+  "colorama>=0.4.6",
+  "requests>=2.32.5",
+  "python-dotenv>=1.2.1",
+  "resend>=2.0.0",
+  "rich~=13.0.0"
+]
+
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+torch = [
+  "torch>=2.9.1",
+  "torchvision>=0.24.1"
+]
+vision = [
+  "Pillow>=10.0.0",
+  "torch>=2.9.1",
+  "torchvision>=0.24.1"
+]
+
+transformers = [
+  "peft ~= 0.18.0",
+  "transformers ~= 4.57.3"
+]
+
+test = [
+  "pytest>=8.0.0",
+  "pytest-cov>=7.0.0",
+  "requests-mock>=1.11.0",
+  "Faker>=25.0.0"
+]
+
+extra = [
+  "loguru~=0.7.3"
+]
+
+dev = [
+    "ruff>=0.15.5",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+fenn = "fenn.cli:main"
+
+[project.urls]
+"Homepage" = "https://pyfenn.org"
+"Documentation" = "https://pyfenn.org"
+"Source Code" = "https://github.com/blkdmr/fenn"
+"Bug Tracker" = "https://github.com/blkdmr/fenn/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["src/tests"]
+norecursedirs = ["tests", "venv", ".venv", "__pycache__", "*.egg"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "Q"]
+
+[tool.ruff]
+include = ["pyproject.toml", "src/**/*.py"]

@@ -144,6 +144,7 @@ The development and long-term direction of **fenn** is guided by the following m
 | [@blkdmr](https://github.com/blkdmr) | Creator & Project Administrator |
 | [@giuliaOddi](https://github.com/giuliaOddi) | Project Administrator |
 | [@GlowCheese](https://github.com/GlowCheese) | Core Maintainer |
+| [@franciscolima05](https://github.com/franciscolima05) | Core Maintainer |
 
 Maintainers oversee the project roadmap, review pull requests, coordinate releases, and ensure the long-term stability and quality of the framework.
 

@@ -5,13 +5,11 @@ from typing import Optional, Union, cast
 import torch
 import torch.nn
 import torch.optim
-from sklearn.metrics import (  # noqa: F401
-    mean_squared_error
-)
+from sklearn.metrics import r2_score
 from torch.utils.data import DataLoader
 
 from fenn.logging import Logger
-from fenn.nn.utils import Checkpoint, TrainingState
+from fenn.nn.utils import Checkpoint
 from fenn.nn.trainers import Trainer
 
 from rich.progress import (
@@ -151,6 +149,10 @@ class RegressionTrainer(Trainer):
             if val_loader is None:
                 state.val_loss = None
 
+                progress.console.print(f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f}")
+                Logger().user_info(f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}", display=False)
+
+
                 if state.train_loss < state.best_train_loss:
                     state.best_train_loss = state.train_loss
                     state.patience_counter = 0
@@ -187,18 +189,18 @@ class RegressionTrainer(Trainer):
                 
                 if val_n_batches > 0:
                     val_mean_loss = val_total_loss / val_n_batches
-                    val_acc = mean_squared_error(val_labels, val_predictions)
+                    val_r2 = r2_score(val_labels, val_predictions)
                 
-                    progress.console.print(f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}")
-                    Logger().user_info(f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}", display=False)
-                    
+                    progress.console.print(f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val R2: {val_r2:.4f}")
+                    Logger().user_info(f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val R2: {val_r2:.4f}", display=False)
 
+                    
                 state.val_loss = val_total_loss / val_n_batches
-                state.acc = mean_squared_error(val_labels, val_predictions)
+                state.acc = r2_score(val_labels, val_predictions)
 
                 progress.update(
                     epoch_task,  # pyright: ignore[reportArgumentType]
-                    info=f"Train Mean Loss: {state.train_loss:.4f} | Val Loss: {state.val_loss:.4f} | Val Acc: {state.acc:.4f}",
+                    info=f"Train Mean Loss: {state.train_loss:.4f} | Val Loss: {state.val_loss:.4f} | Val MSE: {state.acc:.4f}",
                 )
 
                 if state.val_loss < state.best_val_loss:

@@ -129,9 +129,11 @@ python main.py
 
 ## Contributing
 
-Contributions are welcome! We can then discuss a possible contribution together, answer any questions, and help you get started!
+Contributions are welcome! 
 
 Interested in contributing? Join the community on [Discord](https://discord.gg/WxDkvktBAa)
+
+We can then discuss a possible contribution together, answer any questions, and help you get started!
 
 **Please, before opening a pull request, consult our CONTRIBUTING.md**
 

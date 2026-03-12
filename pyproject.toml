@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fenn"
-version = "0.1.5"
-description = "Friendly Environment for Neural Networks – a simple framework that automates the boring side of ML."
+version = "0.1.6"
+description = "Friendly Environment for Neural Networks (fenn) is a simple framework that automates ML/DL workflows by providing prebuilt trainers, templates, logging, configuration management, and much more."
 
 authors = [
-  { name="Alessio Russo", email="alessio.russo.ar98@gmail.com" },
+  { name="Alessio Russo", email="alessio.russo@pyfenn.org" },
 ]
 
 readme = "README.md"

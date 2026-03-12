@@ -17,14 +17,6 @@ from colorama import Fore, Style
 # CUSTOM LOGGING BACKEND (file + print override)
 # ==========================================================
 
-try:
-    from loguru import logger
-    _LOGURU_AVAILABLE = True
-
-except ImportError:
-    _LOGURU_AVAILABLE = False
-    logger = None
-
 class LoggingBackend():
     def __init__(self) -> None:
         self._console = Console()
@@ -36,39 +28,47 @@ class LoggingBackend():
         self._config_table: Optional[Table] = None
         self._file_handler_id = None
 
-    # ---- public (system tags) ----
-    def system_info(self, message: str) -> None:
-        self._console.print(f"[bold green][INFO][/bold green] {message}")
+    # ---- public methods -----
 
-    def system_warning(self, message: str) -> None:
-        self._console.print(f"[bold yellow][WARNING][/bold yellow] {message}")
+    def info (self, message: str, display_on_terminal : bool = True, write_on_file : bool = True) -> None:
+        if write_on_file:
+            self._log_print(message, display=False)
+        if display_on_terminal:
+            self._console.print(f"[bold green][INFO][/bold green] {message}")
+
+    def warning (self, message: str, display_on_terminal : bool = True, write_on_file : bool = True) -> None:
+        if write_on_file:
+            self._log_print(message, display=False)
+        if display_on_terminal:
+            self._console.print(f"[bold yellow][WARNING][/bold yellow] {message}")
+        
+    def exception (self, message: str, display_on_terminal : bool = True, write_on_file : bool = True) -> None:
+        if write_on_file:
+            self._log_print(message, display=False)
+        if display_on_terminal:
+            self._console.print(f"[bold red][EXCEPTION][/bold red] {message}")
     
-    def system_exception(self, message: str) -> None:
-        self._console.print(f"[bold red][EXCEPTION][/bold red] {message}")
+    def debug (self, message: str, display_on_terminal : bool = True, write_on_file : bool = True) -> None:
+        if write_on_file:
+            self._log_print(message, display=False)
+        if display_on_terminal:
+            self._console.print(f"[dim][DEBUG][/dim] {message}")
+    
 
-    # ---- public (user logs: no tags) ----
+    # ---- config table methods ----
     def write_config(self, message: str) -> None:
         if self._config_table is None:
             table = Table(title="")
             table.add_column(f"Configuration file {Parser().config_file} loaded", style="", width=80)
             self._config_table = table
         self._config_table.add_row(Text.from_ansi(f"- {message}"))
-        self.user_info(f"{message}", display=False)
+        self.info(f"{message}", display_on_terminal=False)
 
     def flush_config_table(self) -> None:
         if self._config_table is None:
             return
         self._console.print(self._config_table)
         self._config_table = None
-        
-    def user_info(self, message: str, display: bool = True) -> None:
-        self._log_print(message, display=display)
-
-    def user_warning(self, message: str) -> None:
-        self._log_print(message, display=True)
-
-    def user_exception(self, message: str) -> None:
-        self._log_print(message, display=True)
 
     # ---- lifecycle ----
     def start(self, args: Dict[str, Any]) -> None:
@@ -80,25 +80,13 @@ class LoggingBackend():
         os.makedirs(log_root, exist_ok=True)
         os.makedirs(log_dir, exist_ok=True)
 
-        if _LOGURU_AVAILABLE and logger is not None:
-            logger.remove()  
-            self._file_handler_id = logger.add(
-                self._log_file,
-                level="DEBUG",
-                format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
-                mode="w",
-            )
-        else:
-            with open(self._log_file, "w", encoding="utf-8") as f:
-                f.write("")
+        with open(self._log_file, "w", encoding="utf-8") as f:
+            f.write("")
 
         builtins.print = self._log_print
         self._enabled = True
 
     def stop(self) -> None:
-        if _LOGURU_AVAILABLE and logger is not None and self._file_handler_id is not None:
-            logger.remove(self._file_handler_id)
-            self._file_handler_id = None
         if self._enabled:
             builtins.print = self._original_print
             self._enabled = False
@@ -122,25 +110,18 @@ class LoggingBackend():
         file: Optional[Any] = None,
         flush: bool = False,
         display: bool = True,
+        level: str = "INFO",
     ) -> None:
         message = sep.join(map(str, objects))
 
-        if _LOGURU_AVAILABLE and logger is not None:
+        if self._log_file:
             clean_message = self._ansi_escape.sub("", message)
-            logger.info(clean_message)
-            
+            timestamp_dt = datetime.now().replace(microsecond=0)
+            timestamp = timestamp_dt.isoformat(" ")
+            with open(self._log_file, "a", encoding="utf-8") as f:
+                f.write(f"[{timestamp}] {level} | {clean_message}\n")
             if self._print_sink is not None:
-                timestamp_dt = datetime.now().replace(microsecond=0)
                 self._print_sink(clean_message, timestamp_dt)
-        else:
-            if self._log_file:
-                clean_message = self._ansi_escape.sub("", message)
-                timestamp_dt = datetime.now().replace(microsecond=0)
-                timestamp = timestamp_dt.isoformat(" ")
-                with open(self._log_file, "a", encoding="utf-8") as f:
-                    f.write(f"[{timestamp}] {clean_message}\n")
-                if self._print_sink is not None:
-                    self._print_sink(clean_message, timestamp_dt)
 
         if display:
             self._original_print(*objects, sep=sep, end=end, file=file, flush=flush)

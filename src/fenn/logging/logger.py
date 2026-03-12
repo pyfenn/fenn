@@ -36,14 +36,14 @@ class Logger:
 
         self._wandb_backend = WandbBackend(
             keystore=self._keystore,
-            system_info=self._logging_backend.system_info,
-            system_warning=self._logging_backend.system_warning,
-            system_exception=self._logging_backend.system_exception,
+            system_info=lambda msg: self._logging_backend.info(msg, display=True, to_file=False),
+            system_warning=lambda msg: self._logging_backend.warning(msg, display=True, to_file=False),
+            system_exception=lambda msg: self._logging_backend.exception(msg, display=True, to_file=False),
         )
         self._tensorboard_backend = TensorboardBackend(
-            system_info=self._logging_backend.system_info,
-            system_warning=self._logging_backend.system_warning,
-            system_exception=self._logging_backend.system_exception,
+            system_info=lambda msg: self._logging_backend.info(msg, display=True, to_file=False),
+            system_warning=lambda msg: self._logging_backend.warning(msg, display=True, to_file=False),
+            system_exception=lambda msg: self._logging_backend.exception(msg, display=True, to_file=False),
         )
 
         self._args: Optional[Dict[str, Any]] = None
@@ -56,29 +56,29 @@ class Logger:
     # same public API as before
     # --------------------------
     def system_info(self, message: str) -> None:
-        self._logging_backend.system_info(message)
+        self._logging_backend.info(message, display_on_terminal = True, write_on_file = False)
         
         # system_info is called before arguments are loaded, so we need to check if self._args is not None before accessing it
         if self._args and self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.system_info(message)
 
     def system_exception(self, message: str) -> None:
-        self._logging_backend.system_exception(message)
+        self._logging_backend.exception(message, display_on_terminal = True, write_on_file = False)
         if self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.system_exception(message)
 
     def user_info(self, message: str, display: bool = True) -> None:
-        self._logging_backend.user_info(message, display)
+        self._logging_backend.info(message, display_on_terminal = display, write_on_file = False)
         if self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.user_info(message)
 
     def user_warning(self, message: str) -> None:
-        self._logging_backend.user_warning(message)
+        self._logging_backend.warning(message, display_on_terminal = True, write_on_file = True)
         if self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.user_warning(message)
 
     def user_exception(self, message: str) -> None:
-        self._logging_backend.user_exception(message)
+        self._logging_backend.exception(message, display_on_terminal = True, write_on_file = True)
         if self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.user_exception(message)
 

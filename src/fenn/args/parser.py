@@ -44,6 +44,7 @@ class Parser:
         # File exists → load YAML
         with open(self._config_file) as f:
             self._args = yaml.safe_load(f)
+            self._args["project"] = self._config_file.split("/")[-1].split(".")[0]
 
         return self._args
 

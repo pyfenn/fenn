@@ -1,12 +1,13 @@
-import yaml
 import os
-from colorama import Fore, Style, init
 from typing import Any, Dict
+
+import yaml
+from colorama import init
 
 from fenn.secrets.keystore import KeyStore
 
-class Parser:
 
+class Parser:
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -30,7 +31,6 @@ class Parser:
         logger = Logger()
 
         if not os.path.isfile(self._config_file):
-
             logger.display_excpetion(
                 f"Configuration file {self._config_file} was not found."
             )
@@ -50,6 +50,7 @@ class Parser:
     def print(self) -> None:
         """Public method to trigger the flattened print with colored paths."""
         from fenn.logging import Logger
+
         Logger().write_config(self._args)
 
     @property

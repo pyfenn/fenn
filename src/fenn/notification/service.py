@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+
 from fenn.secrets.keystore import KeyStore
+
 
 class Service(ABC):
     """Abstract base class for notification services."""

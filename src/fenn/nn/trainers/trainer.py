@@ -1,7 +1,6 @@
-from copy import deepcopy
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Union, cast
-from abc import ABC ,abstractmethod
+from typing import Optional, Union
 
 import torch
 import torch.nn
@@ -17,13 +16,6 @@ from torch.utils.data import DataLoader
 from fenn.logging import Logger
 from fenn.nn.utils import Checkpoint, TrainingState
 
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    TextColumn,
-    TimeElapsedColumn,
-)
 
 class Trainer(ABC):
     """The base Trainer abstract class for classification/Regression tasks."""

@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 
 from fenn.experimental.vision import image_summary
@@ -11,7 +10,7 @@ class TestImageSummary:
         """Test summary for 3D grayscale batch (N, H, W)."""
         array = np.random.randint(0, 255, (10, 224, 224), dtype=np.uint8)
         result = image_summary(array)
-        
+
         assert result["is_grayscale"] is True
         assert result["channel_location"] is None
         assert result["batch_size"] == 10
@@ -30,7 +29,7 @@ class TestImageSummary:
         """Test summary for 4D color batch with channels last (N, H, W, C)."""
         array = np.random.randint(0, 255, (32, 224, 224, 3), dtype=np.uint8)
         result = image_summary(array)
-        
+
         assert result["is_grayscale"] is False
         assert result["channel_location"] == "last"
         assert result["batch_size"] == 32
@@ -44,7 +43,7 @@ class TestImageSummary:
         """Test summary for 4D color batch with channels first (N, C, H, W)."""
         array = np.random.rand(16, 3, 128, 128).astype(np.float32)
         result = image_summary(array)
-        
+
         assert result["is_grayscale"] is False
         assert result["channel_location"] == "first"
         assert result["batch_size"] == 16
@@ -58,7 +57,7 @@ class TestImageSummary:
         """Test summary for 4D grayscale batch (N, H, W, 1)."""
         array = np.random.randint(0, 255, (5, 64, 64, 1), dtype=np.uint8)
         result = image_summary(array)
-        
+
         assert result["is_grayscale"] is True
         assert result["channel_location"] == "last"
         assert result["shape_info"]["channels"] == 1
@@ -69,7 +68,7 @@ class TestImageSummary:
         array = np.random.rand(8, 224, 224, 3).astype(np.float32)
         array[0, 0, 0, 0] = np.nan  # Introduce NaN
         result = image_summary(array)
-        
+
         assert result["data_quality"]["has_nan"] is True
         assert result["data_quality"]["nan_count"] > 0
         # Should still compute stats using nan-aware functions
@@ -90,13 +89,13 @@ class TestImageSummary:
         array[1, 0, 1, :] = [35, 45, 55]
         array[1, 1, 0, :] = [65, 75, 85]
         array[1, 1, 1, :] = [95, 105, 115]
-        
+
         result = image_summary(array)
-        
+
         # Verify value range
         assert result["value_range"]["min"] == 0.0
         assert result["value_range"]["max"] == 120.0
-        
+
         channel_0_values = array[:, :, :, 0].flatten()  # All values in channel 0
         channel_1_values = array[:, :, :, 1].flatten()  # All values in channel 1
         channel_2_values = array[:, :, :, 2].flatten()  # All values in channel 2
@@ -104,14 +103,17 @@ class TestImageSummary:
         expected_means = [
             float(np.nanmean(channel_0_values)),
             float(np.nanmean(channel_1_values)),
-            float(np.nanmean(channel_2_values))
+            float(np.nanmean(channel_2_values)),
         ]
-        np.testing.assert_allclose(result["channel_stats"]["mean"], expected_means, rtol=1e-5)
-        
+        np.testing.assert_allclose(
+            result["channel_stats"]["mean"], expected_means, rtol=1e-5
+        )
+
         expected_stds = [
             float(np.nanstd(channel_0_values)),
             float(np.nanstd(channel_1_values)),
-            float(np.nanstd(channel_2_values))
+            float(np.nanstd(channel_2_values)),
         ]
-        np.testing.assert_allclose(result["channel_stats"]["std"], expected_stds, rtol=1e-5)
-
+        np.testing.assert_allclose(
+            result["channel_stats"]["std"], expected_stds, rtol=1e-5
+        )

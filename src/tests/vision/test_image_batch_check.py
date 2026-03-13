@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from fenn.experimental.vision import check_image_batch
 

@@ -10,7 +10,14 @@ from colorama import Fore, Style
 
 try:
     from rich.console import Console
-    from rich.progress import Progress, DownloadColumn, BarColumn, TextColumn, TimeElapsedColumn
+    from rich.progress import (
+        BarColumn,
+        DownloadColumn,
+        Progress,
+        TextColumn,
+        TimeElapsedColumn,
+    )
+
     HAS_RICH = True
 except ImportError:
     HAS_RICH = False
@@ -19,6 +26,7 @@ TEMPLATES_REPO = "pyfenn/templates"
 REPO_NAME = "templates"
 GITHUB_API_BASE = "https://api.github.com"
 GITHUB_ARCHIVE_BASE = "https://github.com"
+
 
 def execute(args: argparse.Namespace) -> None:
     """
@@ -35,17 +43,23 @@ def execute(args: argparse.Namespace) -> None:
     force = args.force
 
     if not template_name:
-        print(f"{Fore.RED}Template name is required (example: {Fore.LIGHTYELLOW_EX}fenn pull base{Fore.RED}){Style.RESET_ALL}")
-        print(f"{Fore.CYAN}Use {Fore.LIGHTYELLOW_EX}fenn list{Fore.CYAN} to see available templates.{Style.RESET_ALL}")
+        print(
+            f"{Fore.RED}Template name is required (example: {Fore.LIGHTYELLOW_EX}fenn pull base{Fore.RED}){Style.RESET_ALL}"
+        )
+        print(
+            f"{Fore.CYAN}Use {Fore.LIGHTYELLOW_EX}fenn list{Fore.CYAN} to see available templates.{Style.RESET_ALL}"
+        )
         sys.exit(1)
 
     has_visible_files = any(
-        not item.name.startswith('.') for item in target_dir.iterdir()
+        not item.name.startswith(".") for item in target_dir.iterdir()
     )
 
     if target_dir.exists() and has_visible_files and not force:
         if HAS_RICH:
-            Console().print(f"[red]Refusing to pull into non-empty directory [yellow]{target_dir}[/yellow].\nUse [yellow]--force[/yellow] to override existing files.[/red]")
+            Console().print(
+                f"[red]Refusing to pull into non-empty directory [yellow]{target_dir}[/yellow].\nUse [yellow]--force[/yellow] to override existing files.[/red]"
+            )
         else:
             print(
                 f"{Fore.RED}Refusing to pull into non-empty directory "
@@ -115,7 +129,7 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
         raise NetworkError(f"Failed to download template archive: {e}")
 
     # Extract only the specific template directory from the archive
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
         try:
             if HAS_RICH:
                 console = Console()
@@ -126,7 +140,9 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
                     TimeElapsedColumn(),
                     console=console,
                 ) as progress:
-                    task = progress.add_task("Downloading", template=template_name, total=None)
+                    task = progress.add_task(
+                        "Downloading", template=template_name, total=None
+                    )
                     for chunk in response.iter_content(chunk_size=8192):
                         tmp_file.write(chunk)
                         progress.update(task, advance=len(chunk))
@@ -135,12 +151,11 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
                     tmp_file.write(chunk)
             tmp_file.flush()
 
-            with zipfile.ZipFile(tmp_file.name, 'r') as zip_ref:
+            with zipfile.ZipFile(tmp_file.name, "r") as zip_ref:
                 # Find all files in the template directory
                 template_prefix = f"{REPO_NAME}-main/{template_name}/"
                 template_files = [
-                    f for f in zip_ref.namelist()
-                    if f.startswith(template_prefix)
+                    f for f in zip_ref.namelist() if f.startswith(template_prefix)
                 ]
 
                 if not template_files:
@@ -153,11 +168,13 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
 
                 # Extract files and dirs, removing the template prefix from paths
                 for file_path in template_files:
-                    relative_path = file_path[len(template_prefix):]
+                    relative_path = file_path[len(template_prefix) :]
                     if not relative_path:
                         continue
-                    if file_path.endswith('/'):
-                        (target_dir / relative_path.rstrip('/')).mkdir(parents=True, exist_ok=True)
+                    if file_path.endswith("/"):
+                        (target_dir / relative_path.rstrip("/")).mkdir(
+                            parents=True, exist_ok=True
+                        )
                         continue
                     dest_path = target_dir / relative_path
                     dest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -170,14 +187,17 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
 
 class TemplateNotFoundError(Exception):
     """Raised when a template is not found in the repository."""
+
     pass
 
 
 class NetworkError(Exception):
     """Raised when a network request fails."""
+
     pass
 
 
 class TemplateError(Exception):
     """Raised when a template has an invalid structure."""
+
     pass

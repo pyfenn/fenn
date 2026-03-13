@@ -1,9 +1,11 @@
-import numpy as np
 from typing import Tuple, Union
+
+import numpy as np
 
 try:
     import torch
     from torchvision.transforms import functional as F
+
     TORCHVISION_AVAILABLE = True
 except ImportError:
     TORCHVISION_AVAILABLE = False
@@ -14,7 +16,7 @@ from .vision_utils import detect_format
 def resize_batch(
     array: np.ndarray,
     size: Union[int, Tuple[int, int]],
-    interpolation: str = "bilinear"
+    interpolation: str = "bilinear",
 ) -> np.ndarray:
     """
     Resize a batch of images to a target size, preserving channel order and dtype where possible.
@@ -115,7 +117,9 @@ def resize_batch(
     else:
         # (N, H, W)
         original_height, original_width = array.shape[1], array.shape[2]
-    is_downsampling = (original_height > target_height) or (original_width > target_width)
+    is_downsampling = (original_height > target_height) or (
+        original_width > target_width
+    )
 
     # Normalize to channels-first format (N, C, H, W) for torchvision
     if channel_location == "last":
@@ -142,17 +146,14 @@ def resize_batch(
         needs_normalization = True
 
     # Enable antialiasing only when downsampling with smooth interpolation methods
-    use_antialias = (
-        is_downsampling and
-        interpolation in ["bilinear", "bicubic"]
-    )
+    use_antialias = is_downsampling and interpolation in ["bilinear", "bicubic"]
 
     # Resize using torchvision
     resized_tensor = F.resize(
         tensor,
         size=[target_height, target_width],
         interpolation=torch_interpolation,
-        antialias=use_antialias
+        antialias=use_antialias,
     )
 
     # Convert back to numpy

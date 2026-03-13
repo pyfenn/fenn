@@ -2,10 +2,12 @@ import os
 from typing import Any, Callable, Dict, Optional
 
 from fenn.secrets.keystore import KeyStore
+
 try:
     import wandb  # type: ignore
 except Exception:  # pragma: no cover
     wandb = None  # type: ignore
+
 
 # ==========================================================
 # WANDB BACKEND

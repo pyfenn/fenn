@@ -1,19 +1,19 @@
-import os
 import json
+import os
 from dataclasses import asdict
 from typing import Sequence, Union
 
 import numpy as np
+import peft
 import torch
+from fenn.transformers import LoRAConfig
 from torch import nn
 from torch.utils.data import DataLoader
 
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import peft
-
-from fenn.logging import Logger
 from fenn.datasets import TextDataset
-from fenn.transformers import LoRAConfig
+from fenn.logging import Logger
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
 
 def _dtype_from_string(s: str):
     s = s.lower()
@@ -24,6 +24,7 @@ def _dtype_from_string(s: str):
     if s in ("fp32", "float32"):
         return torch.float32
     raise ValueError(f"Unsupported torch_dtype: {s}")
+
 
 class SequenceClassifier:
     """
@@ -105,7 +106,9 @@ class SequenceClassifier:
         dl = DataLoader(ds, batch_size=self._config.train_batch_size, shuffle=shuffle)
 
         criterion = nn.BCEWithLogitsLoss()
-        optimizer = torch.optim.AdamW(self._model_.parameters(), lr=self._config.learning_rate)
+        optimizer = torch.optim.AdamW(
+            self._model_.parameters(), lr=self._config.learning_rate
+        )
 
         self._model_.train()
         for epoch in range(self._config.epochs):
@@ -127,7 +130,9 @@ class SequenceClassifier:
 
                 total += float(loss.item())
 
-            self._log(f"Epoch {epoch + 1} [COMPLETED] - Avg Loss: {total / max(1, len(dl)):.4f}")
+            self._log(
+                f"Epoch {epoch + 1} [COMPLETED] - Avg Loss: {total / max(1, len(dl)):.4f}"
+            )
 
         self._is_trained_ = True
         return self
@@ -135,7 +140,9 @@ class SequenceClassifier:
     @torch.no_grad()
     def decision_function(self, X: Sequence[str]) -> np.ndarray:
         self._check_is_fitted()
-        ds = TextDataset(X, None, tokenizer=self._tokenizer_, max_length=self._config.max_length)
+        ds = TextDataset(
+            X, None, tokenizer=self._tokenizer_, max_length=self._config.max_length
+        )
         dl = DataLoader(ds, batch_size=self._config.eval_batch_size, shuffle=False)
 
         self._model_.eval()
@@ -151,7 +158,7 @@ class SequenceClassifier:
 
     def predict_proba(self, X: Sequence[str]) -> np.ndarray:
         logits = self.decision_function(X)
-        p1 = 1.0 / (1.0 + np.exp(-logits))           # sigmoid
+        p1 = 1.0 / (1.0 + np.exp(-logits))  # sigmoid
         p0 = 1.0 - p1
         return np.stack([p0, p1], axis=1)
 
@@ -190,7 +197,9 @@ class SequenceClassifier:
             "classes_": self._classes_.tolist(),
             "threshold": self._config.threshold,
         }
-        with open(os.path.join(output_dir, "estimator.json"), "w", encoding="utf-8") as f:
+        with open(
+            os.path.join(output_dir, "estimator.json"), "w", encoding="utf-8"
+        ) as f:
             json.dump(meta, f, indent=2)
 
         return self
@@ -202,7 +211,7 @@ class SequenceClassifier:
         *,
         base_model_dir: str,
         base_model_name: str,
-        device: str = "cuda"
+        device: str = "cuda",
     ):
         """
         Reload:
@@ -210,14 +219,20 @@ class SequenceClassifier:
           - adapter from adapter_dir
           - tokenizer from adapter_dir/tokenizer
         """
-        with open(os.path.join(adapter_dir, "estimator.json"), "r", encoding="utf-8") as f:
+        with open(
+            os.path.join(adapter_dir, "estimator.json"), "r", encoding="utf-8"
+        ) as f:
             meta = json.load(f)
 
         cfg = LoRAConfig(
             model_dir=base_model_dir,
             model_name=base_model_name,
             device=device,
-            **{k: v for k, v in meta["config"].items() if k not in ("model_dir", "model_name", "device")},
+            **{
+                k: v
+                for k, v in meta["config"].items()
+                if k not in ("model_dir", "model_name", "device")
+            },
         )
 
         est = cls(cfg)
@@ -244,5 +259,9 @@ class SequenceClassifier:
         return est
 
     def _check_is_fitted(self):
-        if not getattr(self, "is_fitted_", False) or self._model_ is None or self._tokenizer_ is None:
+        if (
+            not getattr(self, "is_fitted_", False)
+            or self._model_ is None
+            or self._tokenizer_ is None
+        ):
             raise RuntimeError("Estimator is not fitted yet. Call fit() or load().")

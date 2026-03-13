@@ -1,13 +1,8 @@
 import argparse
-import os
 import sys
-import tempfile
-import zipfile
-from pathlib import Path
 
 import requests
 from colorama import Fore, Style
-
 from rich.console import Console
 from rich.table import Table
 
@@ -15,6 +10,7 @@ TEMPLATES_REPO = "pyfenn/templates"
 REPO_NAME = "templates"
 GITHUB_API_BASE = "https://api.github.com"
 GITHUB_ARCHIVE_BASE = "https://github.com"
+
 
 def execute(args: argparse.Namespace) -> None:
     """
@@ -32,9 +28,12 @@ def execute(args: argparse.Namespace) -> None:
         print(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
         sys.exit(1)
 
+
 class NetworkError(Exception):
     """Raised when a network request fails."""
+
     pass
+
 
 def _list_templates() -> None:
     """
@@ -53,22 +52,21 @@ def _list_templates() -> None:
 
     contents = response.json()
 
-    templates = [
-        item["name"] for item in contents
-        if item.get("type") == "dir"
-    ]
+    templates = [item["name"] for item in contents if item.get("type") == "dir"]
 
     if not templates:
         print(f"{Fore.YELLOW}No templates found in the repository.{Style.RESET_ALL}")
         return
 
     templates.sort()
-    
+
     console = Console()
     table = Table(title="")
-    table.add_column(f"Available templates", style="", width=50)
+    table.add_column("Available templates", style="", width=50)
     for template in templates:
         if not template.endswith("dev-only"):
             table.add_row(f"- {template}")
     console.print(table)
-    console.print("[cyan]Use [yellow]fenn pull <template>[/yellow] to download a template.[/cyan]")
+    console.print(
+        "[cyan]Use [yellow]fenn pull <template>[/yellow] to download a template.[/cyan]"
+    )

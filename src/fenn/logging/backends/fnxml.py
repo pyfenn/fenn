@@ -40,7 +40,7 @@ class FnXmlBackend:
     def start(self, args: Dict[str, Any]) -> None:
         log_root = Path(args["logger"]["dir"]).expanduser()
         log_dir = log_root / Path(args["project"])
-        log_filename = f'{args["session_id"]}.fn'
+        log_filename = f"{args['session_id']}.fn"
         self._log_file = log_dir / log_filename
 
         self._session_id = str(args["session_id"])
@@ -72,7 +72,9 @@ class FnXmlBackend:
 
     # ---- print capture (optional) ----
     def log_print(self, message: str, timestamp: Optional[datetime] = None) -> None:
-        self._write_entry(kind="print", level="info", message=message, timestamp=timestamp)
+        self._write_entry(
+            kind="print", level="info", message=message, timestamp=timestamp
+        )
 
     @property
     def log_file(self) -> Optional[Path]:
@@ -125,7 +127,9 @@ class FnXmlBackend:
         )
 
     @staticmethod
-    def _flatten_dict(d: Dict[str, Any], parent_key: str = "", sep: str = "/") -> Dict[str, Any]:
+    def _flatten_dict(
+        d: Dict[str, Any], parent_key: str = "", sep: str = "/"
+    ) -> Dict[str, Any]:
         items = []
         for k, v in d.items():
             new_key = f"{parent_key}{sep}{k}" if parent_key else str(k)

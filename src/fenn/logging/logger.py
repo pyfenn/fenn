@@ -10,6 +10,7 @@ from fenn.logging.backends.tensorboard import TensorboardBackend
 from fenn.logging.backends.wandb import WandbBackend
 from fenn.secrets.keystore import KeyStore
 
+
 class Logger:
     """Singleton logging system for Fenn (facade over multiple backends)."""
 
@@ -36,14 +37,26 @@ class Logger:
 
         self._wandb_backend = WandbBackend(
             keystore=self._keystore,
-            system_info=lambda msg: self._logging_backend.info(msg, display=True, to_file=False),
-            system_warning=lambda msg: self._logging_backend.warning(msg, display=True, to_file=False),
-            system_exception=lambda msg: self._logging_backend.exception(msg, display=True, to_file=False),
+            system_info=lambda msg: self._logging_backend.info(
+                msg, display=True, to_file=False
+            ),
+            system_warning=lambda msg: self._logging_backend.warning(
+                msg, display=True, to_file=False
+            ),
+            system_exception=lambda msg: self._logging_backend.exception(
+                msg, display=True, to_file=False
+            ),
         )
         self._tensorboard_backend = TensorboardBackend(
-            system_info=lambda msg: self._logging_backend.info(msg, display=True, to_file=False),
-            system_warning=lambda msg: self._logging_backend.warning(msg, display=True, to_file=False),
-            system_exception=lambda msg: self._logging_backend.exception(msg, display=True, to_file=False),
+            system_info=lambda msg: self._logging_backend.info(
+                msg, display=True, to_file=False
+            ),
+            system_warning=lambda msg: self._logging_backend.warning(
+                msg, display=True, to_file=False
+            ),
+            system_exception=lambda msg: self._logging_backend.exception(
+                msg, display=True, to_file=False
+            ),
         )
 
         self._args: Optional[Dict[str, Any]] = None
@@ -55,19 +68,25 @@ class Logger:
     # --------------------------
     # same public API as before
     # --------------------------
-    def display_info(self, message: str,  display_on_terminal = True, write_on_file = True) -> None:
+    def display_info(
+        self, message: str, display_on_terminal=True, write_on_file=True
+    ) -> None:
         self._logging_backend.info(message, display_on_terminal, write_on_file)
-        
+
         # system_info is called before arguments are loaded, so we need to check if self._args is not None before accessing it
         if self._args and self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.system_info(message)
 
-    def display_excpetion(self, message: str,  display_on_terminal = True, write_on_file = True) -> None:
+    def display_excpetion(
+        self, message: str, display_on_terminal=True, write_on_file=True
+    ) -> None:
         self._logging_backend.exception(message, display_on_terminal, write_on_file)
         if self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.system_exception(message)
 
-    def display_warning(self, message: str, display_on_terminal = True, write_on_file = True) -> None:
+    def display_warning(
+        self, message: str, display_on_terminal=True, write_on_file=True
+    ) -> None:
         self._logging_backend.warning(message, display_on_terminal, write_on_file)
         if self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.user_warning(message)
@@ -90,13 +109,12 @@ class Logger:
             for i, part in enumerate(parts):
                 color = colors[i % len(colors)]
                 colored_parts.append(f"{color}{part}{Style.RESET_ALL}")
-            
 
             self._logging_backend.write_config(f"{'/'.join(colored_parts)}: {v}")
 
         if hasattr(self._logging_backend, "flush_config_table"):
             self._logging_backend.flush_config_table()
-        
+
         if self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.write_config(message)
 
@@ -123,7 +141,7 @@ class Logger:
         if self._args.get("wandb"):
             self._wandb_backend.stop()
         if self._args.get("tensorboard"):
-            self._tensorboard_backend.stop()    
+            self._tensorboard_backend.stop()
         if self._args.get("logger", {}).get("fnxml", False):
             self._fnxml_backend.stop()
 
@@ -135,14 +153,12 @@ class Logger:
         for k, v in d.items():
             new_key = f"{parent_key}{sep}{k}" if parent_key else k
             if isinstance(v, dict):
-                items.extend(
-                    Logger._flatten_dict(v, new_key, sep=sep).items()
-                )
+                items.extend(Logger._flatten_dict(v, new_key, sep=sep).items())
             else:
                 items.append((new_key, v))
 
         return dict(items)
-    
+
     # --------------------------
     # accessors (optional)
     # --------------------------

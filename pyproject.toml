@@ -66,9 +66,9 @@ test = [
   "requests-mock>=1.11.0",
   "Faker>=25.0.0"
 ]
-
 dev = [
-    "ruff>=0.15.5",
+    "pre-commit>=4.5.1",
+    "ruff>=0.15.6",
 ]
 
 [tool.setuptools.packages.find]
@@ -89,6 +89,7 @@ norecursedirs = ["tests", "venv", ".venv", "__pycache__", "*.egg"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "Q"]
+exclude = ["src/fenn/experimental/*"]
 
 [tool.ruff]
 include = ["pyproject.toml", "src/**/*.py"]

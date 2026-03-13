@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Literal
+
+import numpy as np
 
 from .vision_utils import detect_format, normalize_color_mode
 
@@ -46,7 +47,7 @@ def _rgb_to_rgba(
     # Get alpha value for dtype (full opacity)
     if array.dtype == np.uint8:
         alpha_value = 255
-    elif array.dtype.kind == 'f':  # float
+    elif array.dtype.kind == "f":  # float
         alpha_value = 1.0
     else:
         alpha_value = np.iinfo(array.dtype).max
@@ -57,7 +58,9 @@ def _rgb_to_rgba(
         return np.concatenate([array, alpha], axis=-1)
     else:  # channel_location == "first"
         # (N, 3, H, W) → (N, 4, H, W)
-        alpha = np.full((array.shape[0], 1, *array.shape[2:]), alpha_value, dtype=array.dtype)
+        alpha = np.full(
+            (array.shape[0], 1, *array.shape[2:]), alpha_value, dtype=array.dtype
+        )
         return np.concatenate([array, alpha], axis=1)
 
 
@@ -140,7 +143,9 @@ def _convert_color_mode(
             return _gray_to_rgb(array, channel_location)
         else:  # target_mode == "RGBA"
             rgb = _gray_to_rgb(array, channel_location)
-            effective_channel_location = channel_location if channel_location is not None else "last"
+            effective_channel_location = (
+                channel_location if channel_location is not None else "last"
+            )
             return _rgb_to_rgba(rgb, effective_channel_location)
 
     elif current_mode == "RGB":
@@ -160,7 +165,7 @@ def _convert_color_mode(
 def ensure_color_mode(array: np.ndarray, mode: str = "RGB") -> np.ndarray:
     """
     Convert grayscale / RGB / RGBA images to the desired channel layout.
-    
+
     Converts NumPy image arrays to the specified color mode by:
     - Expanding grayscale images to 3 channels (e.g., for RGB mode)
     - Dropping alpha channel (e.g., converting RGBA to RGB)

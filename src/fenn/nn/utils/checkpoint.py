@@ -72,8 +72,8 @@ class Checkpoint:
             filepath = self.dir / filename
             torch.save(state.to_dict(), filepath)
             self._logger.display_info(
-                f"Checkpoint saved at epoch {epoch} to {filepath}.", 
-                display_on_terminal=False
+                f"Checkpoint saved at epoch {epoch} to {filepath}.",
+                display_on_terminal=False,
             )
 
         elif is_best and self.save_best:
@@ -82,7 +82,7 @@ class Checkpoint:
             torch.save(state.to_dict(), filepath)
             self._logger.display_info(
                 f"Best model checkpoint saved to {filepath} with acc {state.acc:.4f}.",
-                display_on_terminal=False
+                display_on_terminal=False,
             )
 
     def load(

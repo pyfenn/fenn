@@ -1,8 +1,5 @@
 from unittest.mock import Mock, patch
 
-import pytest
-import requests
-
 from fenn.notification.services.slack import Slack
 
 

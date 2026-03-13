@@ -1,6 +1,6 @@
 from typing import Iterable, List, Type
 
-from fenn.notification.service import Service
+from .service import Service
 
 
 class Notifier:

@@ -20,8 +20,9 @@ from sklearn.metrics import (  # noqa: F401
 from torch.utils.data import DataLoader
 
 from fenn.logging import Logger
-from fenn.nn.trainers import Trainer
 from fenn.nn.utils import Checkpoint
+
+from .trainer import Trainer
 
 
 class ClassificationTrainer(Trainer):

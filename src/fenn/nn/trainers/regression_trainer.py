@@ -15,8 +15,9 @@ from sklearn.metrics import r2_score
 from torch.utils.data import DataLoader
 
 from fenn.logging import Logger
-from fenn.nn.trainers import Trainer
 from fenn.nn.utils import Checkpoint
+
+from .trainer import Trainer
 
 
 class RegressionTrainer(Trainer):

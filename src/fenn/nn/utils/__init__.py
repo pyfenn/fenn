@@ -1,4 +1,4 @@
-from fenn.nn.utils.checkpoint import Checkpoint
-from fenn.nn.utils.state import TrainingState
+from .checkpoint import Checkpoint
+from .state import TrainingState
 
 __all__ = ["Checkpoint", "TrainingState"]

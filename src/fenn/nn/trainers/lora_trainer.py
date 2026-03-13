@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
-from fenn.nn.trainers.trainer import Trainer
+from .trainer import Trainer
 
 try:
     from peft import LoraConfig, get_peft_model

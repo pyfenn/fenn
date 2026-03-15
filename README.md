@@ -40,13 +40,20 @@ https://github.com/sponsors/blkdmr
 
 - **Template Ready**: Built-in support for reproducible, shareable experiment templates.
 
-## Installation
+
+## Quickstart
+
+Install the fenn library using
 
 ```bash
 pip install fenn
-````
+```
 
-## Quickstart
+or 
+
+```bash
+uv pip install fenn
+```
 
 ### Initialize a Project
 
@@ -117,54 +124,65 @@ By default, fenn will look for a configuration file named `fenn.yaml` in the cur
 ```python
 app = Fenn()
 app.set_config_file("my_file.yaml")
-...
-app.run()
 ```
+
+### Run It
+
+You can run your code as usual
+
+```bash
+python main.py
+```
+
+and fenn will take care of the rest for you.
 
 ### Training Models
 
 Use built-in trainers to handle your training loops with minimal boilerplate.
 
 ```python
+import torch.nn as nn
+import torch.optim as optim
+
 from fenn.nn.trainers import ClassificationTrainer
 from fenn.nn.utils import Checkpoint
 
 @app.entrypoint
 def main(args):
-    # Configure checkpointing
-    checkpoint = Checkpoint(dir="checkpoints/", save_best=True)
+        
+    # Define your data
+    train_loader = DataLoader(train_dataset, batch_size=args["train"]["batch"], shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=args["test"]["batch"], shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=args["test"]["batch"], shuffle=False)
+    
+    # Define your model
+    model = nn.Sequential( ... )     
+    loss = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(),
+                            lr=float(args["train"]["lr"]))
 
-    # Initialize trainer
+    # Initialize a ClassificationTrainer
     trainer = ClassificationTrainer(
         model=model,
-        loss_fn=nn.CrossEntropyLoss(),
-        optim=optim.Adam(model.parameters()),
-        num_classes=2,
-        checkpoint_config=checkpoint
+        loss_fn=loss,
+        optim=optimizer,
+        num_classes=4
     )
 
-    # Fit and Predict
+    # Train and predict your model
     trainer.fit(train_loader, epochs=10, val_loader=val_loader)
     preds = trainer.predict(test_loader)
-```
-
-See [docs/trainers.md](docs/trainers.md) for more details.
-
-### Run It
-
-```bash
-python main.py
 ```
 
 ## Contributing
 
 Contributions are welcome! 
 
-Interested in contributing? Join the community on [Discord](https://discord.gg/WxDkvktBAa)
+Interested in contributing? Join the community on [Discord](https://discord.gg/WxDkvktBAa).
 
 We can then discuss a possible contribution together, answer any questions, and help you get started!
 
-**Please, before opening a pull request, consult our CONTRIBUTING.md**
+**Please consult our CONTRIBUTING.md and CODE_OF_CONDUCT.md before opening a pull request.**
 
 ## Maintainers
 

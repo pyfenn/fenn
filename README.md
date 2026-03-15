@@ -6,7 +6,7 @@
 
 ![GitHub stars](https://img.shields.io/github/stars/blkdmr/fenn?style=social) ![GitHub forks](https://img.shields.io/github/forks/blkdmr/fenn?style=social) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/261c40f69583462baa200aee959bcc8f)](https://app.codacy.com/gh/blkdmr/fenn/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![codecov](https://codecov.io/gh/pyfenn/fenn/graph/badge.svg?token=7RTTZ1SFMM)](https://codecov.io/gh/pyfenn/fenn)
 ![PyPI version](https://img.shields.io/pypi/v/fenn) ![License](https://img.shields.io/github/license/blkdmr/fenn) [![PyPI Downloads](https://img.shields.io/pypi/dm/fenn.svg?label=downloads&logo=pypi&color=blue)](https://pypi.org/project/fenn/) [![Discord Server](https://img.shields.io/badge/Discord-PyFenn-5865F2?logo=discord&logoColor=white)](https://discord.gg/WxDkvktBAa)[![Sponsor](https://img.shields.io/badge/sponsor-GitHub-pink)](https://github.com/sponsors/blkdmr)
-
+[![Netlify Status](https://api.netlify.com/api/v1/badges/e5b91aff-cc0e-4b90-becd-d783c3b043bd/deploy-status)](https://app.netlify.com/projects/pyfenn/deploys)
 </div>
 
 **Stop writing boilerplate. Start training.**

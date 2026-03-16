@@ -10,6 +10,11 @@ from fenn.transformers import LoRAConfig
 from torch import nn
 from torch.utils.data import DataLoader
 
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import peft
+
+from fenn.core.exporter import Exporter
+from fenn.logging import Logger
 from fenn.datasets import TextDataset
 from fenn.logging import Logger
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -171,7 +176,7 @@ class SequenceClassifier:
         y_pred = self.predict(X)
         return float((y_pred == y_true).mean())
 
-    def save(self, output_dir: str):
+    def save(self, output_dir: str | None = None):
         """
         Saves:
           - adapter weights/config via model.save_pretrained(output_dir)
@@ -181,6 +186,8 @@ class SequenceClassifier:
         Note: PEFT save_pretrained is adapter-centric; base model config may need saving separately.
         """
         self._check_is_fitted()
+        if output_dir is None:
+            output_dir = str(Exporter().get_export_dir("sequence_classifier"))
         os.makedirs(output_dir, exist_ok=True)
 
         # adapter

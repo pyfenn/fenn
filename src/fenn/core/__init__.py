@@ -1,3 +1,4 @@
-from .fenn import Fenn
+from fenn.core.fenn import Fenn
+from fenn.core.exporter import Exporter
 
 __all__ = ["Fenn"]

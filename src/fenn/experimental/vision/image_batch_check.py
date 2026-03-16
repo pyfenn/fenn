@@ -1,5 +1,6 @@
 import logging
 from typing import Any, Dict, List, Literal, TypedDict
+
 import numpy as np
 
 from .vision_utils import detect_format
@@ -9,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 class BatchIssue(TypedDict):
     """Details about an issue found in the batch."""
+
     severity: Literal["error", "warning", "info"]  # Severity level of the issue
     category: str  # Issue category (e.g., 'format', 'non_finite', 'outliers', 'dtype')
     message: str  # Human-readable description of the issue
@@ -16,6 +18,7 @@ class BatchIssue(TypedDict):
 
 class BatchReport(TypedDict):
     """Structured report of batch validation results."""
+
     is_valid: bool  # True if no errors found
     issues: List[BatchIssue]  # List of detected issues -> count
     summary: Dict[str, Any]  # Summary statistics about the batch
@@ -25,11 +28,11 @@ def check_image_batch(array) -> BatchReport:
     """
     Performs validation for mixed dtypes, unexpected channel counts, extreme outliers,
     and non-finite values, returning a structured report rather than raising immediately.
-    
+
     This function does not modify the input array. It performs read-only validation
     checks to identify potential data quality issues that could cause problems during
     model training or inference.
-    
+
     Args:
         array: Image array in batch format. The first dimension (N) must represent
             the batch size. Supported formats:
@@ -38,7 +41,7 @@ def check_image_batch(array) -> BatchReport:
             - (N, H, W) - batch of grayscale images
         outlier_threshold: Number of standard deviations beyond which values are
             considered outliers. Default is 5.0 sigma.
-    
+
     Returns:
         Dictionary containing:
             - is_valid: True if no errors found (warnings are acceptable)

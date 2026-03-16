@@ -1,5 +1,6 @@
+from typing import Any, Callable, Optional
+
 from colorama import Fore, Style
-from typing import Callable, Optional, Any
 
 from fenn.args import Parser
 from fenn.core.exporter import Exporter
@@ -15,7 +16,7 @@ class Fenn:
 
     def __init__(self) -> None:
 
-        self._session_id: str =  generate_session_id()
+        self._session_id: str = generate_session_id()
 
         self._parser: Parser = Parser()
         self._keystore: KeyStore = KeyStore()

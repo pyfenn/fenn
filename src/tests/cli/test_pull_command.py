@@ -1,16 +1,16 @@
-import pytest
 import tempfile
 import zipfile
 from pathlib import Path
-from unittest.mock import patch, Mock
+from unittest.mock import Mock
+
+import pytest
 import requests
 
 from fenn.cli.pull import (
-    execute,
-    _download_template,
-    TemplateNotFoundError,
     NetworkError,
     TemplateError,
+    _download_template,
+    execute,
 )
 
 
@@ -28,28 +28,28 @@ class TestPullCommand:
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents/base",
             status_code=200,
-            json={"name": "base", "type": "dir"}
+            json={"name": "base", "type": "dir"},
         )
 
         # Create a mock zip file content
-        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp_zip:
-            with zipfile.ZipFile(tmp_zip.name, 'w') as zf:
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_zip:
+            with zipfile.ZipFile(tmp_zip.name, "w") as zf:
                 zf.writestr("templates-main/base/main.py", "print('hello')")
                 zf.writestr("templates-main/base/fenn.yaml", "project: test")
                 zf.writestr("templates-main/base/.gitignore", ".env")
-            
+
             # Mock archive download
-            with open(tmp_zip.name, 'rb') as f:
+            with open(tmp_zip.name, "rb") as f:
                 zip_content = f.read()
-            
+
             requests_mock.get(
                 "https://github.com/pyfenn/templates/archive/refs/heads/main.zip",
                 status_code=200,
-                content=zip_content
+                content=zip_content,
             )
 
             execute(args)
-        
+
         # Verify files were extracted
         assert (tmp_path / "main.py").exists()
         assert (tmp_path / "fenn.yaml").exists()
@@ -65,12 +65,12 @@ class TestPullCommand:
 
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents/nonexistent",
-            status_code=404
+            status_code=404,
         )
 
         with pytest.raises(SystemExit) as exc_info:
             execute(args)
-        
+
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "Template" in captured.out
@@ -85,12 +85,12 @@ class TestPullCommand:
 
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents/base",
-            exc=requests.exceptions.ConnectionError("Network error")
+            exc=requests.exceptions.ConnectionError("Network error"),
         )
 
         with pytest.raises(SystemExit) as exc_info:
             execute(args)
-        
+
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "Network error" in captured.out
@@ -105,17 +105,17 @@ class TestPullCommand:
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents/base",
             status_code=200,
-            json={"name": "base", "type": "dir"}
+            json={"name": "base", "type": "dir"},
         )
 
         requests_mock.get(
             "https://github.com/pyfenn/templates/archive/refs/heads/main.zip",
-            exc=requests.exceptions.ConnectionError("Network error")
+            exc=requests.exceptions.ConnectionError("Network error"),
         )
 
         with pytest.raises(SystemExit) as exc_info:
             execute(args)
-        
+
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "Network error" in captured.out
@@ -132,7 +132,7 @@ class TestPullCommand:
 
         with pytest.raises(SystemExit) as exc_info:
             execute(args)
-        
+
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "non-empty directory" in captured.out
@@ -150,21 +150,21 @@ class TestPullCommand:
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents/base",
             status_code=200,
-            json={"name": "base", "type": "dir"}
+            json={"name": "base", "type": "dir"},
         )
 
         # Create a mock zip file content
-        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp_zip:
-            with zipfile.ZipFile(tmp_zip.name, 'w') as zf:
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_zip:
+            with zipfile.ZipFile(tmp_zip.name, "w") as zf:
                 zf.writestr("templates-main/base/main.py", "print('hello')")
-            
-            with open(tmp_zip.name, 'rb') as f:
+
+            with open(tmp_zip.name, "rb") as f:
                 zip_content = f.read()
-            
+
             requests_mock.get(
                 "https://github.com/pyfenn/templates/archive/refs/heads/main.zip",
                 status_code=200,
-                content=zip_content
+                content=zip_content,
             )
 
             execute(args)
@@ -181,7 +181,7 @@ class TestPullCommand:
 
         with pytest.raises(SystemExit) as exc_info:
             execute(args)
-        
+
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "Template name is required" in captured.out
@@ -191,26 +191,26 @@ class TestPullCommand:
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents/base",
             status_code=200,
-            json={"name": "base", "type": "dir"}
+            json={"name": "base", "type": "dir"},
         )
 
-        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp_zip:
-            with zipfile.ZipFile(tmp_zip.name, 'w') as zf:
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_zip:
+            with zipfile.ZipFile(tmp_zip.name, "w") as zf:
                 # Create zip with no template files (only other files)
                 zf.writestr("templates-main/other/file.txt", "content")
-            
-            with open(tmp_zip.name, 'rb') as f:
+
+            with open(tmp_zip.name, "rb") as f:
                 zip_content = f.read()
-            
+
             requests_mock.get(
                 "https://github.com/pyfenn/templates/archive/refs/heads/main.zip",
                 status_code=200,
-                content=zip_content
+                content=zip_content,
             )
 
             with pytest.raises(TemplateError) as exc_info:
                 _download_template("base", tmp_path, False)
-            
+
             assert "base" in str(exc_info.value)
             assert "empty" in str(exc_info.value).lower()
             assert "unexpected structure" in str(exc_info.value).lower()
@@ -220,22 +220,22 @@ class TestPullCommand:
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents/base",
             status_code=200,
-            json={"name": "base", "type": "dir"}
+            json={"name": "base", "type": "dir"},
         )
 
-        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp_zip:
-            with zipfile.ZipFile(tmp_zip.name, 'w') as zf:
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_zip:
+            with zipfile.ZipFile(tmp_zip.name, "w") as zf:
                 zf.writestr("templates-main/base/main.py", "print('hello')")
                 zf.writestr("templates-main/base/models/model.py", "class Model: pass")
                 zf.writestr("templates-main/base/dataset/data.py", "data = []")
-            
-            with open(tmp_zip.name, 'rb') as f:
+
+            with open(tmp_zip.name, "rb") as f:
                 zip_content = f.read()
-            
+
             requests_mock.get(
                 "https://github.com/pyfenn/templates/archive/refs/heads/main.zip",
                 status_code=200,
-                content=zip_content
+                content=zip_content,
             )
 
             _download_template("base", tmp_path, False)
@@ -249,12 +249,12 @@ class TestPullCommand:
         """Test handling of HTTP 500 error."""
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents/base",
-            status_code=500
+            status_code=500,
         )
 
         with pytest.raises(NetworkError) as exc_info:
             _download_template("base", Path(tempfile.mkdtemp()), False)
-        
+
         assert "Failed to check template existence" in str(exc_info.value)
         assert "500" in str(exc_info.value)
 
@@ -262,12 +262,12 @@ class TestPullCommand:
         """Test handling of HTTP 403 error (rate limit, etc.)."""
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents/base",
-            status_code=403
+            status_code=403,
         )
 
         with pytest.raises(NetworkError) as exc_info:
             _download_template("base", Path(tempfile.mkdtemp()), False)
-        
+
         assert "Failed to check template existence" in str(exc_info.value)
         assert "403" in str(exc_info.value)
 
@@ -276,23 +276,23 @@ class TestPullCommand:
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents/base",
             status_code=200,
-            json={"name": "base", "type": "dir"}
+            json={"name": "base", "type": "dir"},
         )
 
-        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp_zip:
-            with zipfile.ZipFile(tmp_zip.name, 'w') as zf:
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_zip:
+            with zipfile.ZipFile(tmp_zip.name, "w") as zf:
                 zf.writestr("templates-main/base/main.py", "print('hello')")
                 zf.writestr("templates-main/base/logger/", "")  # Empty directory
                 zf.writestr("templates-main/base/dataset/", "")  # Empty directory
                 zf.writestr("templates-main/base/models/", "")  # Empty directory
-            
-            with open(tmp_zip.name, 'rb') as f:
+
+            with open(tmp_zip.name, "rb") as f:
                 zip_content = f.read()
-            
+
             requests_mock.get(
                 "https://github.com/pyfenn/templates/archive/refs/heads/main.zip",
                 status_code=200,
-                content=zip_content
+                content=zip_content,
             )
 
             _download_template("base", tmp_path, False)
@@ -307,7 +307,7 @@ class TestPullCommand:
         assert not any((tmp_path / "dataset").iterdir())
         assert not any((tmp_path / "models").iterdir())
 
-    #def test_pull_list_templates(self, requests_mock, capsys):
+    # def test_pull_list_templates(self, requests_mock, capsys):
     #    """Test listing available templates with --list flag."""
     #    args = Mock()
     #    args.template = None

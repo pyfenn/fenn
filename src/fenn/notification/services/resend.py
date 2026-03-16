@@ -1,4 +1,5 @@
 import resend
+
 from fenn.notification.service import Service
 
 
@@ -19,11 +20,11 @@ class Resend(Service):
         self._api_key = self._keystore.get_key("RESEND_API_KEY")
         self._from_email = self._keystore.get_key("RESEND_FROM_EMAIL")
         self._to_emails_raw = self._keystore.get_key("RESEND_TO_EMAILS")
-        
+
         self._to_emails = [email.strip() for email in self._to_emails_raw.split(",")]
-        
+
         self._subject = subject
-        
+
         resend.api_key = self._api_key
 
     def send_notification(self, message: str) -> None:
@@ -44,9 +45,9 @@ class Resend(Service):
             }
 
             response = resend.Emails.send(params)
-            
+
             if isinstance(response, dict) and "error" in response:
                 raise Exception(f"Resend API error: {response['error']}")
-                
+
         except Exception as err:
             raise Exception(f"Failed to send email notification: {err}")

@@ -1,13 +1,17 @@
 import argparse
-import fenn.cli.pull as pull
+
 import fenn.cli.list as list
+import fenn.cli.pull as pull
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fenn")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # ========= PULL =========
-    p_pull = subparsers.add_parser("pull", help="Download a template from the fenn templates repository")
+    p_pull = subparsers.add_parser(
+        "pull", help="Download a template from the fenn templates repository"
+    )
 
     # --- Level 2 ---
     p_pull.add_argument(
@@ -32,10 +36,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_pull.set_defaults(func=pull.execute)
 
     # ========= LIST =========
-    p_list = subparsers.add_parser("list", help="List available templates in the fenn templates repository")
+    p_list = subparsers.add_parser(
+        "list", help="List available templates in the fenn templates repository"
+    )
     p_list.set_defaults(func=list.execute)
 
     return parser
+
 
 def main(argv=None):
     parser = build_parser()
@@ -46,6 +53,7 @@ def main(argv=None):
         args.func(args)
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

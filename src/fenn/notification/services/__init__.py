@@ -1,4 +1,6 @@
-from fenn.notification.services.discord import Discord
-from fenn.notification.services.slack import Slack
-from fenn.notification.services.telegram import Telegram
-from fenn.notification.services.resend import Resend
+from .discord import Discord
+from .resend import Resend
+from .slack import Slack
+from .telegram import Telegram
+
+__all__ = ["Discord", "Resend", "Slack", "Telegram"]

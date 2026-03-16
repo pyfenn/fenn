@@ -6,7 +6,7 @@
 
 ![GitHub stars](https://img.shields.io/github/stars/blkdmr/fenn?style=social) ![GitHub forks](https://img.shields.io/github/forks/blkdmr/fenn?style=social) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/261c40f69583462baa200aee959bcc8f)](https://app.codacy.com/gh/blkdmr/fenn/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![codecov](https://codecov.io/gh/pyfenn/fenn/graph/badge.svg?token=7RTTZ1SFMM)](https://codecov.io/gh/pyfenn/fenn)
 ![PyPI version](https://img.shields.io/pypi/v/fenn) ![License](https://img.shields.io/github/license/blkdmr/fenn) [![PyPI Downloads](https://img.shields.io/pypi/dm/fenn.svg?label=downloads&logo=pypi&color=blue)](https://pypi.org/project/fenn/) [![Discord Server](https://img.shields.io/badge/Discord-PyFenn-5865F2?logo=discord&logoColor=white)](https://discord.gg/WxDkvktBAa)[![Sponsor](https://img.shields.io/badge/sponsor-GitHub-pink)](https://github.com/sponsors/blkdmr)
-
+[![Netlify Status](https://api.netlify.com/api/v1/badges/e5b91aff-cc0e-4b90-becd-d783c3b043bd/deploy-status)](https://app.netlify.com/projects/pyfenn/deploys)
 </div>
 
 **Stop writing boilerplate. Start training.**
@@ -40,13 +40,20 @@ https://github.com/sponsors/blkdmr
 
 - **Template Ready**: Built-in support for reproducible, shareable experiment templates.
 
-## Installation
+
+## Quickstart
+
+Install the fenn library using
 
 ```bash
 pip install fenn
-````
+```
 
-## Quickstart
+or 
+
+```bash
+uv pip install fenn
+```
 
 ### Initialize a Project
 
@@ -122,25 +129,65 @@ The optional `export.dir` setting centralizes where artifacts are written. Compo
 ```python
 app = Fenn()
 app.set_config_file("my_file.yaml")
-...
-app.run()
 ```
 
 ### Run It
 
+You can run your code as usual
+
 ```bash
 python main.py
+```
+
+and fenn will take care of the rest for you.
+
+### Training Models
+
+Use built-in trainers to handle your training loops with minimal boilerplate.
+
+```python
+import torch.nn as nn
+import torch.optim as optim
+
+from fenn.nn.trainers import ClassificationTrainer
+from fenn.nn.utils import Checkpoint
+
+@app.entrypoint
+def main(args):
+        
+    # Define your data
+    train_loader = DataLoader(train_dataset, batch_size=args["train"]["batch"], shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=args["test"]["batch"], shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=args["test"]["batch"], shuffle=False)
+    
+    # Define your model
+    model = nn.Sequential( ... )     
+    loss = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(),
+                            lr=float(args["train"]["lr"]))
+
+    # Initialize a ClassificationTrainer
+    trainer = ClassificationTrainer(
+        model=model,
+        loss_fn=loss,
+        optim=optimizer,
+        num_classes=4
+    )
+
+    # Train and predict your model
+    trainer.fit(train_loader, epochs=10, val_loader=val_loader)
+    preds = trainer.predict(test_loader)
 ```
 
 ## Contributing
 
 Contributions are welcome! 
 
-Interested in contributing? Join the community on [Discord](https://discord.gg/WxDkvktBAa)
+Interested in contributing? Join the community on [Discord](https://discord.gg/WxDkvktBAa).
 
 We can then discuss a possible contribution together, answer any questions, and help you get started!
 
-**Please, before opening a pull request, consult our CONTRIBUTING.md**
+**Please consult our CONTRIBUTING.md and CODE_OF_CONDUCT.md before opening a pull request.**
 
 ## Maintainers
 

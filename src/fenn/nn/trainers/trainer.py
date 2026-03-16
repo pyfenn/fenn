@@ -1,7 +1,6 @@
-from copy import deepcopy
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Union, cast
-from abc import ABC ,abstractmethod
+from typing import Optional, Union
 
 import torch
 import torch.nn
@@ -15,15 +14,8 @@ from sklearn.metrics import (  # noqa: F401
 from torch.utils.data import DataLoader
 
 from fenn.logging import Logger
-from fenn.nn.utils import Checkpoint, TrainingState
+from fenn.nn.utils import Checkpoint, ModelPrettyPrinter, TrainingState
 
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    TextColumn,
-    TimeElapsedColumn,
-)
 
 class Trainer(ABC):
     """The base Trainer abstract class for classification/Regression tasks."""
@@ -60,6 +52,7 @@ class Trainer(ABC):
         self._model = model.to(device)
         self._optimizer = optim
         self._state = TrainingState(epoch=0)
+        self._log_model_summary()
 
         self._best_state: Optional[TrainingState] = None
         """Best training state based on validation loss."""
@@ -77,6 +70,10 @@ class Trainer(ABC):
             self._logger.display_info(
                 f"Early stopping enabled with patience of {self._early_stopping_patience} epochs."
             )
+
+    def _log_model_summary(self) -> None:
+        summary = ModelPrettyPrinter(self._model).render()
+        self._logger.display_info(summary, display_on_terminal=False)
 
     def _move_to_device(self, batch, device: Union[torch.device, str]):
         if torch.is_tensor(batch):

@@ -1,17 +1,9 @@
 from copy import deepcopy
-from pathlib import Path
 from typing import Optional, Union, cast
 
 import torch
 import torch.nn
 import torch.optim
-from sklearn.metrics import r2_score
-from torch.utils.data import DataLoader
-
-from fenn.logging import Logger
-from fenn.nn.utils import Checkpoint
-from fenn.nn.trainers import Trainer
-
 from rich.progress import (
     BarColumn,
     MofNCompleteColumn,
@@ -19,6 +11,14 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
+from sklearn.metrics import r2_score
+from torch.utils.data import DataLoader
+
+from fenn.logging import Logger
+from fenn.nn.utils import Checkpoint
+
+from .trainer import Trainer
+
 
 class RegressionTrainer(Trainer):
     """
@@ -35,26 +35,26 @@ class RegressionTrainer(Trainer):
         early_stopping_patience: Optional[int] = None,
         checkpoint_config: Optional[Checkpoint] = None,
     ):
-        """Initialize a Trainer instance to fit a neural network model.
+        """Initialize a RegressionTrainer instance.
 
         Args:
             model: The neural network model to train.
             loss_fn: The loss function to use.
             optim: The optimizer to use.
-            num_classes: The number of classes to predict.
+            return_model: Whether to return the 'last' or 'best' model after training.
             device: The device on which the data will be loaded.
             early_stopping_patience: The number of epochs to wait before early stopping.
             checkpoint_config: The checkpoint configuration. If `None`, checkpointing is disabled.
         """
         super().__init__(
-            model = model,
-            loss_fn = loss_fn,
-            optim = optim,
-            device = device,
-            early_stopping_patience = early_stopping_patience,
-            checkpoint_config = checkpoint_config
+            model=model,
+            loss_fn=loss_fn,
+            optim=optim,
+            device=device,
+            early_stopping_patience=early_stopping_patience,
+            checkpoint_config=checkpoint_config,
         )
-        
+
         self._logger = Logger()
         self._return_model = return_model.lower()
 
@@ -137,7 +137,7 @@ class RegressionTrainer(Trainer):
                 raise ValueError("train_loader produced 0 batches; cannot train.")
 
             state.train_loss = total_loss / n_batches
-            
+
             progress.update(
                 epoch_task,  # pyright: ignore[reportArgumentType]
                 advance=1,
@@ -149,9 +149,13 @@ class RegressionTrainer(Trainer):
             if val_loader is None:
                 state.val_loss = None
 
-                progress.console.print(f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f}")
-                Logger().display_info(f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}", display_on_terminal=False)
-
+                progress.console.print(
+                    f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f}"
+                )
+                Logger().display_info(
+                    f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}",
+                    display_on_terminal=False,
+                )
 
                 if state.train_loss < state.best_train_loss:
                     state.best_train_loss = state.train_loss
@@ -186,15 +190,19 @@ class RegressionTrainer(Trainer):
 
                 if val_n_batches == 0:
                     raise ValueError("val_loader produced 0 batches; cannot validate.")
-                
+
                 if val_n_batches > 0:
                     val_mean_loss = val_total_loss / val_n_batches
                     val_r2 = r2_score(val_labels, val_predictions)
-                
-                    progress.console.print(f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val R2: {val_r2:.4f}")
-                    Logger().display_info(f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val R2: {val_r2:.4f}", display_on_terminal=False)
 
-                    
+                    progress.console.print(
+                        f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val R2: {val_r2:.4f}"
+                    )
+                    Logger().display_info(
+                        f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val R2: {val_r2:.4f}",
+                        display_on_terminal=False,
+                    )
+
                 state.val_loss = val_total_loss / val_n_batches
                 state.acc = r2_score(val_labels, val_predictions)
 
@@ -248,7 +256,7 @@ class RegressionTrainer(Trainer):
 
         if self._return_model == "best" and self._best_model is not None:
             return self._best_model
-        
+
         return self._model
 
     def predict(self, dataloader_or_batch: Union[DataLoader, torch.Tensor]):
@@ -276,5 +284,5 @@ class RegressionTrainer(Trainer):
                     predict_batch(data)
             else:
                 predict_batch(dataloader_or_batch)
-        
+
         return predictions

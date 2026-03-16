@@ -1,10 +1,16 @@
 from copy import deepcopy
-from pathlib import Path
 from typing import Optional, Union, cast
 
 import torch
 import torch.nn
 import torch.optim
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    TextColumn,
+    TimeElapsedColumn,
+)
 from sklearn.metrics import (  # noqa: F401
     accuracy_score,
     f1_score,
@@ -14,20 +20,14 @@ from sklearn.metrics import (  # noqa: F401
 from torch.utils.data import DataLoader
 
 from fenn.logging import Logger
-from fenn.nn.utils import Checkpoint, TrainingState
-from fenn.nn.trainers import Trainer
+from fenn.nn.utils import Checkpoint
 
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    TextColumn,
-    TimeElapsedColumn,
-)
+from .trainer import Trainer
+
 
 class ClassificationTrainer(Trainer):
     """
-    ClassificationTrainer is an extension extends the base Trainer to support 
+    ClassificationTrainer is an extension extends the base Trainer to support
     binary, multi-class, and multi-label classification support.
     """
 
@@ -42,24 +42,25 @@ class ClassificationTrainer(Trainer):
         early_stopping_patience: Optional[int] = None,
         checkpoint_config: Optional[Checkpoint] = None,
     ):
-        """Initialize a Trainer instance to fit a neural network model.
+        """Initialize a ClassificationTrainer instance.
 
         Args:
             model: The neural network model to train.
             loss_fn: The loss function to use.
             optim: The optimizer to use.
             num_classes: The number of classes to predict.
+            multi_label: Whether to use multi-label classification.
             device: The device on which the data will be loaded.
             early_stopping_patience: The number of epochs to wait before early stopping.
             checkpoint_config: The checkpoint configuration. If `None`, checkpointing is disabled.
         """
         super().__init__(
-            model = model,
-            loss_fn = loss_fn,
-            optim = optim,
-            device = device,
-            early_stopping_patience = early_stopping_patience,
-            checkpoint_config = checkpoint_config
+            model=model,
+            loss_fn=loss_fn,
+            optim=optim,
+            device=device,
+            early_stopping_patience=early_stopping_patience,
+            checkpoint_config=checkpoint_config,
         )
 
         self._logger = Logger()
@@ -79,11 +80,15 @@ class ClassificationTrainer(Trainer):
             self._task_type = "multiclass"
 
         if multi_label:
-            self._logger.display_info(f"Multi-label classification ({num_classes} labels) mode")
+            self._logger.display_info(
+                f"Multi-label classification ({num_classes} labels) mode"
+            )
         elif num_classes == 2:
             self._logger.display_info("Binary classification mode detected.")
         else:
-            self._logger.display_info(f"Multi-class classification ({num_classes} classes)")
+            self._logger.display_info(
+                f"Multi-class classification ({num_classes} classes)"
+            )
 
     def fit(
         self,
@@ -146,9 +151,9 @@ class ClassificationTrainer(Trainer):
             for data, labels in train_loader:
                 data = self._move_to_device(data, self._device)
                 labels = labels.to(self._device)
-                
-                if self._num_classes==2:
-                            labels = labels.view(-1,1).float()
+
+                if self._num_classes == 2:
+                    labels = labels.view(-1, 1).float()
 
                 outputs = self._model(data)
                 loss = self._loss_fn(outputs, labels)
@@ -164,7 +169,7 @@ class ClassificationTrainer(Trainer):
                 raise ValueError("train_loader produced 0 batches; cannot train.")
 
             state.train_loss = total_loss / n_batches
-            
+
             progress.update(
                 epoch_task,  # pyright: ignore[reportArgumentType]
                 advance=1,
@@ -176,8 +181,13 @@ class ClassificationTrainer(Trainer):
             if val_loader is None:
                 state.val_loss = None
 
-                progress.console.print(f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f}")
-                Logger().display_info(f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}", display_on_terminal=False)
+                progress.console.print(
+                    f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f}"
+                )
+                Logger().display_info(
+                    f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}",
+                    display_on_terminal=False,
+                )
 
                 if state.train_loss < state.best_train_loss:
                     state.best_train_loss = state.train_loss
@@ -216,13 +226,18 @@ class ClassificationTrainer(Trainer):
 
                 if val_n_batches == 0:
                     raise ValueError("val_loader produced 0 batches; cannot validate.")
-                
+
                 if val_n_batches > 0:
                     val_mean_loss = val_total_loss / val_n_batches
                     val_acc = accuracy_score(val_labels, val_predictions)
-                
-                    progress.console.print(f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}")
-                    Logger().display_info(f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}", display_on_terminal=False)
+
+                    progress.console.print(
+                        f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}"
+                    )
+                    Logger().display_info(
+                        f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}",
+                        display_on_terminal=False,
+                    )
 
                 state.val_loss = val_total_loss / val_n_batches
                 state.acc = accuracy_score(val_labels, val_predictions)
@@ -265,14 +280,18 @@ class ClassificationTrainer(Trainer):
                     _reason = "validation loss"
                 self._logger.display_info(
                     f"Early stopping triggered.  No improvement in {_reason} for {self._early_stopping_patience} epochs.",
-                    display_on_terminal=False
+                    display_on_terminal=False,
                 )
-                
+
                 break
 
         progress.stop()
 
-    def predict(self, dataloader_or_batch: Union[DataLoader, torch.Tensor], return_proba: bool = False):
+    def predict(
+        self,
+        dataloader_or_batch: Union[DataLoader, torch.Tensor],
+        return_proba: bool = False,
+    ):
         """Predicts the output of the model for a given dataloader or batch.
 
         Args:
@@ -281,7 +300,7 @@ class ClassificationTrainer(Trainer):
 
         Returns:
             list: A list of predictions.
-            list[list]: 
+            list[list]:
                 If `return_proba=True`, returns a tuple where:
                 - first element is the list of predicted labels
                 - second element is the list of predicted probabilities
@@ -317,8 +336,8 @@ class ClassificationTrainer(Trainer):
                     predict_batch(data)
             else:
                 predict_batch(dataloader_or_batch)
-        
+
         if return_proba:
             return predictions, proba
-        
+
         return predictions

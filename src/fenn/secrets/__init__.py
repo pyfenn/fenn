@@ -1,1 +1,3 @@
-from fenn.secrets.keystore import KeyStore
+from .keystore import KeyStore
+
+__all__ = ["KeyStore"]

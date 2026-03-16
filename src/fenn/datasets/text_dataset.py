@@ -3,12 +3,14 @@ from typing import Optional, Sequence, Union
 import torch
 from torch.utils.data import Dataset
 
+
 class TextDataset(Dataset):
     """
     Generic text + binary label dataset.
     X: list[str]
     y: list[int|float]
     """
+
     def __init__(
         self,
         X: Sequence[str],

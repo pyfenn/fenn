@@ -5,19 +5,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-from resend import templates
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
-from fenn.args import Parser
-from colorama import Fore, Style
 
+from fenn.args import Parser
 
 # ==========================================================
 # CUSTOM LOGGING BACKEND (file + print override)
 # ==========================================================
 
-class LoggingBackend():
+
+class LoggingBackend:
     def __init__(self) -> None:
         self._console = Console()
         self._original_print = builtins.print
@@ -30,36 +29,45 @@ class LoggingBackend():
 
     # ---- public methods -----
 
-    def info (self, message: str, display_on_terminal : bool = True, write_on_file : bool = True) -> None:
+    def info(
+        self, message: str, display_on_terminal: bool = True, write_on_file: bool = True
+    ) -> None:
         if write_on_file:
             self._log_print(message, display=False)
         if display_on_terminal:
             self._console.print(f"[bold green][INFO][/bold green] {message}")
 
-    def warning (self, message: str, display_on_terminal : bool = True, write_on_file : bool = True) -> None:
+    def warning(
+        self, message: str, display_on_terminal: bool = True, write_on_file: bool = True
+    ) -> None:
         if write_on_file:
             self._log_print(message, display=False)
         if display_on_terminal:
             self._console.print(f"[bold yellow][WARNING][/bold yellow] {message}")
-        
-    def exception (self, message: str, display_on_terminal : bool = True, write_on_file : bool = True) -> None:
+
+    def exception(
+        self, message: str, display_on_terminal: bool = True, write_on_file: bool = True
+    ) -> None:
         if write_on_file:
             self._log_print(message, display=False)
         if display_on_terminal:
             self._console.print(f"[bold red][EXCEPTION][/bold red] {message}")
-    
-    def debug (self, message: str, display_on_terminal : bool = True, write_on_file : bool = True) -> None:
+
+    def debug(
+        self, message: str, display_on_terminal: bool = True, write_on_file: bool = True
+    ) -> None:
         if write_on_file:
             self._log_print(message, display=False)
         if display_on_terminal:
             self._console.print(f"[dim][DEBUG][/dim] {message}")
-    
 
     # ---- config table methods ----
     def write_config(self, message: str) -> None:
         if self._config_table is None:
             table = Table(title="")
-            table.add_column(f"Configuration file {Parser().config_file} loaded", style="", width=80)
+            table.add_column(
+                f"Configuration file {Parser().config_file} loaded", style="", width=80
+            )
             self._config_table = table
         self._config_table.add_row(Text.from_ansi(f"- {message}"))
         self.info(f"{message}", display_on_terminal=False)
@@ -74,7 +82,7 @@ class LoggingBackend():
     def start(self, args: Dict[str, Any]) -> None:
         log_root = Path(args["logger"]["dir"])
         log_dir = log_root / Path(args["project"])
-        log_filename = f'{args["session_id"]}.log'
+        log_filename = f"{args['session_id']}.log"
         self._log_file = log_dir / log_filename
 
         os.makedirs(log_root, exist_ok=True)

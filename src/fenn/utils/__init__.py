@@ -1,5 +1,7 @@
-import datetime
 import random
+import secrets
+from datetime import datetime
+
 import numpy as np
 
 try:
@@ -8,6 +10,7 @@ except ImportError as e:
     raise RuntimeError(
         "Torch is required by fenn. Install it yourself (GPU/CPU) or use 'pip install fenn[torch]'."
     ) from e
+
 
 def set_seed(seed: int) -> None:
     """
@@ -24,38 +27,34 @@ def set_seed(seed: int) -> None:
     torch.backends.cudnn.benchmark = False
 
 
-import secrets
-import random
-from datetime import datetime
-
 def generate_session_id() -> str:
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
     # A curated list of "beautiful" words
-    #adjectives = [
+    # adjectives = [
     #    "autumn", "hidden", "bitter", "misty", "silent",
     #    "empty", "dry", "dark", "summer", "icy", "delicate",
     #    "quiet", "white", "cool", "spring", "winter", "patient",
     #    "twilight", "dawn", "crimson", "wispy", "weathered",
     #    "blue", "billowing", "broken", "cold", "damp", "falling",
     #    "frosty", "green", "long", "late", "lingering"
-    #]
+    # ]
 
-    #nouns = [
+    # nouns = [
     #    "waterfall", "river", "breeze", "moon", "rain",
     #    "wind", "sea", "morning", "snow", "lake", "sunset",
     #    "pine", "shadow", "leaf", "dawn", "glitter", "forest",
     #    "hill", "cloud", "meadow", "sun", "glade", "bird",
     #    "brook", "butterfly", "bush", "dew", "dust", "field",
     #    "fire", "flower", "firefly", "feather", "grass"
-    #]
+    # ]
 
     # Select words
-    #adj = random.choice(adjectives)
-    #noun = random.choice(nouns)
+    # adj = random.choice(adjectives)
+    # noun = random.choice(nouns)
 
     # Add a secure hex suffix (2 bytes = 4 hex chars) to ensure uniqueness
-    hex_suffix = secrets.token_hex(2) 
-    
+    hex_suffix = secrets.token_hex(2)
+
     return timestamp + "_" + hex_suffix

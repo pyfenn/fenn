@@ -1,4 +1,4 @@
-name: Tests
+name: Run unit tests with Pytest, Format + Lint checking with Ruff
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -21,7 +21,7 @@ jobs:
       - name: Install package and test deps
         run: |
           python -m pip install --upgrade pip
-          pip install . ".[torch]" ".[test]"
+          pip install ".[torch,test]"
 
       - name: Run tests with coverage
         run: |
@@ -37,3 +37,23 @@ jobs:
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  ruff:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Run pre-commit hook
+        run: pre-commit run --all-files

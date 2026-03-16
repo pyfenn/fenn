@@ -1,14 +1,17 @@
-import pytest
 import numpy as np
+import pytest
 
 try:
     from fenn.experimental.vision import resize_batch
+
     RESIZE_AVAILABLE = True
 except ImportError:
     RESIZE_AVAILABLE = False
 
 
-@pytest.mark.skipif(not RESIZE_AVAILABLE, reason="resize_batch not available (torchvision required)")
+@pytest.mark.skipif(
+    not RESIZE_AVAILABLE, reason="resize_batch not available (torchvision required)"
+)
 class TestResizeBatch:
     """Test suite for resize_batch function."""
 

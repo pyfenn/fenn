@@ -1,1 +1,3 @@
-﻿from fenn.core import Fenn
+from fenn.core import Fenn
+
+__all__ = ["Fenn"]

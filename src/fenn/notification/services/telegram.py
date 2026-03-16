@@ -1,14 +1,14 @@
-import requests
-from fenn.notification.service import Service
 from typing import Literal
+
+import requests
+
+from fenn.notification.service import Service
+
 
 class Telegram(Service):
     """Telegram notification service using webhooks."""
 
-    def __init__(
-        self,
-        parse_mode: Literal["Markdown", "HTML"] | None=None
-    ):
+    def __init__(self, parse_mode: Literal["Markdown", "HTML"] | None = None):
         """Initialize Telegram service.
 
         Args:
@@ -47,4 +47,6 @@ class Telegram(Service):
             result = requests.post(self._telegram_api_url, json=data, timeout=10)
             result.raise_for_status()
         except requests.exceptions.RequestException as err:
-            raise requests.exceptions.RequestException(f"Failed to send Telegram notification: {err}")
+            raise requests.exceptions.RequestException(
+                f"Failed to send Telegram notification: {err}"
+            )

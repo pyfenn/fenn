@@ -1,4 +1,6 @@
-from fenn.nn.trainers.trainer import Trainer
-from fenn.nn.trainers.lora_trainer import LoRATrainer
-from fenn.nn.trainers.regression_trainer import RegressionTrainer
-from fenn.nn.trainers.classification_trainer import ClassificationTrainer
+from .classification_trainer import ClassificationTrainer
+from .lora_trainer import LoRATrainer
+from .regression_trainer import RegressionTrainer
+from .trainer import Trainer
+
+__all__ = ["ClassificationTrainer", "LoRATrainer", "RegressionTrainer", "Trainer"]

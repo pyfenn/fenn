@@ -38,10 +38,12 @@ def test_model_pretty_printer_renders_full_small_model():
     rendered = ModelPrettyPrinter(model).render()
 
     assert "Model Summary" in rendered
+    assert "-------------" in rendered
     assert "Class: Sequential" in rendered
     assert "Parameters: total=58, trainable=58, frozen=0" in rendered
-    assert "|- 0: Linear [params=40; in_features=4, out_features=8, bias=True]" in rendered
-    assert "`- 1: Sigmoid" in rendered
+    assert "Architecture" in rendered
+    assert "0: Linear (params=40, in_features=4, out_features=8, bias=True)" in rendered
+    assert "  1: Sigmoid" in rendered
 
 
 def test_model_pretty_printer_compacts_large_model():

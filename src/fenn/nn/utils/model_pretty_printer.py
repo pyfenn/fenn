@@ -45,6 +45,7 @@ class ModelPrettyPrinter:
 
         lines = [
             "Model Summary",
+            "-------------",
             f"Class: {self._model.__class__.__name__}",
             f"Modules: {module_count}",
             (
@@ -53,6 +54,7 @@ class ModelPrettyPrinter:
                 f"trainable={trainable_params:,}, "
                 f"frozen={frozen_params:,}"
             ),
+            "",
             "Architecture:",
             self._format_module_header(self._model, root=True),
         ]
@@ -67,9 +69,10 @@ class ModelPrettyPrinter:
         )
 
         if limits.max_lines is not None and len(lines) >= limits.max_lines:
-            omitted = max(module_count - (len(lines) - 5), 0)
-            if omitted > 0 and lines[-1] != f"... output truncated ({omitted} modules omitted)":
-                lines.append(f"... output truncated ({omitted} modules omitted)")
+            omitted = max(module_count - (len(lines) - 6), 0)
+            truncated_line = f"... output truncated ({omitted} modules omitted)"
+            if omitted > 0 and lines[-1] != truncated_line:
+                lines.append(truncated_line)
 
         return "\n".join(lines)
 
@@ -94,7 +97,7 @@ class ModelPrettyPrinter:
             return
 
         if limits.max_depth is not None and depth > limits.max_depth:
-            lines.append(f"{prefix}`- ... {len(children)} nested modules omitted")
+            lines.append(f"{prefix}... {len(children)} nested modules omitted")
             return
 
         display_children = children
@@ -107,13 +110,9 @@ class ModelPrettyPrinter:
             if limits.max_lines is not None and len(lines) >= limits.max_lines:
                 return
 
-            is_last = index == len(display_children) - 1 and hidden_children == 0
-            branch = "`- " if is_last else "|- "
-            lines.append(
-                f"{prefix}{branch}{name}: {self._format_module_header(module)}"
-            )
+            lines.append(f"{prefix}{name}: {self._format_module_header(module)}")
 
-            next_prefix = f"{prefix}{'   ' if is_last else '|  '}"
+            next_prefix = f"{prefix}  "
             self._append_children(
                 lines=lines,
                 children=list(module.named_children()),
@@ -125,7 +124,7 @@ class ModelPrettyPrinter:
         if hidden_children > 0 and (
             limits.max_lines is None or len(lines) < limits.max_lines
         ):
-            lines.append(f"{prefix}`- ... {hidden_children} more modules")
+            lines.append(f"{prefix}... {hidden_children} more modules")
 
     def _format_module_header(self, module: nn.Module, *, root: bool = False) -> str:
         details = []
@@ -144,7 +143,7 @@ class ModelPrettyPrinter:
         if not details:
             return module.__class__.__name__
 
-        return f"{module.__class__.__name__} [{'; '.join(details)}]"
+        return f"{module.__class__.__name__} ({', '.join(details)})"
 
     @staticmethod
     def _normalize_extra_repr(extra_repr: str) -> str:

@@ -84,6 +84,9 @@ project: empty
 logger:
   dir: logger
 
+export:
+  dir: exports
+
 # ---------------------------------------
 # Example of User Section
 # ---------------------------------------
@@ -113,6 +116,8 @@ if __name__ == "__main__":
 ```
 
 By default, fenn will look for a configuration file named `fenn.yaml` in the current directory. If you would like to use a different name, a different location, or have multiple configuration files for different configurations, you can call `set_config_file()` and update the path or the name of your configuration file. You must assign the filename before calling `run()`.
+
+The optional `export.dir` setting centralizes where artifacts are written. Components that export files can use this shared directory instead of requiring an output path to be passed through every call.
 
 ```python
 app = Fenn()

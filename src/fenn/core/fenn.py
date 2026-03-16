@@ -2,6 +2,7 @@ from colorama import Fore, Style
 from typing import Callable, Optional, Any
 
 from fenn.args import Parser
+from fenn.core.exporter import Exporter
 from fenn.logging import Logger
 from fenn.secrets.keystore import KeyStore
 from fenn.utils import generate_session_id
@@ -67,6 +68,7 @@ class Fenn:
         )
         self._args = self._parser.load_configuration()
         self._args["session_id"] = self._session_id
+        Exporter().configure(self._args)
 
         # Start logging
         self._logger.start()

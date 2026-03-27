@@ -34,7 +34,7 @@ class Checkpoint:
         self.epochs = epochs
         self.save_best = save_best
 
-    def _setup(self):
+    def _setup(self) -> Optional["Checkpoint"]:
         """Set up the checkpoint directory and checks."""
         self.dir.mkdir(parents=True, exist_ok=True)
 
@@ -57,7 +57,7 @@ class Checkpoint:
 
         return self
 
-    def save(self, state: TrainingState, is_best: bool = False):
+    def save(self, state: TrainingState, is_best: bool = False) -> None:
         """Save a checkpoint of the training state at the current epoch.
 
         Args:
@@ -87,7 +87,7 @@ class Checkpoint:
 
     def load(
         self, checkpoint_path: Union[str, Path], device: Optional[torch.device] = None
-    ):
+    ) -> TrainingState:
         """Load a checkpoint from the given path.
 
         Args:
@@ -115,7 +115,7 @@ class Checkpoint:
         )
         return state
 
-    def load_at_epoch(self, epoch: int, device: Optional[torch.device] = None):
+    def load_at_epoch(self, epoch: int, device: Optional[torch.device] = None) -> TrainingState:
         """Load the checkpoint at the given epoch.
 
         Args:
@@ -134,7 +134,7 @@ class Checkpoint:
             )
         return self.load(filepath, device)
 
-    def load_best(self, device: Optional[torch.device] = None):
+    def load_best(self, device: Optional[torch.device] = None) -> TrainingState:
         """Load the best checkpoint.
 
         Args:

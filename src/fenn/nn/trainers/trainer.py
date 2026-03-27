@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 import torch.nn
@@ -75,7 +75,7 @@ class Trainer(ABC):
         summary = ModelPrettyPrinter(self._model).render()
         self._logger.display_info(summary, display_on_terminal=False)
 
-    def _move_to_device(self, batch, device: Union[torch.device, str]):
+    def _move_to_device(self, batch, device: Union[torch.device, str]) -> Any:
         if torch.is_tensor(batch):
             return batch.to(device)
         if isinstance(batch, (list, tuple)):
@@ -84,7 +84,7 @@ class Trainer(ABC):
             return {k: self._move_to_device(v, device) for k, v in batch.items()}
         return batch
 
-    def _should_save_checkpoint(self, epoch: int, is_last_epoch: bool = False):
+    def _should_save_checkpoint(self, epoch: int, is_last_epoch: bool = False) -> bool:
         """Check if a checkpoint should be saved at the given epoch.
 
         Args:
@@ -143,7 +143,7 @@ class Trainer(ABC):
         """
         pass
 
-    def _replace_state(self, new_state: TrainingState):
+    def _replace_state(self, new_state: TrainingState) -> None:
         """Replace the current training state with a new state.
 
         Args:
@@ -155,7 +155,7 @@ class Trainer(ABC):
         if new_state.optimizer_state_dict:
             self._optimizer.load_state_dict(new_state.optimizer_state_dict)
 
-    def load_checkpoint(self, checkpoint_path: Union[str, Path]):
+    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> None:
         """Load a checkpoint from a given path to update current training state.
 
         Args:
@@ -167,7 +167,7 @@ class Trainer(ABC):
         new_state = self._checkpoint.load(checkpoint_path)
         self._replace_state(new_state)
 
-    def load_checkpoint_at_epoch(self, epoch: int):
+    def load_checkpoint_at_epoch(self, epoch: int) -> None:
         """Load the checkpoint at the given epoch to update current training state.
 
         Args:
@@ -179,7 +179,7 @@ class Trainer(ABC):
         new_state = self._checkpoint.load_at_epoch(epoch)
         self._replace_state(new_state)
 
-    def load_best_checkpoint(self):
+    def load_best_checkpoint(self) -> None:
         """Load the best checkpoint to update current training state."""
         if self._checkpoint is None:
             raise ValueError("Cannot load checkpoint: checkpoint_config is missing.")

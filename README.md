@@ -4,9 +4,9 @@
 
 <div align="center">
 
-![GitHub stars](https://img.shields.io/github/stars/blkdmr/fenn?style=social) ![GitHub forks](https://img.shields.io/github/forks/blkdmr/fenn?style=social) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/261c40f69583462baa200aee959bcc8f)](https://app.codacy.com/gh/blkdmr/fenn/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![codecov](https://codecov.io/gh/pyfenn/fenn/graph/badge.svg?token=7RTTZ1SFMM)](https://codecov.io/gh/pyfenn/fenn)
+[![DOI](https://zenodo.org/badge/1098344896.svg)](https://doi.org/10.5281/zenodo.20178659)![GitHub stars](https://img.shields.io/github/stars/blkdmr/fenn?style=social) ![GitHub forks](https://img.shields.io/github/forks/blkdmr/fenn?style=social) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/261c40f69583462baa200aee959bcc8f)](https://app.codacy.com/gh/blkdmr/fenn/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![codecov](https://codecov.io/gh/pyfenn/fenn/graph/badge.svg?token=7RTTZ1SFMM)](https://codecov.io/gh/pyfenn/fenn)
 ![PyPI version](https://img.shields.io/pypi/v/fenn) ![License](https://img.shields.io/github/license/blkdmr/fenn) [![PyPI Downloads](https://img.shields.io/pypi/dm/fenn.svg?label=downloads&logo=pypi&color=blue)](https://pypi.org/project/fenn/) [![Discord Server](https://img.shields.io/badge/Discord-PyFenn-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/6v9xtJxvN7)[![Sponsor](https://img.shields.io/badge/sponsor-GitHub-pink)](https://github.com/sponsors/blkdmr)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/e5b91aff-cc0e-4b90-becd-d783c3b043bd/deploy-status)](https://app.netlify.com/projects/pyfenn/deploys)
+
 </div>
 
 **Stop writing boilerplate. Start training.**
@@ -179,6 +179,19 @@ def main(args):
     preds = trainer.predict(test_loader)
 ```
 
+## Cite fenn
+
+If you use **fenn** in your work or research, please cite the project as:
+
+```bibtex
+@software{fenn,
+  title     = {pyfenn/fenn: Release v0.2.0},
+  doi       = {10.5281/zenodo.20178660},
+  publisher = {Zenodo},
+  author    = {Alessio Russo and Giulia Oddi and Priyesh Jain and luke-cunningham-1 and Dao Le Bao Minh and Schlameel and Aman Mansuri and werowe and DagaBhai and Francisco Lima}
+}
+```
+
 ## Contributing
 
 Contributions are welcome! 
@@ -197,7 +210,6 @@ The development and long-term direction of **fenn** is guided by the following m
 |------------|------|
 | [@blkdmr](https://github.com/blkdmr) | Creator & Project Administrator |
 | [@giuliaOddi](https://github.com/giuliaOddi) | Project Administrator |
-| [@GlowCheese](https://github.com/GlowCheese) | Core Maintainer |
 | [@franciscolima05](https://github.com/franciscolima05) | Core Maintainer |
 
 Maintainers oversee the project roadmap, review pull requests, coordinate releases, and ensure the long-term stability and quality of the framework.

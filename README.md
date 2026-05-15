@@ -185,10 +185,14 @@ If you use **fenn** in your work or research, please cite the project as:
 
 ```bibtex
 @software{fenn,
-  title     = {pyfenn/fenn: Release v0.2.0},
-  doi       = {10.5281/zenodo.20178660},
-  publisher = {Zenodo},
-  author    = {Alessio Russo and Giulia Oddi and Priyesh Jain and luke-cunningham-1 and Dao Le Bao Minh and Schlameel and Aman Mansuri and werowe and DagaBhai and Francisco Lima}
+  author       = {Alessio Russo},
+  title        = {pyfenn/fenn: Release v0.2.0},
+  month        = may,
+  year         = 2026,
+  publisher    = {Zenodo},
+  version      = {v0.2.0},
+  doi          = {10.5281/zenodo.20178660},
+  url          = {https://doi.org/10.5281/zenodo.20178660},
 }
 ```
 

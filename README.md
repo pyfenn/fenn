@@ -57,19 +57,52 @@ uv pip install fenn
 
 ### Initialize a Project
 
-Run the CLI tool to see which repositories are available and to download a template together with its configuration file. First, list the available repositories:
+Use the CLI to discover and download a project template.
+
+#### 1. List available templates
 
 ```bash
 fenn list
-````
-
-Then, download one of the available templates (here `empty` is just an example):
-
-```bash
-fenn pull empty
 ```
 
-This command downloads the selected template into the current directory and generates the corresponding configuration file, which can be customized before running or extending the project.
+This fetches the directory listing from [`pyfenn/templates`](https://github.com/pyfenn/templates) and prints the templates you can use.
+
+#### 2. Pull a template
+
+```bash
+fenn pull <template> [path]
+```
+
+Examples:
+
+```bash
+fenn pull empty            # pull into the current directory
+fenn pull empty ./my-proj  # pull into ./my-proj (created if missing)
+```
+
+Each template ships at least a `main.py` entrypoint and a `fenn.yaml` configuration file in the target directory. Most templates also include a `README.md`, a `requirements.txt`, and a `modules/` directory with example model and dataset code.
+
+To avoid clobbering work, `fenn pull` refuses to write into a non-empty target directory. Pass `--force` to overwrite existing files:
+
+```bash
+fenn pull empty --force
+```
+
+Hidden entries (those starting with `.`, such as `.git`) do not count as "non-empty".
+
+#### 3. Customize and run
+
+Open the generated `fenn.yaml` and adjust hyperparameters, paths, logging, and integrations for your project (see [Configuration](#configuration) below). Then run the entrypoint:
+
+```bash
+python main.py
+```
+
+#### Common issues
+
+- **`Template <name> not found`** — The template name doesn't match a directory in [`pyfenn/templates`](https://github.com/pyfenn/templates). Run `fenn list` to see valid names.
+- **`Refusing to pull into non-empty directory`** — Either pull into an empty directory, point `path` at a fresh one, or pass `--force` to overwrite.
+- **`Network error` / `Failed to check template existence`** — Check connectivity. The CLI uses the unauthenticated GitHub API to look up and download templates, which is subject to GitHub's rate limit.
 
 ### Configuration
 

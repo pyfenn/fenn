@@ -14,7 +14,26 @@ class _RenderLimits:
 
 
 class ModelPrettyPrinter:
-    """Render a readable model summary for logs."""
+    """Render a human-readable model summary for logs.
+
+    Produces a tree-style architecture summary with parameter counts. Small
+    models (module count ≤ ``small_model_threshold``) are printed in full;
+    larger models are compacted to avoid overwhelming the log output.
+
+    Args:
+        model: The PyTorch module to summarise.
+        small_model_threshold: Module count below which the full architecture
+            is printed with no depth or child limits.
+        compact_max_depth: Maximum nesting depth shown for large models.
+        compact_max_children: Maximum number of children shown per module for
+            large models.
+        compact_max_lines: Maximum total lines in the rendered summary for
+            large models.
+
+    Example:
+        >>> printer = ModelPrettyPrinter(my_model)
+        >>> print(printer.render())
+    """
 
     def __init__(
         self,
@@ -34,6 +53,12 @@ class ModelPrettyPrinter:
         )
 
     def render(self) -> str:
+        """Build and return the formatted model summary string.
+
+        Returns:
+            A multi-line string containing the model class name, parameter
+            counts, and a tree view of the module hierarchy.
+        """
         module_count = sum(1 for _ in self._model.modules())
         total_params = sum(param.numel() for param in self._model.parameters())
         trainable_params = sum(
@@ -77,9 +102,19 @@ class ModelPrettyPrinter:
         return "\n".join(lines)
 
     def __str__(self) -> str:
+        """Return the model summary string (delegates to :meth:`render`)."""
         return self.render()
 
     def _select_limits(self, module_count: int) -> _RenderLimits:
+        """Choose render limits based on model size.
+
+        Args:
+            module_count: Total number of modules in the model.
+
+        Returns:
+            A :class:`_RenderLimits` with ``None`` fields (no limits) for
+            small models, or the compact limits for larger ones.
+        """
         if module_count <= self._small_model_threshold:
             return _RenderLimits(max_depth=None, max_children=None, max_lines=None)
         return self._compact_limits
@@ -93,6 +128,16 @@ class ModelPrettyPrinter:
         depth: int,
         limits: _RenderLimits,
     ) -> None:
+        """Recursively append child module lines to the summary.
+
+        Args:
+            lines: Accumulator list of rendered lines (mutated in place).
+            children: Named children of the current module.
+            prefix: Indentation string for the current nesting level.
+            depth: Current recursion depth (1-indexed from the root).
+            limits: Active render limits controlling depth, children,
+                and line count.
+        """
         if not children:
             return
 
@@ -127,6 +172,20 @@ class ModelPrettyPrinter:
             lines.append(f"{prefix}... {hidden_children} more modules")
 
     def _format_module_header(self, module: nn.Module, *, root: bool = False) -> str:
+        """Format a single module's summary line.
+
+        Includes the class name and, where non-zero, the direct parameter
+        count, ``extra_repr`` string, and child count.
+
+        Args:
+            module: The module to format.
+            root: If ``True``, child count is omitted (root is always
+                expanded).
+
+        Returns:
+            A formatted string, e.g.
+            ``"Linear (params=512, in_features=256, out_features=2)"``.
+        """
         details = []
         direct_params = sum(param.numel() for param in module.parameters(recurse=False))
         if direct_params:
@@ -147,6 +206,18 @@ class ModelPrettyPrinter:
 
     @staticmethod
     def _normalize_extra_repr(extra_repr: str) -> str:
+        """Collapse and truncate a module's ``extra_repr`` to a single line.
+
+        Joins multi-line repr strings into one line and truncates to 90
+        characters with an ellipsis if longer.
+
+        Args:
+            extra_repr: Raw string from ``module.extra_repr()``.
+
+        Returns:
+            A collapsed single-line string, or an empty string if the input
+            was empty.
+        """
         if not extra_repr:
             return ""
 

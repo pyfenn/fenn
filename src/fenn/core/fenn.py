@@ -11,8 +11,19 @@ from fenn.utils import generate_session_id
 
 
 class Fenn:
-    """
-    The base Fenn application
+    """Base class for a PyFenn application.
+
+    Wires together argument parsing, logging, secret storage, and result
+    export into a single entry point. Subclass this or instantiate it
+    directly, register your main logic with :meth:`entrypoint`, then call
+    :meth:`run`.
+
+    Example:
+        >>> app = Fenn()
+        >>> @app.entrypoint
+        ... def main(args):
+        ...     print(args)
+        >>> app.run()
     """
 
     def __init__(self) -> None:
@@ -35,15 +46,35 @@ class Fenn:
         self._disable_disclaimer = False
 
     def entrypoint(self, entrypoint_fn: Callable) -> Callable:
-        """
-        The decorator to register the main execution function.
+        """Register the application's main function.
+
+        Use as a decorator. The decorated function receives the parsed
+        configuration dict as its only argument and may return any value,
+        which :meth:`run` will forward to the caller.
+
+        Args:
+            entrypoint_fn: The callable to register as the application entry
+                point. Must accept a single ``args`` dict argument.
+
+        Returns:
+            The original callable, unchanged (decorator passthrough).
         """
         self._entrypoint_fn = entrypoint_fn
         return entrypoint_fn
 
     def run(self) -> Any:
-        """
-        The method that executes the application's core logic.
+        """Execute the application.
+
+        Loads configuration from the YAML file, initialises logging and
+        export directories, then calls the registered entrypoint function.
+        Logging is always stopped cleanly, even if the entrypoint raises.
+
+        Returns:
+            The value returned by the entrypoint function.
+
+        Raises:
+            RuntimeError: If no entrypoint has been registered via
+                :meth:`entrypoint`.
         """
 
         if not self._disable_disclaimer:
@@ -93,18 +124,24 @@ class Fenn:
             self._logger.stop()
 
     def disable_disclaimer(self) -> None:
+        """Suppress the startup banner printed before each run."""
         self._disable_disclaimer = True
 
     def set_config_file(self, config_file: str) -> None:
-        """
-        The method to set the YAML file.
+        """Override the default YAML configuration file path.
+
+        Args:
+            config_file: Path to the YAML file to load on :meth:`run`.
+                Defaults to ``"fenn.yaml"`` in the working directory.
         """
         self._config_file = config_file
 
     @property
     def config_file(self) -> str:
+        """Path to the active YAML configuration file."""
         return self._config_file
 
     @property
     def export_dir(self) -> Path:
+        """Output directory for run artefacts (logs, models, exports)."""
         return self._exporter.export_dir

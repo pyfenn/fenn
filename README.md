@@ -4,9 +4,9 @@
 
 <div align="center">
 
-![GitHub stars](https://img.shields.io/github/stars/blkdmr/fenn?style=social) ![GitHub forks](https://img.shields.io/github/forks/blkdmr/fenn?style=social) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/261c40f69583462baa200aee959bcc8f)](https://app.codacy.com/gh/blkdmr/fenn/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![codecov](https://codecov.io/gh/pyfenn/fenn/graph/badge.svg?token=7RTTZ1SFMM)](https://codecov.io/gh/pyfenn/fenn)
+[![DOI](https://zenodo.org/badge/1098344896.svg)](https://doi.org/10.5281/zenodo.20178659)![GitHub stars](https://img.shields.io/github/stars/blkdmr/fenn?style=social) ![GitHub forks](https://img.shields.io/github/forks/blkdmr/fenn?style=social) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/261c40f69583462baa200aee959bcc8f)](https://app.codacy.com/gh/blkdmr/fenn/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![codecov](https://codecov.io/gh/pyfenn/fenn/graph/badge.svg?token=7RTTZ1SFMM)](https://codecov.io/gh/pyfenn/fenn)
 ![PyPI version](https://img.shields.io/pypi/v/fenn) ![License](https://img.shields.io/github/license/blkdmr/fenn) [![PyPI Downloads](https://img.shields.io/pypi/dm/fenn.svg?label=downloads&logo=pypi&color=blue)](https://pypi.org/project/fenn/) [![Discord Server](https://img.shields.io/badge/Discord-PyFenn-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/6v9xtJxvN7)[![Sponsor](https://img.shields.io/badge/sponsor-GitHub-pink)](https://github.com/sponsors/blkdmr)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/e5b91aff-cc0e-4b90-becd-d783c3b043bd/deploy-status)](https://app.netlify.com/projects/pyfenn/deploys)
+
 </div>
 
 **Stop writing boilerplate. Start training.**
@@ -57,19 +57,57 @@ uv pip install fenn
 
 ### Initialize a Project
 
-Run the CLI tool to see which repositories are available and to download a template together with its configuration file. First, list the available repositories:
+Use the CLI to discover and download a project template.
+
+#### 1. List available templates
 
 ```bash
 fenn list
-````
-
-Then, download one of the available templates (here `empty` is just an example):
-
-```bash
-fenn pull empty
 ```
 
-This command downloads the selected template into the current directory and generates the corresponding configuration file, which can be customized before running or extending the project.
+This fetches the directory listing from [`pyfenn/templates`](https://github.com/pyfenn/templates) and prints the templates you can use.
+
+#### 2. Pull a template
+
+```bash
+fenn pull <template> [path]
+```
+
+Examples:
+
+```bash
+fenn pull empty            # pull into the current directory
+fenn pull empty ./my-proj  # pull into ./my-proj (created if missing)
+```
+
+Each template ships at least a `main.py` entrypoint and a `fenn.yaml` configuration file in the target directory. Most templates also include a `README.md`, a `requirements.txt`, and a `modules/` directory with example model and dataset code.
+
+To avoid clobbering work, `fenn pull` refuses to write into a non-empty target directory. Pass `--force` to overwrite existing files:
+
+```bash
+fenn pull empty --force
+```
+
+Hidden entries (those starting with `.`, such as `.git`) do not count as "non-empty".
+
+#### 3. Customize and run
+
+Open the generated `fenn.yaml` and adjust hyperparameters, paths, logging, and integrations for your project (see [Configuration](#configuration) below). Then run the entrypoint:
+
+```bash
+python main.py
+```
+
+#### Common issues
+
+- **`Template <name> not found`** — The template name doesn't match a directory in [`pyfenn/templates`](https://github.com/pyfenn/templates). Run `fenn list` to see valid names.
+- **`Refusing to pull into non-empty directory`** — Either pull into an empty directory, point `path` at a fresh one, or pass `--force` to overwrite.
+- **`Network error` / `Failed to check template existence`** — Check connectivity. The CLI uses the unauthenticated GitHub API to look up and download templates, which is subject to GitHub's rate limit.
+- **`fenn: command not found` after installation** — Your Python scripts directory may not be on your `PATH`. Try running with `python -m fenn` instead, or add the scripts directory to your PATH. On most systems: `export PATH="$HOME/.local/bin:$PATH"`.
+- **`fenn.yaml not found` when running `main.py`** — Make sure you are running the script from the same directory that contains `fenn.yaml`. fenn looks for the config file in the current working directory by default.
+- **`KeyError` on `args['section']['key']`** — The key referenced in your code does not exist in `fenn.yaml`. Double-check spelling in both files. YAML is case-sensitive.
+- **`ModuleNotFoundError` after pulling a template** — Install the template's dependencies first: `pip install -r requirements.txt`.
+- **GitHub API rate limit exceeded during `fenn list` or `fenn pull`** — The unauthenticated GitHub API allows 60 requests/hour per IP. Wait a few minutes and try again, or set a `GITHUB_TOKEN` environment variable if your fenn version supports authenticated requests.
 
 ### Configuration
 
@@ -179,6 +217,34 @@ def main(args):
     preds = trainer.predict(test_loader)
 ```
 
+## CLI Reference
+
+A quick reference for all available fenn CLI commands.
+
+| Command | Description |
+|---|---|
+| `fenn list` | List all available templates from [`pyfenn/templates`](https://github.com/pyfenn/templates) |
+| `fenn pull <template>` | Pull a template into the current directory |
+| `fenn pull <template> <path>` | Pull a template into the specified path (created if missing) |
+| `fenn pull <template> --force` | Pull a template and overwrite existing files |
+
+## Cite fenn
+
+If you use **fenn** in your work or research, please cite the project as:
+
+```bibtex
+@software{fenn,
+  author       = {Alessio Russo},
+  title        = {pyfenn/fenn: Release v0.2.0},
+  month        = may,
+  year         = 2026,
+  publisher    = {Zenodo},
+  version      = {v0.2.0},
+  doi          = {10.5281/zenodo.20178660},
+  url          = {https://doi.org/10.5281/zenodo.20178660},
+}
+```
+
 ## Contributing
 
 Contributions are welcome! 
@@ -197,7 +263,6 @@ The development and long-term direction of **fenn** is guided by the following m
 |------------|------|
 | [@blkdmr](https://github.com/blkdmr) | Creator & Project Administrator |
 | [@giuliaOddi](https://github.com/giuliaOddi) | Project Administrator |
-| [@GlowCheese](https://github.com/GlowCheese) | Core Maintainer |
 | [@franciscolima05](https://github.com/franciscolima05) | Core Maintainer |
 
 Maintainers oversee the project roadmap, review pull requests, coordinate releases, and ensure the long-term stability and quality of the framework.

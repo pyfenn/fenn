@@ -6,11 +6,11 @@ dist/
 /tests/
 diff.txt
 venv/
-.idea
 logger/
 site/
-.venv/
-
+.*/
+*.md
+!README.md
 
 # Tests
 coverage.xml

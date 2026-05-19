@@ -1,3 +1,6 @@
 [submodule "templates"]
 	path = templates
 	url = https://github.com/pyfenn/templates
+[submodule "docs"]
+	path = docs
+	url = https://github.com/pyfenn/docs.git

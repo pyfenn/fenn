@@ -4,7 +4,7 @@ from typing import Any, Callable, Optional
 from colorama import Fore, Style
 
 from fenn.args import Parser
-from fenn.core.exporter import Exporter
+from fenn.export.exporter import Exporter
 from fenn.logging import Logger
 from fenn.secrets.keystore import KeyStore
 from fenn.utils import generate_session_id
@@ -135,6 +135,9 @@ class Fenn:
                 Defaults to ``"fenn.yaml"`` in the working directory.
         """
         self._config_file = config_file
+
+    def get_env_key(self, key:str) -> str:
+        return self._keystore.get_key(key)
 
     @property
     def config_file(self) -> str:

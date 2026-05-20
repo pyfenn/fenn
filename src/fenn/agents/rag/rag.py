@@ -1,6 +1,6 @@
 from .loader import load_documents
 from .retriever import Retriever
-from .llm import ask, stream as llm_stream, DEFAULT_MODELS, _detect_provider
+from fenn.agents.llm import LLMClient, _detect_provider, DEFAULT_MODELS
 
 
 class RAG:
@@ -109,10 +109,16 @@ class RAG:
         max_history=None,
         system_prompt=None,
     ):
-        self.model_provider = _detect_provider(model_provider, model, base_url)
-        self.model          = model or DEFAULT_MODELS.get(self.model_provider, "gpt-4o-mini")
-        self.model_api_key  = model_api_key
-        self.base_url       = base_url
+        self._llm = LLMClient(
+            provider=model_provider,
+            model=model,
+            api_key=model_api_key,
+            base_url=base_url,
+        )
+        self.model_provider = self._llm.provider
+        self.model          = self._llm.model
+        self.model_api_key  = self._llm.api_key
+        self.base_url       = self._llm.base_url
 
         self._retriever = Retriever(
             use_faiss=faiss,
@@ -252,14 +258,7 @@ class RAG:
 
         context = "\n\n".join(chunks)
         prompt  = self._build_prompt(query, context)
-        answer  = ask(
-            prompt,
-            model=self.model,
-            model_api_key=self.model_api_key,
-            base_url=self.base_url,
-            model_provider=self.model_provider,
-            schema=schema,
-        )
+        answer  = self._llm.ask(prompt, schema=schema)
 
         if self._memory:
             self._history.append((query, answer if isinstance(answer, str) else str(answer)))
@@ -320,13 +319,7 @@ class RAG:
             for i, c in enumerate(chunks):
                 print(f"  [{i+1}] {c[:80]}...")
 
-        yield from llm_stream(
-            prompt,
-            model=self.model,
-            model_api_key=self.model_api_key,
-            base_url=self.base_url,
-            model_provider=self.model_provider,
-        )
+        yield from self._llm.stream(prompt)
 
     def reset_memory(self):
         """

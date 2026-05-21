@@ -3,8 +3,9 @@
 import argparse
 import logging
 from pathlib import Path
+from typing import Optional
 
-from flask import Flask, abort, jsonify, render_template
+from flask import Flask, abort, jsonify, render_template, request
 
 try:
     from fenn.dashboard.scanner import FennScanner
@@ -77,6 +78,80 @@ def api_session(project_name: str, session_id: str):
         abort(404)
     data.pop("projects", None)
     return jsonify(data)
+
+
+# Pagination / filtering limits. 200 is large enough for any plausible UI
+# without letting a client ask for "everything" by accident.
+_MAX_LIMIT = 200
+_DEFAULT_LIMIT = 20
+
+
+def _api_error(code: str, message: str, param: Optional[str] = None):
+    """Standard 400 envelope so clients can branch on `error.code`."""
+    body = {"error": {"code": code, "message": message}}
+    if param is not None:
+        body["error"]["param"] = param
+    return jsonify(body), 400
+
+
+def _parse_int_arg(
+    name: str, raw: Optional[str], default: int, min_v: int, max_v: int
+) -> int:
+    if raw is None or raw == "":
+        return default
+    try:
+        v = int(raw)
+    except ValueError:
+        raise _ApiBadRequest(f"{name} must be an integer", name)
+    if v < min_v or v > max_v:
+        raise _ApiBadRequest(
+            f"{name} must be between {min_v} and {max_v}", name
+        )
+    return v
+
+
+class _ApiBadRequest(Exception):
+    def __init__(self, message: str, param: Optional[str] = None):
+        self.message = message
+        self.param = param
+
+
+@app.route("/api/sessions")
+def api_sessions():
+    """Filtered, sorted, paginated session listing.
+
+    Query params: project, status, limit (1..200, default 20), offset (>=0,
+    default 0), sort (field, optionally ``-`` prefixed for descending).
+    """
+    try:
+        project = request.args.get("project") or None
+        status = request.args.get("status") or None
+        sort = request.args.get("sort") or "-started"
+        limit = _parse_int_arg(
+            "limit", request.args.get("limit"), _DEFAULT_LIMIT, 1, _MAX_LIMIT
+        )
+        offset = _parse_int_arg(
+            "offset", request.args.get("offset"), 0, 0, 1_000_000
+        )
+
+        try:
+            result = scanner.list_sessions(
+                project=project,
+                status=status,
+                limit=limit,
+                offset=offset,
+                sort=sort,
+            )
+        except ValueError as e:
+            # Pick the parameter name from the message so the envelope is
+            # consistent with the int-parsing errors above.
+            msg = str(e)
+            param = "status" if msg.startswith("status") else "sort"
+            return _api_error("invalid_param", msg, param)
+
+        return jsonify(result)
+    except _ApiBadRequest as e:
+        return _api_error("invalid_param", e.message, e.param)
 
 
 @app.errorhandler(404)

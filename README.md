@@ -9,11 +9,9 @@
 
 </div>
 
-**Stop writing boilerplate. Start training.**
+**The open engine for deep learning workflows.**
 
 Friendly Environment for Neural Networks (fenn) is a simple framework that automates ML/DL workflows by providing prebuilt trainers, templates, logging, configuration management, and much more. With fenn, you can focus on your model and data while it takes care of the rest.
-
-<p align="center"><img src="fenn.gif" alt="fenn preview" width="1000"></p>
 
 ## Support fenn
 

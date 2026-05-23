@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from unittest.mock import patch
 
 import pytest
@@ -60,6 +59,25 @@ def test_run_local_invokes_runpy(tmp_path):
         (called_path,) = run_path.call_args.args
         assert called_path == str(script.resolve())
         assert run_path.call_args.kwargs.get("run_name") == "__main__"
+
+
+def test_run_local_supports_relative_imports(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    script = project / "main.py"
+    script.write_text(
+        "from pathlib import Path\n"
+        "from .modules import VALUE\n"
+        "Path('result.txt').write_text(VALUE, encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    (project / "modules.py").write_text("VALUE = 'ok'\n", encoding="utf-8")
+
+    from fenn.remote.local_runner import run_local
+
+    run_local(script)
+
+    assert (project / "result.txt").read_text(encoding="utf-8") == "ok"
 
 
 def test_run_missing_script_exits(tmp_path, capsys):

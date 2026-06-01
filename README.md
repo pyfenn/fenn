@@ -221,12 +221,14 @@ A quick reference for all available fenn CLI commands.
 
 | Command | Description |
 |---|---|
+| `fenn auth` | Manage credentials for the Fenn remote service |
+| `fenn dashboard` | Launch the local log-browser web UI |
+| `fenn grid <path>` | By setting grid/train section in template, you can run a Fenn project several times, with all possible grid hyperparams. Also, it is possible to specify path to main.py file (e.g. my_temp/main.py) |
 | `fenn list` | List all available templates from [`pyfenn/templates`](https://github.com/pyfenn/templates) |
 | `fenn pull <template>` | Pull a template into the current directory |
 | `fenn pull <template> <path>` | Pull a template into the specified path (created if missing) |
 | `fenn pull <template> --force` | Pull a template and overwrite existing files |
 | `fenn run [script]` | Execute on the Fenn remote service; uploads the project, streams logs, downloads artifacts |
-| `fenn dashboard` | Launch the local log-browser web UI |
 
 ## Cite fenn
 

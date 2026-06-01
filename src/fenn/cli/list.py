@@ -14,13 +14,7 @@ GITHUB_ARCHIVE_BASE = "https://github.com"
 
 def execute(args: argparse.Namespace) -> None:
     """
-    Execute the fenn pull command to download a template from GitHub.
-
-    Args:
-        args: Parsed command-line arguments containing:
-            - template: Name of the template to download (optional if --list is used)
-            - path: Target directory (default: current directory)
-            - force: Whether to overwrite existing files
+    Execute the fenn list command, to show all accessible templates.
     """
     try:
         _list_templates()

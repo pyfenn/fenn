@@ -36,7 +36,7 @@ class Parser:
         logger = Logger()
 
         if not os.path.isfile(self._config_file):
-            logger.display_excpetion(
+            logger.display_exception(
                 f"Configuration file {self._config_file} was not found."
             )
 

@@ -37,7 +37,7 @@ When you make changes, aim to:
 - Add or update tests and documentation if your change affects behavior or public APIs.
 - Keep commits logically grouped (for example, separate “refactor” from “new feature” where it makes sense).
 
-**Please note** that, in order to test your changes, you need to reinstall `fenn` locally in editable mode along with its dev and test dependencies. `fenn` uses pre-commit and ruff for automated linting and formatting. From the base project directory (the one containing the project `pyproject.toml` file), run:
+**Please note** that, in order to test your changes, you need to reinstall `fenn` locally in editable mode along with its dev and test dependencies. `fenn` uses pre-commit, ruff, and typos for automated linting, formatting, and spell checking. From the base project directory (the one containing the project `pyproject.toml` file), run:
 
 ```
 pip install -e ".[dev,test]"
@@ -47,9 +47,11 @@ pip install -e ".[dev,test]"
 
 Run `pre-commit install` to wire up the pre-commit git hook. This only needs to be done once after cloning your fork.
 
-This makes pre-commit run the configured hooks (`ruff check` and `ruff format` currently) on every `git commit`. Your commit may be blocked if a hook reports a failure or modifies a file. `ruff format` may reformat your code automatically, so you'll need to review the modifications and stage them again before committing. Without this step your commits may fail CI.
+This makes pre-commit run the configured hooks on every `git commit`. Your commit may be blocked if a hook reports a failure or modifies a file. `ruff format` may reformat your code automatically, so you'll need to review the modifications and stage them again before committing. Without this step your commits may fail CI.
 
-See the [`ruff` documentation](https://docs.astral.sh/ruff/) for more information.
+For more information on `ruff` and `typos` see the docs:
+- [`ruff` documentation](https://docs.astral.sh/ruff/)
+- [`typos` documentation](https://github.com/crate-ci/typos)
 
 Once your branch is ready:
 

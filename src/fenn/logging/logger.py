@@ -77,7 +77,7 @@ class Logger:
         if self._args:
             self._fnxml_backend.system_info(message)
 
-    def display_excpetion(
+    def display_exception(
         self, message: str, display_on_terminal=True, write_on_file=True
     ) -> None:
         self._logging_backend.exception(message, display_on_terminal, write_on_file)

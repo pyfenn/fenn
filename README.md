@@ -228,7 +228,6 @@ A quick reference for all available fenn CLI commands.
 | `fenn pull <template>` | Pull a template into the current directory |
 | `fenn pull <template> <path>` | Pull a template into the specified path (created if missing) |
 | `fenn pull <template> --force` | Pull a template and overwrite existing files |
-| `fenn run [script]` | Execute on the Fenn remote service; uploads the project, streams logs, downloads artifacts |
 
 ## Cite fenn
 

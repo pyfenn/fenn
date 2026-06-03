@@ -45,7 +45,13 @@ pip install -e ".[dev,test]"
 
 ### Set up pre-commit hooks
 
-Run `pre-commit install` to wire up the pre-commit git hook. This only needs to be done once after cloning your fork.
+Run the following command once after cloning your fork to install `pre-commit` and wire up the Git hook:
+
+```bash
+python -m pip install pre-commit && pre-commit install
+```
+
+This only needs to be done once after cloning your fork.
 
 This makes pre-commit run the configured hooks on every `git commit`. Your commit may be blocked if a hook reports a failure or modifies a file. `ruff format` may reformat your code automatically, so you'll need to review the modifications and stage them again before committing. Without this step your commits may fail CI.
 

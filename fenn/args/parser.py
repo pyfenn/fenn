@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Any, Dict
 
@@ -29,22 +28,26 @@ class Parser:
 
         self._initialized = True
 
-    def load_configuration(self) -> Any:
-        """Loads the YAML configuration into the _args dictionary."""
+    def _config_missing(self) -> None:
         from fenn.logging import Logger
 
         logger = Logger()
 
-        if not os.path.isfile(self._config_file):
-            logger.display_exception(
-                f"Configuration file {self._config_file} was not found."
-            )
+        logger.display_exception(
+            f"Configuration file {self._config_file} was not found."
+        )
 
-            raise FileNotFoundError(
-                0,
-                f"Configuration file {self._config_file} was not found.",
-                self._config_file,
-            )
+        raise FileNotFoundError(
+            0,
+            f"Configuration file {self._config_file} was not found.",
+            self._config_file,
+        )
+
+    def load_configuration(self) -> Any:
+        """Loads the YAML configuration into the _args dictionary."""
+
+        if not self._config_file.exists():
+            self._config_missing()
 
         # File exists → load YAML
         with open(self._config_file) as f:

@@ -104,7 +104,7 @@ python main.py
 - **`fenn: command not found` after installation** — Your Python scripts directory may not be on your `PATH`. Try running with `python -m fenn` instead, or add the scripts directory to your PATH. On most systems: `export PATH="$HOME/.local/bin:$PATH"`.
 - **`fenn.yaml not found` when running `main.py`** — Make sure you are running the script from the same directory that contains `fenn.yaml`. fenn looks for the config file in the current working directory by default.
 - **`KeyError` on `args['section']['key']`** — The key referenced in your code does not exist in `fenn.yaml`. Double-check spelling in both files. YAML is case-sensitive.
-- **`ModuleNotFoundError` after pulling a template** — Install the template's dependencies first: `pip install -r requirements.txt`.
+- **`ModuleNotFoundError` after pulling a template** — `fenn` automatically attempts to install template dependencies during the pull process. If an environment issue prevents this, navigate into your project directory and run `pip install -r requirements.txt` manually.
 - **GitHub API rate limit exceeded during `fenn list` or `fenn pull`** — The unauthenticated GitHub API allows 60 requests/hour per IP. Wait a few minutes and try again, or set a `GITHUB_TOKEN` environment variable if your fenn version supports authenticated requests.
 
 ### Configuration

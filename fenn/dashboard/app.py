@@ -65,8 +65,7 @@ def _inject_current_user():
 _PUBLIC_ENDPOINTS = frozenset({"connect", "logout", "static"})
 
 _STORED_TOKEN_EXPIRED_MESSAGE = (
-    "Your saved dashboard token expired or was revoked. "
-    "Paste a fresh one to continue."
+    "Your saved dashboard token expired or was revoked. Paste a fresh one to continue."
 )
 _STORED_TOKEN_OFFLINE_MESSAGE = (
     "Could not reach https://pyfenn.com to verify your saved token. "

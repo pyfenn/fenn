@@ -73,6 +73,8 @@ def client(scanner_with_sessions):
     app_module.scanner = scanner_with_sessions
     app.config["TESTING"] = True
     with app.test_client() as c:
+        with c.session_transaction() as sess:
+            sess["user"] = {"email": "test@example.com"}  # любой dict
         yield c
     app_module.scanner = original
 

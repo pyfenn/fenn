@@ -60,3 +60,30 @@ class TestDiscord:
             )
 
         assert "400" in str(exc_info.value)
+
+    def test_notify_on_success_false_blocks_success(self):
+        """Test that notify_on_success=False blocks success notifications."""
+        discord = Discord(
+            "https://discord.com/api/webhooks/123/abc", notify_on_success=False
+        )
+        assert discord.should_notify(is_success=True) is False
+
+    def test_notify_on_success_false_allows_failure(self):
+        """Test that notify_on_success=False allows failure notifications."""
+        discord = Discord(
+            "https://discord.com/api/webhooks/123/abc", notify_on_success=False
+        )
+        assert discord.should_notify(is_success=False) is True
+
+    def test_notify_on_success_true_allows_both(self):
+        """Test that notify_on_success=True allows both success and failure notifications."""
+        discord = Discord(
+            "https://discord.com/api/webhooks/123/abc", notify_on_success=True
+        )
+        assert discord.should_notify(is_success=True) is True
+        assert discord.should_notify(is_success=False) is True
+
+    def test_default_notify_on_success_is_false(self):
+        """Test that the default value of notify_on_success is False."""
+        discord = Discord("https://discord.com/api/webhooks/123/abc")
+        assert discord.should_notify(is_success=True) is False

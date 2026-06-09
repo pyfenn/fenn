@@ -49,11 +49,13 @@ class Notifier:
             )
             raise
 
-    def notify(self, message: str) -> None:
+    def notify(self, message: str, is_success: bool = True) -> None:
         """Send notification to all registered services.
 
         Args:
             message: The message to send.
+            is_success: Whether the operation succeeded (default: True).
+                       Services can use this to filter notifications.
         """
         if not self._services:
             return
@@ -63,7 +65,8 @@ class Notifier:
 
         for service in self._services:
             try:
-                service.send_notification(message)
+                if service.should_notify(is_success):
+                    service.send_notification(message)
                 successful_services.append(service.__class__.__name__)
                 # logger.info(f"Successfully sent notification via {service.__class__.__name__}")
             except Exception as e:

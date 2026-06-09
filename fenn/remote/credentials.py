@@ -24,11 +24,10 @@ from __future__ import annotations
 
 import os
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
-
-import tomllib
 
 from fenn.remote.exceptions import CredentialsError
 

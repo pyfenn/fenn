@@ -36,7 +36,7 @@ jobs:
 
       - name: "Run tests"
         run: |
-          nox -t latest
+          nox -t fenn
           
       - name: Trigger docs rebuild
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'

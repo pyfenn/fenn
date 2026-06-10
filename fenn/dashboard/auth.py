@@ -3,7 +3,7 @@
 The dashboard is a localhost-only Flask app. To authenticate, the user
 generates a "dashboard token" on pyfenn.com, pastes it into the
 ``/connect`` page, and the server validates it once against
-``https://pyfenn.com/api/dashboard/me``. On success we store
+``https://pyfenn.com/api/dashboard/me``. On success, we store
 ``{user_id, email}`` in a signed Flask session cookie and discard the
 token — it is never written to disk or kept in memory.
 """

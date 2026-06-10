@@ -4,7 +4,7 @@ import os
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree
 
 # Default directories to scan (resolved at runtime)
 _DEFAULT_DIRS = [
@@ -106,7 +106,7 @@ class FennScanner:
             if f not in seen:
                 seen.add(f)
                 unique.append(f)
-        ordered = sorted(unique, key=lambda f: f.stat().st_mtime, reverse=True)
+        ordered = sorted(unique, key=lambda path: path.stat().st_mtime, reverse=True)
         self._files_cache = (now, ordered)
         return ordered
 
@@ -137,25 +137,23 @@ class FennScanner:
         self._parse_cache[key] = (mtime, parsed)
         return self._refresh_running_status(parsed, mtime)
 
-    def _parse_uncached(
-        self, path: Path, stat: os.stat_result
-    ) -> Optional[Dict[str, Any]]:
+    @staticmethod
+    def _parse_uncached(path: Path, stat: os.stat_result) -> Optional[Dict[str, Any]]:
         try:
             content = path.read_text(encoding="utf-8")
         except (OSError, PermissionError):
             return None
 
-        root = None
         status = "completed"
 
         try:
-            root = ET.fromstring(content)
-        except ET.ParseError:
+            root = ElementTree.fromstring(content)
+        except ElementTree.ParseError:
             # Session may still be running — try appending the closing tag
             try:
-                root = ET.fromstring(content + "\n</fenn-log>")
+                root = ElementTree.fromstring(content + "\n</fenn-log>")
                 status = "running"
-            except ET.ParseError:
+            except ElementTree.ParseError:
                 return None
 
         # Override status from <meta> if present
@@ -261,7 +259,9 @@ class FennScanner:
                 p["running_count"] += 1
             elif s["status"] == "crashed":
                 p["crashed_count"] += 1
-        return sorted(projects.values(), key=lambda p: p["last_active"], reverse=True)
+        return sorted(
+            projects.values(), key=lambda project: project["last_active"], reverse=True
+        )
 
     def get_overview(self) -> Dict[str, Any]:
         """Aggregate stats for the dashboard home page."""
@@ -360,11 +360,12 @@ class FennScanner:
         if status:
             sessions = [s for s in sessions if s["status"] == status]
 
-        # Sentinel keeps None values consistently last (asc) / first (desc)
-        # without crashing the comparison on mixed types.
+        # Sorts None values last (ascending) / first (descending) without comparing None to
+        # non-None values, but may raise TypeError if non-None values are of different types
+        # (e.g., int vs str).
         def sort_key(s: Dict[str, Any]):
             v = s.get(field)
-            return (v is None, v if v is not None else "")
+            return v is None, v
 
         sessions.sort(key=sort_key, reverse=descending)
 
@@ -380,7 +381,8 @@ class FennScanner:
             "offset": offset,
         }
 
-    def format_duration(self, seconds: Optional[int]) -> str:
+    @staticmethod
+    def format_duration(seconds: Optional[int]) -> str:
         if seconds is None:
             return "—"
         if seconds < 60:
@@ -391,7 +393,8 @@ class FennScanner:
         m = (seconds % 3600) // 60
         return f"{h}h {m}m"
 
-    def format_size(self, size_bytes: int) -> str:
+    @staticmethod
+    def format_size(size_bytes: int) -> str:
         if size_bytes < 1024:
             return f"{size_bytes} B"
         if size_bytes < 1024 * 1024:

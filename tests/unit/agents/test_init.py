@@ -1,6 +1,8 @@
 import asyncio
 import warnings
 
+import pytest
+
 from fenn.agents import (
     AsyncBatchFlow,
     AsyncBatchNode,
@@ -14,7 +16,6 @@ from fenn.agents import (
     Flow,
     Node,
 )
-import pytest
 
 
 class TestBaseNode:
@@ -366,7 +367,9 @@ class TestBatchFlow:
                 return "default"
 
         worker = Worker()
-        worker.successors["default"] = None  # no successor, terminal via warning suppressed
+        worker.successors["default"] = (
+            None  # no successor, terminal via warning suppressed
+        )
 
         class MyBatchFlow(BatchFlow):
             def prep(self, shared):
@@ -376,7 +379,7 @@ class TestBatchFlow:
         # avoid "Flow ends" warning noise
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            result = flow._run({})
+            flow._run({})
 
         assert processed == ["a", "b", "c"]
 
@@ -632,10 +635,12 @@ class TestAsyncParallelBatchFlow:
 class TestModuleExports:
     def test_llmclient_importable(self):
         from fenn.agents import LLMClient
+
         assert LLMClient is not None
 
     def test_ragnode_importable(self):
         from fenn.agents import RAGNode
+
         assert RAGNode is not None
 
     def test_all_exports_present(self):

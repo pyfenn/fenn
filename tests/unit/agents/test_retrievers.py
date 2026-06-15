@@ -1,14 +1,15 @@
 """Tests for fenn/agents/rag/retriever.py"""
+
 import json
-import pytest
-from collections import defaultdict
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
-from fenn.agents.rag.retriever import Retriever, LOCAL_EMBEDDING_PROVIDERS
+import pytest
 
+from fenn.agents.rag.retriever import LOCAL_EMBEDDING_PROVIDERS, Retriever
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _docs(*texts):
     return list(texts)
@@ -22,6 +23,7 @@ def _bm25_retriever(docs=None):
 
 
 # ── Construction ───────────────────────────────────────────────────────────────
+
 
 class TestRetrieverInit:
     def test_defaults(self):
@@ -41,6 +43,7 @@ class TestRetrieverInit:
 
 
 # ── _resolve_embedding_key ─────────────────────────────────────────────────────
+
 
 class TestResolveEmbeddingKey:
     def test_explicit_key_wins(self):
@@ -70,6 +73,7 @@ class TestResolveEmbeddingKey:
 
 # ── BM25 index & query ─────────────────────────────────────────────────────────
 
+
 class TestBM25:
     def test_index_populates_chunks(self):
         r = _bm25_retriever(_docs("hello world", "foo bar"))
@@ -81,10 +85,12 @@ class TestBM25:
         assert "fox" in r._index
 
     def test_query_returns_relevant_chunk(self):
-        r = _bm25_retriever(_docs(
-            "Python is a programming language.",
-            "The cat sat on the mat.",
-        ))
+        r = _bm25_retriever(
+            _docs(
+                "Python is a programming language.",
+                "The cat sat on the mat.",
+            )
+        )
         results = r.query("Python programming", top_k=1)
         assert any("Python" in c for c in results)
 
@@ -112,17 +118,20 @@ class TestBM25:
         assert len(r.chunks) >= 2
 
     def test_bm25_scores_by_word_frequency(self):
-        r = _bm25_retriever(_docs(
-            "cat cat cat",
-            "cat dog",
-            "dog dog",
-        ))
+        r = _bm25_retriever(
+            _docs(
+                "cat cat cat",
+                "cat dog",
+                "dog dog",
+            )
+        )
         results = r.query("cat", top_k=3)
         # chunk with most "cat" hits should rank first
         assert results[0] == "cat cat cat"
 
 
 # ── query() dispatch ───────────────────────────────────────────────────────────
+
 
 class TestQueryDispatch:
     def test_bm25_path_called(self):
@@ -141,6 +150,7 @@ class TestQueryDispatch:
 
 
 # ── index() with persist_path ──────────────────────────────────────────────────
+
 
 class TestIndexPersistence:
     def test_index_loads_from_disk_on_first_call(self, tmp_path):
@@ -186,7 +196,7 @@ class TestIndexPersistence:
         mock_index = MagicMock()
         r._faiss_index = mock_index
 
-        with patch("fenn.agents.rag.retriever.faiss") as mock_faiss:
+        with patch("fenn.agents.rag.retriever.faiss"):
             r._save_to_disk()
             assert (tmp_path / "chunks.json").exists()
             saved = json.loads((tmp_path / "chunks.json").read_text())
@@ -194,6 +204,7 @@ class TestIndexPersistence:
 
 
 # ── _build_faiss ───────────────────────────────────────────────────────────────
+
 
 class TestBuildFaiss:
     def test_build_faiss_raises_without_faiss(self):
@@ -205,6 +216,7 @@ class TestBuildFaiss:
 
 
 # ── Embedding method ImportError paths ────────────────────────────────────────
+
 
 class TestEmbedImportErrors:
     def test_embed_local_raises_without_sentence_transformers(self):
@@ -246,17 +258,21 @@ class TestEmbedImportErrors:
 
 # ── _embed dispatch ────────────────────────────────────────────────────────────
 
+
 class TestEmbedDispatch:
-    @pytest.mark.parametrize("provider,method", [
-        ("local", "_embed_local"),
-        ("openai", "_embed_openai_compat"),
-        ("gemini", "_embed_openai_compat"),
-        ("mistral", "_embed_openai_compat"),
-        ("ollama", "_embed_ollama"),
-        ("cohere", "_embed_cohere"),
-        ("voyage", "_embed_voyage"),
-        ("jina", "_embed_jina"),
-    ])
+    @pytest.mark.parametrize(
+        "provider,method",
+        [
+            ("local", "_embed_local"),
+            ("openai", "_embed_openai_compat"),
+            ("gemini", "_embed_openai_compat"),
+            ("mistral", "_embed_openai_compat"),
+            ("ollama", "_embed_ollama"),
+            ("cohere", "_embed_cohere"),
+            ("voyage", "_embed_voyage"),
+            ("jina", "_embed_jina"),
+        ],
+    )
     def test_embed_routes_to_correct_method(self, provider, method):
         r = Retriever(embedding_provider=provider, embedding_api_key="key")
         with patch.object(r, method, return_value="result") as mock_method:

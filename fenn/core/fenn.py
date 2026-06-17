@@ -89,7 +89,7 @@ class Fenn:
         """
 
         if not self._disable_disclaimer:
-            self._logger._logging_backend._original_print(
+            print(
                 "***********************************************************************************\n"
                 f"{Style.BRIGHT}Hi, thank you for using the {Fore.GREEN}PyFenn{Style.RESET_ALL}{Style.BRIGHT} framework.{Style.RESET_ALL}\n"
                 f"PyFenn is still in {Fore.CYAN}early access{Style.RESET_ALL}.\n"
@@ -109,8 +109,6 @@ class Fenn:
 
         Exporter().configure(self._args)
 
-        # Start logging
-
         # Print parsed config (user logs)
         self._parser.print()
 
@@ -125,7 +123,7 @@ class Fenn:
             return result
 
         finally:
-            self._logger.stop()
+            logger.close()
 
     def disable_disclaimer(self) -> None:
         """Suppress the startup banner printed before each run."""

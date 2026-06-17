@@ -3,6 +3,8 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+from fenn.utils.logging import logger
+
 
 def summary(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -17,7 +19,7 @@ def summary(df: pd.DataFrame) -> pd.DataFrame:
             "unique": df.nunique(),
         }
     )
-    print(f"Shape: {df.shape[0]} rows x {df.shape[1]} columns")
+    logger.info(f"Shape: {df.shape[0]} rows x {df.shape[1]} columns")
     return result
 
 

@@ -209,7 +209,8 @@ class ClassificationTrainer(Trainer):
                     f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f}"
                 )
                 logger.info(
-                    f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}"
+                    f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}",
+                    extra={"skip_console": True},
                 )
 
                 if state.train_loss < state.best_train_loss:
@@ -258,7 +259,8 @@ class ClassificationTrainer(Trainer):
                         f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}"
                     )
                     logger.info(
-                        f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}"
+                        f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}",
+                        extra={"skip_console": True},
                     )
 
                 state.val_loss = val_total_loss / val_n_batches
@@ -301,7 +303,8 @@ class ClassificationTrainer(Trainer):
                 else:
                     _reason = "validation loss"
                 logger.info(
-                    f"Early stopping triggered.  No improvement in {_reason} for {self._early_stopping_patience} epochs."
+                    f"Early stopping triggered.  No improvement in {_reason} for {self._early_stopping_patience} epochs.",
+                    extra={"skip_console": True},
                 )
 
                 break

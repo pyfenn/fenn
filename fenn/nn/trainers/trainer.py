@@ -85,7 +85,7 @@ class Trainer(ABC):
 
     def _log_model_summary(self) -> None:
         summary = ModelPrettyPrinter(self._model).render()
-        logger.info(summary)
+        logger.info(summary, extra={"skip_console": True})
 
     def _move_to_device(self, batch: Any, device: Union[torch.device, str]) -> Any:
         """Recursively move tensor data to the specified device.

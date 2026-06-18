@@ -82,16 +82,14 @@ class FennHandler(XmlMixin, logging.Handler):
         self._fn_xml = None
         super().__init__(level)
 
-    def configure(
-        self,
-        args,
-    ):
+    def configure(self, args, started_at):
         log_root = Path(args["logger"]["dir"])
         log_dir = log_root / Path(args["project"])
         log_filename = f"{args['session_id']}.log"
         fnxml_filename = f"{args['session_id']}.fn"
         self._log_file = log_dir / log_filename
         self._fn_xml = log_dir / fnxml_filename
+        self._started_at = started_at
 
     def _write_to_log(
         self,
@@ -130,7 +128,8 @@ class FennHandler(XmlMixin, logging.Handler):
         if self._fn_xml and self._log_file:
             self._write_to_xml(record=record, file_path=self._fn_xml)
             self._write_to_log(record=record)
-        self._write_to_console(record=record)
+        if not getattr(record, "skip_console", False):
+            self._write_to_console(record=record)
 
 
 class FennLogger(XmlMixin, logging.LoggerAdapter):
@@ -145,6 +144,10 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
 
     def close(self):
         self._write_stop_info(started_at=self._started_at)
+
+    def process(self, msg, kwargs):
+        kwargs["extra"] = {**self.extra, **kwargs.get("extra", {})}
+        return msg, kwargs
 
     def _form_log_paths(self, args: dict) -> dict[str | Path]:
         log_root = Path(args["logger"]["dir"]).expanduser()

@@ -169,6 +169,7 @@ class RegressionTrainer(Trainer):
                 )
                 logger.info(
                     f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}",
+                    extra={"skip_console": True},
                 )
 
                 if state.train_loss < state.best_train_loss:
@@ -214,6 +215,7 @@ class RegressionTrainer(Trainer):
                     )
                     logger.info(
                         f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val R2: {val_r2:.4f}",
+                        extra={"skip_console": True},
                     )
 
                 state.val_loss = val_total_loss / val_n_batches

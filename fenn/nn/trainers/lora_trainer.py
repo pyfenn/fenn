@@ -139,7 +139,8 @@ class LoRATrainer(Trainer):
         self._is_generative = task_type_upper in _GENERATIVE_TASK_TYPES
 
         logger.info(
-            f"LoRA applied — task: {task_type_upper} | r={r} | alpha={lora_alpha} | dropout={lora_dropout}"
+            f"LoRA applied — task: {task_type_upper} | r={r} | alpha={lora_alpha} | dropout={lora_dropout}",
+            extra={"skip_console": "True"},
         )
 
     # ------------------------------------------------------------------
@@ -256,7 +257,8 @@ class LoRATrainer(Trainer):
                     f"Train Loss: {state.train_loss:.4f}"
                 )
                 logger.info(
-                    f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}"
+                    f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}",
+                    extra={"skip_console": True},
                 )
 
                 if state.train_loss < state.best_train_loss:
@@ -305,6 +307,7 @@ class LoRATrainer(Trainer):
                     logger.info(
                         f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | "
                         f"Val Loss: {state.val_loss:.4f} | Val Acc: {val_acc:.4f}",
+                        extra={"skip_console": True},
                     )
                 else:
                     progress.console.print(
@@ -314,6 +317,7 @@ class LoRATrainer(Trainer):
                     logger.info(
                         f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | "
                         f"Val Loss: {state.val_loss:.4f}",
+                        extra={"skip_console": True},
                     )
 
                 if state.val_loss < state.best_val_loss:
@@ -353,6 +357,7 @@ class LoRATrainer(Trainer):
                 logger.info(
                     f"Early stopping triggered. No improvement in {_reason} "
                     f"for {self._early_stopping_patience} epochs.",
+                    extra={"skip_console": True},
                 )
                 break
 

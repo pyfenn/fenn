@@ -916,4 +916,53 @@ mark, .log-msg .hl, .log-msg .highlight {
   .search-input:focus {
     background: #0d1117;
   }
+}/* ── Mobile Responsiveness Improvements ────────────────────────────── */
+
+@media (max-width: 600px) {
+  .log-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrap {
+    width: 100%;
+  }
+  .search-input {
+    width: 100%;
+  }
+  .log-count {
+    margin-left: 0;
+  }
+  .filter-group {
+    flex-wrap: wrap;
+  }
+  .page-404 .code {
+    font-size: 52px;
+  }
+  .page-404 .msg {
+    font-size: 16px;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .section-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .meta-row {
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 380px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+  .stat-value {
+    font-size: 20px;
+  }
 }

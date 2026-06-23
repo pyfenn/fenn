@@ -127,7 +127,7 @@ def _require_login():
 
 
 @app.errorhandler(CSRFError)
-def _csrf_failed(e):
+def _csrf_failed(_e):
     return render_template(
         "connect.html",
         error_message="Form expired. Please try again.",
@@ -234,7 +234,7 @@ def api_sessions():
     default 0), sort (field, optionally ``-`` prefixed for descending).
     """
     try:
-        project = request.args.get("project") or None
+        project_name = request.args.get("project") or None
         status = request.args.get("status") or None
         sort = request.args.get("sort") or "-started"
         limit = _parse_int_arg(
@@ -244,7 +244,7 @@ def api_sessions():
 
         try:
             result = scanner.list_sessions(
-                project=project,
+                project=project_name,
                 status=status,
                 limit=limit,
                 offset=offset,
@@ -263,7 +263,7 @@ def api_sessions():
 
 
 @app.errorhandler(404)
-def not_found(e):
+def not_found(_e):
     return render_template("404.html", **scanner.get_overview()), 404
 
 
@@ -333,6 +333,7 @@ def logout():
 # --------------------------------------------------------------------------- #
 
 
+# TODO: Use 'debug' in logger
 def run(
     host: str = "127.0.0.1", port: int = 5000, debug: bool = False, log_dirs=None
 ) -> None:

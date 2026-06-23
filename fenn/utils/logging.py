@@ -123,6 +123,7 @@ class FennHandler(XmlMixin, logging.Handler):
         self,
         record,
     ):
+
         if self._fn_xml and self._log_file:
             self._write_entry(record=record, file_path=self._fn_xml)
             self._write_to_log(record=record)

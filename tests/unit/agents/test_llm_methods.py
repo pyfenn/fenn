@@ -3,6 +3,7 @@ Additional tests for LLMClient._openai_client, .chat_complete, .ask, and .stream
 Merge with or run alongside test_llm.py.
 """
 
+import builtins
 import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -158,7 +159,7 @@ def test_chat_complete_retries_on_rate_limit():
 
     mock_oa = MagicMock()
     mock_oa.chat.completions.create.side_effect = RLE("rate limited")
-
+    original_import = builtins.__import__
     with patch.object(client, "_openai_client", return_value=mock_oa):
         with patch.object(llm_module, "time") as mock_time:
             # patch the RateLimitError import inside chat_complete
@@ -167,7 +168,7 @@ def test_chat_complete_retries_on_rate_limit():
                 def side_import(name, *args, **kwargs):
                     if name == "openai":
                         return SimpleNamespace(RateLimitError=RLE)
-                    return __import__(name, *args, **kwargs)
+                    return original_import(name, *args, **kwargs)
 
                 mock_import.side_effect = side_import
 
@@ -189,6 +190,7 @@ def test_chat_complete_rate_limit_retry_succeeds():
 
     mock_oa = MagicMock()
     mock_oa.chat.completions.create.side_effect = [RLE("limited"), fake_response]
+    original_import = builtins.__import__
 
     with patch.object(client, "_openai_client", return_value=mock_oa):
         with patch.object(llm_module, "time"):
@@ -197,7 +199,7 @@ def test_chat_complete_rate_limit_retry_succeeds():
                 def side_import(name, *args, **kwargs):
                     if name == "openai":
                         return SimpleNamespace(RateLimitError=RLE)
-                    return __import__(name, *args, **kwargs)
+                    return original_import(name, *args, **kwargs)
 
                 mock_import.side_effect = side_import
 

@@ -3,8 +3,19 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from xml.etree import ElementTree as ET
+
+from fenn.dashboard.types import (
+    LogEntry,
+    OverviewPayload,
+    ProjectPayload,
+    ProjectStats,
+    SessionData,
+    SessionListItem,
+    SessionListResponse,
+    SessionPagePayload,
+)
 
 # Default directories to scan (resolved at runtime)
 _DEFAULT_DIRS = [
@@ -52,7 +63,7 @@ class FennScanner:
         # Parse-result cache keyed by file path. Stores (mtime, parsed_dict).
         # Entries are reused only when mtime matches, so any file write
         # (including in-progress logging) invalidates naturally.
-        self._parse_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+        self._parse_cache: Dict[str, Tuple[float, SessionData]] = {}
 
         # Directory-listing cache: (timestamp, files). Reused for up to
         # _FILES_CACHE_TTL_S to absorb bursty requests cheaply.
@@ -110,7 +121,7 @@ class FennScanner:
         self._files_cache = (now, ordered)
         return ordered
 
-    def parse_fn_file(self, path: Path) -> Optional[Dict[str, Any]]:
+    def parse_fn_file(self, path: Path) -> Optional[SessionData]:
         """Parse a single .fn file. Handles incomplete (running) sessions.
 
         Results are cached by ``(path, mtime)``; identical files are not
@@ -139,7 +150,7 @@ class FennScanner:
 
     def _parse_uncached(
         self, path: Path, stat: os.stat_result
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[SessionData]:
         try:
             content = path.read_text(encoding="utf-8")
         except (OSError, PermissionError):
@@ -174,7 +185,7 @@ class FennScanner:
                     config[k] = v
 
         # Log entries
-        entries = []
+        entries: List[LogEntry] = []
         for entry in root.findall("entry"):
             entries.append(
                 {
@@ -198,7 +209,7 @@ class FennScanner:
         warnings = sum(1 for e in entries if e["level"] == "warning")
         exceptions = sum(1 for e in entries if e["level"] == "exception")
 
-        return {
+        session: SessionData = {
             "session_id": root.get("session_id", path.stem),
             "project": root.get("project", path.parent.name),
             "started": root.get("started", ""),
@@ -215,8 +226,10 @@ class FennScanner:
             "file_mtime": stat.st_mtime,
         }
 
+        return session
+
     @staticmethod
-    def _refresh_running_status(parsed: Dict[str, Any], mtime: float) -> Dict[str, Any]:
+    def _refresh_running_status(parsed: SessionData, mtime: float) -> SessionData:
         """Re-evaluate stale "running" sessions against the current timeout.
 
         Cached results are reused across requests, but the running→crashed
@@ -225,12 +238,13 @@ class FennScanner:
         """
         if parsed.get("status") == "running" and mtime > 0:
             if time.time() - mtime > _running_timeout_s():
-                return {**parsed, "status": "crashed"}
+                updated: SessionData = {**parsed, "status": "crashed"}
+                return updated
         return parsed
 
-    def get_all_sessions(self) -> List[Dict[str, Any]]:
+    def get_all_sessions(self) -> List[SessionData]:
         """Return all parsed sessions, newest first."""
-        sessions = []
+        sessions: List[SessionData] = []
         for path in self.find_fn_files():
             parsed = self.parse_fn_file(path)
             if parsed:
@@ -238,9 +252,9 @@ class FennScanner:
         return sessions
 
     @staticmethod
-    def _build_projects_list(sessions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _build_projects_list(sessions: List[SessionData]) -> List[ProjectStats]:
         """Aggregate per-project stats from an already-loaded sessions list."""
-        projects: Dict[str, Dict[str, Any]] = {}
+        projects: Dict[str, ProjectStats] = {}
         for s in sessions:
             name = s["project"]
             if name not in projects:
@@ -263,7 +277,7 @@ class FennScanner:
                 p["crashed_count"] += 1
         return sorted(projects.values(), key=lambda p: p["last_active"], reverse=True)
 
-    def get_overview(self) -> Dict[str, Any]:
+    def get_overview(self) -> OverviewPayload:
         """Aggregate stats for the dashboard home page."""
         sessions = self.get_all_sessions()
         project_list = self._build_projects_list(sessions)
@@ -280,7 +294,7 @@ class FennScanner:
             "active_page": "home",
         }
 
-    def get_project(self, project_name: str) -> Dict[str, Any]:
+    def get_project(self, project_name: str) -> ProjectPayload:
         """Return all sessions for a specific project."""
         all_sessions = self.get_all_sessions()
         sessions = [s for s in all_sessions if s["project"] == project_name]
@@ -300,7 +314,7 @@ class FennScanner:
 
     def get_session(
         self, project_name: str, session_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[SessionPagePayload]:
         """Return full data for a single session.
 
         Fenn writes ``<session_id>.fn`` so the filename stem matches the id;
@@ -317,12 +331,13 @@ class FennScanner:
                 and parsed["session_id"] == session_id
             ):
                 overview = self.get_overview()
-                return {
+                page: SessionPagePayload = {
                     **parsed,
                     "projects": overview["projects"],
                     "active_page": "session",
                     "active_project": project_name,
                 }
+                return page
         return None
 
     # ------------------------------------------------------------------
@@ -336,7 +351,7 @@ class FennScanner:
         limit: int = 20,
         offset: int = 0,
         sort: str = "-started",
-    ) -> Dict[str, Any]:
+    ) -> SessionListResponse:
         """Return a filtered, sorted, paginated slice of sessions.
 
         ``sort`` is a field name optionally prefixed with ``-`` for descending
@@ -362,7 +377,7 @@ class FennScanner:
 
         # Sentinel keeps None values consistently last (asc) / first (desc)
         # without crashing the comparison on mixed types.
-        def sort_key(s: Dict[str, Any]):
+        def sort_key(s: SessionData):
             v = s.get(field)
             return (v is None, v if v is not None else "")
 
@@ -372,7 +387,24 @@ class FennScanner:
         items = sessions[offset : offset + limit]
         # Strip the heavy 'entries' list from the listing payload — clients
         # that need per-entry data fetch the single-session endpoint.
-        slim = [{k: v for k, v in s.items() if k != "entries"} for s in items]
+        slim: List[SessionListItem] = []
+        for s in items:
+            item: SessionListItem = {
+                "session_id": s["session_id"],
+                "project": s["project"],
+                "started": s["started"],
+                "ended": s["ended"],
+                "duration_s": s["duration_s"],
+                "status": s["status"],
+                "entry_count": s["entry_count"],
+                "warning_count": s["warning_count"],
+                "exception_count": s["exception_count"],
+                "file_path": s["file_path"],
+                "file_size": s["file_size"],
+                "file_mtime": s["file_mtime"],
+            }
+            slim.append(item)
+
         return {
             "items": slim,
             "total": total,

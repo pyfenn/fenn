@@ -7,7 +7,7 @@ from fenn.exporter import Exporter
 from fenn.keystore import KeyStore
 from fenn.logging import logger, original_print
 from fenn.parser import Parser
-from fenn.utils import generate_session_id
+from fenn.reproducibility import generate_session_id
 
 
 class Fenn:

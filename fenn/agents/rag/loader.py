@@ -78,8 +78,8 @@ def load_documents(source):
             f for f in found if f.is_file() and f.suffix in SUPPORTED_EXTENSIONS
         ]
         if not supported:
-            logger.info(f"[cofone] warning: no supported files found in {path}")
-            logger.info(
+            logger.warning(f"[cofone] warning: no supported files found in {path}")
+            logger.warning(
                 f"[cofone] supported extensions: {', '.join(SUPPORTED_EXTENSIONS)}"
             )
         for f in supported:
@@ -97,7 +97,7 @@ def _read_file(path):
             return _read_pdf(path)
         return path.read_text(encoding="utf-8")
     except Exception as e:
-        logger.info(f"[cofone] read error {path.name}: {e}")
+        logger.warning(f"[cofone] read error {path.name}: {e}")
         return None
 
 
@@ -113,7 +113,7 @@ def _read_pdf(path):
         pages = [p.extract_text() or "" for p in reader.pages]
         text = "\n".join(pages).strip()
         if not text:
-            logger.info(
+            logger.warning(
                 f"[cofone] warning: PDF '{path.name}' returned no text (may be scanned/image-based)"
             )
         return text or None

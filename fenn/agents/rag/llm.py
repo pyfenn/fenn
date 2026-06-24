@@ -148,7 +148,7 @@ def ask(
             except RateLimitError:
                 if attempt < retries - 1:
                     wait = 5 * (attempt + 1)
-                    logger.info(
+                    logger.warning(
                         f"[cofone] rate limit hit, retrying in {wait}s... ({attempt + 1}/{retries})"
                     )
                     time.sleep(wait)

@@ -310,7 +310,7 @@ class Retriever:
             )
             return True
         except Exception as e:
-            logger.info(f"[cofone] cache load failed ({e}), rebuilding index...")
+            logger.warning(f"[cofone] cache load failed ({e}), rebuilding index...")
             return False
 
     # ── Query ──────────────────────────────────────────────────────────────────

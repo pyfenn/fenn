@@ -21,7 +21,7 @@ def execute(args: argparse.Namespace) -> None:
     try:
         _list_templates()
     except NetworkError as e:
-        logger.info(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
+        logger.warning(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
         sys.exit(1)
 
 

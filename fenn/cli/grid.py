@@ -28,7 +28,7 @@ def execute(args: argparse.Namespace) -> None:
     try:
         parsed_grid: list[dict] = _parse_grid(yaml_path=yaml_path)
     except TemplateError as e:
-        logger.info(
+        logger.error(
             f"{Fore.RED}Template error: missing grid section{e}{Style.RESET_ALL}"
         )
         sys.exit(1)

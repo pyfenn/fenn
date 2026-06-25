@@ -512,6 +512,7 @@ tbody tr:hover { background: var(--bg-elevated); }
   padding: 6px 10px 6px 26px;
   border-radius: var(--radius-sm);
   outline: none;
+  margin-bottom: 8px;
 }
 .search-input:focus {
   border-color: var(--accent);

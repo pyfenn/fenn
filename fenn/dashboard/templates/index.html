@@ -82,6 +82,9 @@
 <div class="section-header">
   <span class="section-title">Recent Sessions</span>
 </div>
+<div class="search-bar">
+  <input class="search-input form-control" type="text" placeholder="Search sessions..." id="session-search" />    
+</div>
 
 <div class="card">
   <div class="table-wrap">
@@ -100,17 +103,17 @@
       </thead>
       <tbody>
         {% for s in recent_sessions %}
-        <tr data-searchable="{{ s.project }} {{ s.session_id }}">
-          <td>
+        <tr data-searchable="{{ s.project }} {{ s.session_id }}" data-session="{{ s.session_id }}">
+          <td data-searchable="{{ s.project }}">
             <a href="/project/{{ s.project | urlencode }}">{{ s.project }}</a>
           </td>
-          <td>
+          <td data-searchable="{{ s.session_id }}">
             <a href="/session/{{ s.project | urlencode }}/{{ s.session_id | urlencode }}"
                class="td-mono">{{ s.session_id | short_id }}…</a>
           </td>
-          <td class="td-mono">{{ s.started }}</td>
-          <td class="td-mono">{{ s.duration_s | duration }}</td>
-          <td>
+          <td class="td-mono" data-searchable="{{ s.started }}">{{ s.started }}</td>
+          <td class="td-mono" data-searchable="{{ s.duration_s | duration }} ">{{ s.duration_s | duration }}</td>
+          <td data-searchable="{{ s.status }}">
             {% if s.status == 'crashed' %}
             <span class="badge badge-crashed">crashed</span>
             {% elif s.status == 'failed' %}
@@ -121,7 +124,7 @@
             <span class="badge badge-completed">completed</span>
             {% endif %}
           </td>
-          <td class="td-mono">{{ s.entry_count }}</td>
+          <td class="td-mono" data-searchable="{{ s.entry_count }}">{{ s.entry_count }}</td>
           <td class="td-mono {% if s.warning_count > 0 %}has-warning{% endif %}"
               style="{% if s.warning_count > 0 %}color:var(--warning){% endif %}">
             {{ s.warning_count if s.warning_count else '—' }}

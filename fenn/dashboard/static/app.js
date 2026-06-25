@@ -124,6 +124,30 @@
     });
   }
 
+  // ── Session search (index page) ────────────────────────────────────────── //
+
+  const sessionSearch = document.getElementById("session-search");
+  if (sessionSearch) {
+     sessionSearch.addEventListener("input", () => {
+    const q = sessionSearch.value.toLowerCase().trim();
+    const rows = document.querySelectorAll("tr[data-session]");
+
+    rows.forEach((row) => {
+      const cells = row.querySelectorAll("td[data-searchable]");
+      let match = false;
+
+      cells.forEach((cell) => {
+        const text = cell.getAttribute("data-searchable").toLowerCase();
+        if (text.includes(q)) {
+          match = true;
+        }
+      });
+
+      row.style.display = match ? "" : "none";
+    });
+  });
+  }
+
   // ── Logout confirmation dialog ─────────────────────────────────────────── //
 
   const logoutForm    = document.getElementById("logout-form");

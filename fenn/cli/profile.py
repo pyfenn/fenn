@@ -1,3 +1,10 @@
+"""Profile CLI support for fenn templates.
+
+This module provides the implementation for the `fenn profile` subcommand.
+It runs the selected template's `main.py` under `cProfile` and writes a
+summary report to `profiling/results/<template>/cprofile.txt`.
+"""
+
 import argparse
 import pstats
 import subprocess
@@ -10,6 +17,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def execute(args: argparse.Namespace) -> None:
+    """Run the fenn template under cProfile and write profiling output.
+
+    Args:
+        args: Parsed CLI arguments with attributes:
+            - template: name of the template folder to profile
+            - limit: number of lines to include in the report
+    """
     template = ROOT / args.template
     entrypoint = template / "main.py"
 

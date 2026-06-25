@@ -6,11 +6,13 @@ summary report to `profiling/results/<template>/cprofile.txt`.
 """
 
 import argparse
+import builtins
 import pstats
 import subprocess
 import sys
 from pathlib import Path
 
+from fenn.utils import logging as fenn_logging
 from fenn.utils.logging import logger
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,13 +52,15 @@ def execute(args: argparse.Namespace) -> None:
         check=True,
     )
 
-    with report_path.open("w", encoding="utf-8") as report:
-        (
-            pstats.Stats(str(profile_path), stream=report)
-            .strip_dirs()
-            .sort_stats("cumulative")
-            .print_stats(args.limit)
-        )
+    saved_print = builtins.print
+    builtins.print = fenn_logging.original_print
+    try:
+        with report_path.open("w", encoding="utf-8") as report:
+            stats = pstats.Stats(str(profile_path), stream=report)
+            stats.strip_dirs().sort_stats("cumulative")
+            stats.print_stats(args.limit)
+    finally:
+        builtins.print = saved_print
 
     logger.info(f"Profile: {profile_path}")
     logger.info(f"Report:  {report_path}")

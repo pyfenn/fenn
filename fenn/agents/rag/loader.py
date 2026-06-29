@@ -97,7 +97,7 @@ def _read_file(path):
             return _read_pdf(path)
         return path.read_text(encoding="utf-8")
     except Exception as e:
-        logger.warning(f"[cofone] read error {path.name}: {e}")
+        logger.error(f"[cofone] read error {path.name}: {e}")
         return None
 
 

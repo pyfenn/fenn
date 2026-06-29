@@ -163,13 +163,13 @@ def execute(args: argparse.Namespace) -> None:
                     )
 
     except TemplateNotFoundError as e:
-        logger.warning(f"{Fore.RED}{e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}{e}{Style.RESET_ALL}")
         sys.exit(1)
     except NetworkError as e:
-        logger.warning(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
         sys.exit(1)
     except TemplateError as e:
-        logger.warning(f"{Fore.RED}Template error: {e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}Template error: {e}{Style.RESET_ALL}")
         sys.exit(1)
 
 

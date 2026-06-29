@@ -229,7 +229,6 @@ class FennScanner:
     def get_all_sessions(self) -> List[Dict[str, Any]]:
         """Return all parsed sessions, newest first."""
         sessions = []
-        print(self.find_fn_files())
         for path in self.find_fn_files():
             parsed = self.parse_fn_file(path)
             if parsed:

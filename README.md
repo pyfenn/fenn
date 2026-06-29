@@ -220,7 +220,6 @@ A quick reference for all available fenn CLI commands.
 
 | Command | Description |
 |---|---|
-| `fenn auth` | Manage credentials for the Fenn remote service |
 | `fenn dashboard` | Launch the local log-browser web UI |
 | `fenn grid <path>` | By setting grid/train section in template, you can run a Fenn project several times, with all possible grid hyperparams. Also, it is possible to specify path to main.py file (e.g. my_temp/main.py) |
 | `fenn list` | List all available templates from [`pyfenn/templates`](https://github.com/pyfenn/templates) |
@@ -246,6 +245,7 @@ The development and long-term direction of **fenn** is guided by the following m
 |------------|------|
 | [@blkdmr](https://github.com/blkdmr) | Creator & Project Administrator |
 | [@giuliaOddi](https://github.com/giuliaOddi) | Project Administrator |
+| [@apus_berliozi](https://github.com/ApusBerliozi) | Project Administrator |
 
 Maintainers oversee the project roadmap, review pull requests, coordinate releases, and ensure the long-term stability and quality of the framework.
 

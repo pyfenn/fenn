@@ -3,7 +3,7 @@ import builtins
 import pytest
 
 from fenn import Fenn
-from fenn.utils.logging import original_print
+from fenn.logging import original_print
 
 
 def _write_config(path):

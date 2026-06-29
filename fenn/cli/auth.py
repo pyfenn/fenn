@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import getpass
 import sys
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 import requests
 from colorama import Fore, Style
@@ -20,9 +22,13 @@ from fenn.remote.credentials import (
 from fenn.remote.exceptions import RemoteError
 from fenn.utils.logging import logger
 
+if TYPE_CHECKING:
+    from fenn.remote.client import RemoteClient
+    from fenn.remote.credentials import Credentials
+
 
 def execute(args: argparse.Namespace) -> None:
-    sub = getattr(args, "auth_command", None)
+    sub: str | None = getattr(args, "auth_command", None)
     if sub is None:
         logger.info(
             f"{Fore.RED}Missing auth subcommand. Try: "
@@ -44,11 +50,11 @@ def execute(args: argparse.Namespace) -> None:
 
 
 def _login(args: argparse.Namespace) -> None:
-    profile = args.profile or DEFAULT_PROFILE
+    profile: str = args.profile or DEFAULT_PROFILE
 
-    api_key = args.api_key
+    api_key: str | None = args.api_key
     if not api_key:
-        existing = load_credentials(profile)
+        existing: Credentials | None = load_credentials(profile)
         if existing is not None:
             logger.info(
                 f"{Fore.GREEN}Already logged in (profile: {profile}, "
@@ -68,7 +74,7 @@ def _login(args: argparse.Namespace) -> None:
         logger.info(f"{Fore.RED}No API key provided.{Style.RESET_ALL}")
         sys.exit(1)
 
-    path = write_credentials(api_key, profile=profile)
+    path: Path = write_credentials(api_key, profile=profile)
     logger.info(
         f"{Fore.GREEN}Saved credentials to "
         f"{Fore.LIGHTYELLOW_EX}{path}{Fore.GREEN} (profile: {profile}).{Style.RESET_ALL}"
@@ -76,8 +82,8 @@ def _login(args: argparse.Namespace) -> None:
 
 
 def _status(args: argparse.Namespace) -> None:
-    profile = args.profile or DEFAULT_PROFILE
-    creds = load_credentials(profile)
+    profile: str = args.profile or DEFAULT_PROFILE
+    creds: Credentials | None = load_credentials(profile)
     if creds is None:
         logger.info(
             f"{Fore.YELLOW}No saved credentials for profile {profile!r}. "
@@ -101,9 +107,10 @@ def _status(args: argparse.Namespace) -> None:
         from fenn.remote.client import RemoteClient
 
         with RemoteClient(DEFAULT_REMOTE_HOST, creds.api_key) as client:
-            me = client.me()
-        credits_remaining = me.get("credits")
-        plan = me.get("plan")
+            client: RemoteClient
+            me: dict[str, object] = client.me()
+        credits_remaining: object = me.get("credits")
+        plan: object = me.get("plan")
         logger.info(
             f"{Fore.GREEN}credits : {Fore.LIGHTYELLOW_EX}{credits_remaining}"
             f"{Fore.GREEN}  plan: {plan}{Style.RESET_ALL}"
@@ -120,7 +127,7 @@ def _status(args: argparse.Namespace) -> None:
 
 
 def _logout(args: argparse.Namespace) -> None:
-    profile = args.profile or DEFAULT_PROFILE
+    profile: str = args.profile or DEFAULT_PROFILE
     if delete_profile(profile):
         logger.info(
             f"{Fore.GREEN}Removed credentials for profile "

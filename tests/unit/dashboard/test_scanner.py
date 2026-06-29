@@ -1,5 +1,6 @@
 """Unit tests for FennScanner.get_all_sessions() and get_session()."""
 
+import time
 from pathlib import Path
 
 from fenn.dashboard.scanner import FennScanner
@@ -42,6 +43,10 @@ class TestGetAllSessions:
 
     def test_newest_file_appears_first(self, tmp_path):
         """Sessions should be ordered by file mtime, newest first."""
+        _write(tmp_path / "old.fn", _SAMPLE_FN.format(project="proj", sid="old"))
+        time.sleep(0.05)
+        _write(tmp_path / "new.fn", _SAMPLE_FN.format(project="proj", sid="new"))
+
         scanner = FennScanner(extra_dirs=[str(tmp_path)])
         result = scanner.get_all_sessions()
 

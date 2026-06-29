@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 
 import fenn.cli.auth as auth
@@ -9,11 +11,11 @@ import fenn.cli.run as run
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="fenn")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(prog="fenn")
+    subparsers: argparse.ArgumentParser = parser.add_subparsers(dest="command", required=True)
 
     # ========= PULL =========
-    p_pull = subparsers.add_parser(
+    p_pull: argparse.ArgumentParser = subparsers.add_parser(
         "pull", help="Download a template from the fenn templates repository"
     )
 
@@ -40,13 +42,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_pull.set_defaults(func=pull.execute)
 
     # ========= LIST =========
-    p_list = subparsers.add_parser(
+    p_list: argparse.ArgumentParser = subparsers.add_parser(
         "list", help="List available templates in the fenn templates repository"
     )
     p_list.set_defaults(func=list.execute)
 
     # ========= DASHBOARD =========
-    p_dash = subparsers.add_parser(
+    p_dash: argparse.ArgumentParser = subparsers.add_parser(
         "dashboard", help="Launch the Fenn log-browser dashboard"
     )
     p_dash.add_argument(
@@ -62,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_dash.set_defaults(func=dashboard.execute)
 
     # ========= RUN =========
-    p_run = subparsers.add_parser(
+    p_run: argparse.ArgumentParser = subparsers.add_parser(
         "run",
         help="Run a Fenn project on the Fenn remote service",
     )
@@ -113,12 +115,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.set_defaults(func=run.execute)
 
     # ========= AUTH =========
-    p_auth = subparsers.add_parser(
+    p_auth: argparse.ArgumentParser = subparsers.add_parser(
         "auth", help="Manage credentials for the Fenn remote service"
     )
-    auth_subparsers = p_auth.add_subparsers(dest="auth_command", required=True)
+    auth_subparsers: argparse.ArgumentParser = p_auth.add_subparsers(dest="auth_command", required=True)
 
-    p_login = auth_subparsers.add_parser("login", help="Save an API key for a profile")
+    p_login: argparse.ArgumentParser = auth_subparsers.add_parser("login", help="Save an API key for a profile")
     p_login.add_argument(
         "--profile", default=None, help="Profile name (default: 'default')"
     )
@@ -129,7 +131,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_login.set_defaults(func=auth.execute)
 
-    p_status = auth_subparsers.add_parser(
+    p_status: argparse.ArgumentParser = auth_subparsers.add_parser(
         "status", help="Show the currently configured profile and credit balance"
     )
     p_status.add_argument(
@@ -137,7 +139,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_status.set_defaults(func=auth.execute)
 
-    p_logout = auth_subparsers.add_parser(
+    p_logout: argparse.ArgumentParser = auth_subparsers.add_parser(
         "logout", help="Remove a profile from the credentials file"
     )
     p_logout.add_argument(
@@ -147,7 +149,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # ========= GRID =========
 
-    p_grid = subparsers.add_parser(
+    p_grid: argparse.ArgumentParser = subparsers.add_parser(
         "grid",
         help="Run a Fenn project several times, with all possible grid hyperparams",
     )
@@ -163,10 +165,10 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv=None):
-    parser = build_parser()
+def main(argv: list[str] | None = None) -> None:
+    parser: argparse.ArgumentParser = build_parser()
     # parse_args will exit with error if commands are missing due to required=True
-    args = parser.parse_args(argv)
+    args: argparse.Namespace = parser.parse_args(argv)
 
     if hasattr(args, "func"):
         args.func(args)

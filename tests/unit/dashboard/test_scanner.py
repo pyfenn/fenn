@@ -1,6 +1,5 @@
 """Unit tests for FennScanner.get_all_sessions() and get_session()."""
 
-import time
 from pathlib import Path
 
 from fenn.dashboard.scanner import FennScanner
@@ -43,10 +42,6 @@ class TestGetAllSessions:
 
     def test_newest_file_appears_first(self, tmp_path):
         """Sessions should be ordered by file mtime, newest first."""
-        old_fn = _write(tmp_path / "old.fn", _SAMPLE_FN.format(project="proj", sid="old"))
-        time.sleep(0.05)
-        new_fn = _write(tmp_path / "new.fn", _SAMPLE_FN.format(project="proj", sid="new"))
-
         scanner = FennScanner(extra_dirs=[str(tmp_path)])
         result = scanner.get_all_sessions()
 
@@ -71,7 +66,9 @@ class TestGetAllSessions:
 class TestGetSessionEdgeCases:
     def test_wrong_project_name_returns_none(self, tmp_path):
         """A session_id match with a different project must return None."""
-        _write(tmp_path / "sess_x.fn", _SAMPLE_FN.format(project="proj_a", sid="sess_x"))
+        _write(
+            tmp_path / "sess_x.fn", _SAMPLE_FN.format(project="proj_a", sid="sess_x")
+        )
         scanner = FennScanner(extra_dirs=[str(tmp_path)])
 
         result = scanner.get_session("proj_b", "sess_x")

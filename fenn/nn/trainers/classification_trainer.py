@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Optional, Union, cast
+from typing import cast
 
 import torch
 import torch.nn
@@ -67,9 +67,9 @@ class ClassificationTrainer(Trainer):
         optim: torch.optim.Optimizer,
         num_classes: int,
         multi_label: bool = False,
-        device: Union[torch.device, str] = "cpu",
-        early_stopping_patience: Optional[int] = None,
-        checkpoint_config: Optional[Checkpoint] = None,
+        device: torch.device | str = "cpu",
+        early_stopping_patience: int | None = None,
+        checkpoint_config: Checkpoint | None = None,
     ):
         """Initialize a ClassificationTrainer instance.
 
@@ -118,7 +118,7 @@ class ClassificationTrainer(Trainer):
         self,
         train_loader: DataLoader,
         epochs: int,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         val_epochs: int = 1,
     ):
         """Train the model with optional validation and early stopping.
@@ -313,7 +313,7 @@ class ClassificationTrainer(Trainer):
 
     def predict(
         self,
-        dataloader_or_batch: Union[DataLoader, torch.Tensor],
+        dataloader_or_batch: DataLoader | torch.Tensor,
         return_proba: bool = False,
     ):
         """Predicts the output of the model for a given dataloader or batch.

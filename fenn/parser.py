@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 from colorama import init
@@ -21,7 +21,7 @@ class Parser:
             return
 
         self._config_file: Path = Path(config_file)
-        self._args: Dict[str, Any] = {}
+        self._args: dict[str, Any] = {}
 
         self._keystore: KeyStore = KeyStore()
 
@@ -64,5 +64,5 @@ class Parser:
         self._config_file: Path = Path(config_file)
 
     @property
-    def args(self) -> Dict[str, Any]:
+    def args(self) -> dict[str, Any]:
         return self._args

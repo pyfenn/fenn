@@ -1,6 +1,6 @@
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, List, TypedDict
+from typing import Any, TypedDict
 from fenn.logging import logger
 
 try:
@@ -17,22 +17,22 @@ class ImageDirSummary(TypedDict):
     """Summary information for a directory of images."""
 
     total_count: int
-    formats: Dict[str, int]  # Format extension -> count
-    resolutions: Dict[str, int]  # Resolution string like "1920x1080" -> count
-    color_modes: Dict[str, int]  # Color mode -> count (e.g., 'RGB', 'GRAY', 'RGBA')
-    examples: List[Dict[str, Any]]  # Sample file paths with metadata
-    failed_files: List[str]  # Paths of files that couldn't be read
+    formats: dict[str, int]  # Format extension -> count
+    resolutions: dict[str, int]  # Resolution string like "1920x1080" -> count
+    color_modes: dict[str, int]  # Color mode -> count (e.g., 'RGB', 'GRAY', 'RGBA')
+    examples: list[dict[str, Any]]  # Sample file paths with metadata
+    failed_files: list[str]  # Paths of files that couldn't be read
     failed_count: int  # Number of files that couldn't be read
 
 
 def _select_examples(
-    all_metadata: List[Dict[str, Any]],
+    all_metadata: list[dict[str, Any]],
     resolution_counter: Counter,
     format_counter: Counter,
     color_mode_counter: Counter,
     total_count: int,
     max_examples: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Select representative examples that show diversity in resolutions, formats, and modes.
 

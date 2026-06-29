@@ -1,6 +1,6 @@
 import inspect
 from copy import deepcopy
-from typing import Dict, List, Optional, Union, cast
+from typing import cast
 
 import torch
 import torch.nn
@@ -58,12 +58,12 @@ class LoRATrainer(Trainer):
         r: int = 8,
         lora_alpha: int = 16,
         lora_dropout: float = 0.1,
-        target_modules: Optional[List[str]] = None,
+        target_modules: list[str] | None = None,
         bias: str = "none",
-        loss_fn: Optional[torch.nn.Module] = None,
-        device: Union[torch.device, str] = "cpu",
-        early_stopping_patience: Optional[int] = None,
-        checkpoint_config: Optional[Checkpoint] = None,
+        loss_fn: torch.nn.Module | None = None,
+        device: torch.device | str = "cpu",
+        early_stopping_patience: int | None = None,
+        checkpoint_config: Checkpoint | None = None,
     ):
         """Initialize the LoRATrainer.
 
@@ -147,9 +147,7 @@ class LoRATrainer(Trainer):
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _forward(
-        self, batch: Dict
-    ) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def _forward(self, batch: dict) -> tuple[torch.Tensor | None, torch.Tensor | None]:
         """Run one forward pass.
 
         Returns:
@@ -157,8 +155,8 @@ class LoRATrainer(Trainer):
             does not produce them.
         """
         outputs = self._model(**batch)
-        loss: Optional[torch.Tensor] = getattr(outputs, "loss", None)
-        logits: Optional[torch.Tensor] = getattr(outputs, "logits", None)
+        loss: torch.Tensor | None = getattr(outputs, "loss", None)
+        logits: torch.Tensor | None = getattr(outputs, "logits", None)
 
         if loss is None and self._loss_fn is not None and logits is not None:
             labels = batch.get("labels")
@@ -175,7 +173,7 @@ class LoRATrainer(Trainer):
         self,
         train_loader: DataLoader,
         epochs: int,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         val_epochs: int = 1,
     ):
         """Train the model with optional validation and early stopping.
@@ -363,7 +361,7 @@ class LoRATrainer(Trainer):
 
         progress.stop()
 
-    def predict(self, dataloader_or_batch: Union[DataLoader, Dict, torch.Tensor]):
+    def predict(self, dataloader_or_batch: DataLoader | dict | torch.Tensor):
         """Generate predictions for a dataloader or a single batch.
 
         Labels are stripped from dict batches before inference so the model

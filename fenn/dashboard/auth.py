@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import re
 from functools import wraps
-from typing import Optional
 
 import requests
 from flask import g, redirect, session, url_for
@@ -38,7 +37,7 @@ class AuthUnreachableError(Exception):
     """pyfenn.com could not be reached or returned an unexpected response."""
 
 
-def current_user() -> Optional[dict]:
+def current_user() -> dict | None:
     """Return the logged-in user dict, or ``None``. Cached on ``g``."""
     if "current_user" in g:
         return g.current_user

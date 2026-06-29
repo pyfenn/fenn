@@ -1,5 +1,3 @@
-from typing import Tuple, Union
-
 import numpy as np
 
 try:
@@ -15,7 +13,7 @@ from .vision_utils import detect_format
 
 def resize_batch(
     array: np.ndarray,
-    size: Union[int, Tuple[int, int]],
+    size: int | tuple[int, int],
     interpolation: str = "bilinear",
 ) -> np.ndarray:
     """

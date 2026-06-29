@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional
 
 import torch
 
@@ -32,8 +32,8 @@ class Checkpoint:
         self,
         *,
         name: str = "checkpoint",
-        dir: Union[Path, str],
-        epochs: Optional[Union[int, List[int]]] = None,
+        dir: Path | str,
+        epochs: int | list[int] | None = None,
         save_best: bool = True,
     ):
         """Initialize the checkpoint configuration.
@@ -102,7 +102,7 @@ class Checkpoint:
             )
 
     def load(
-        self, checkpoint_path: Union[str, Path], device: Optional[torch.device] = None
+        self, checkpoint_path: str | Path, device: torch.device | None = None
     ) -> TrainingState:
         """Load a checkpoint from the given path.
 
@@ -132,7 +132,7 @@ class Checkpoint:
         return state
 
     def load_at_epoch(
-        self, epoch: int, device: Optional[torch.device] = None
+        self, epoch: int, device: torch.device | None = None
     ) -> TrainingState:
         """Load the checkpoint at the given epoch.
 
@@ -152,7 +152,7 @@ class Checkpoint:
             )
         return self.load(filepath, device)
 
-    def load_best(self, device: Optional[torch.device] = None) -> TrainingState:
+    def load_best(self, device: torch.device | None = None) -> TrainingState:
         """Load the best checkpoint.
 
         Args:

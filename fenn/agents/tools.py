@@ -1,8 +1,8 @@
 import inspect
 from functools import wraps
-from typing import Any, Dict
+from typing import Any
 
-TOOLS_REGISTRY: Dict[str, Dict[str, Any]] = {}
+TOOLS_REGISTRY: dict[str, dict[str, Any]] = {}
 
 
 def tool(func):

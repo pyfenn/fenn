@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from colorama import Fore, Style
 
@@ -40,7 +41,7 @@ class Fenn:
         # Please do not modify this class unless you know what you are doing.
         self._config_file: str = None
 
-        self._entrypoint_fn: Optional[Callable] = None
+        self._entrypoint_fn: Callable | None = None
 
         self._disable_disclaimer = False
 

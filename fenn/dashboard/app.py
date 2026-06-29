@@ -5,7 +5,6 @@ import logging
 import secrets
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional
 
 from flask import (
     Flask,
@@ -199,7 +198,7 @@ _MAX_LIMIT = 200
 _DEFAULT_LIMIT = 20
 
 
-def _api_error(code: str, message: str, param: Optional[str] = None):
+def _api_error(code: str, message: str, param: str | None = None):
     """Standard 400 envelope so clients can branch on `error.code`."""
     body = {"error": {"code": code, "message": message}}
     if param is not None:
@@ -208,7 +207,7 @@ def _api_error(code: str, message: str, param: Optional[str] = None):
 
 
 def _parse_int_arg(
-    name: str, raw: Optional[str], default: int, min_v: int, max_v: int
+    name: str, raw: str | None, default: int, min_v: int, max_v: int
 ) -> int:
     if raw is None or raw == "":
         return default
@@ -222,7 +221,7 @@ def _parse_int_arg(
 
 
 class _ApiBadRequest(Exception):
-    def __init__(self, message: str, param: Optional[str] = None):
+    def __init__(self, message: str, param: str | None = None):
         self.message = message
         self.param = param
 

@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Optional, Union, cast
+from typing import cast
 
 import torch
 import torch.nn
@@ -47,9 +47,9 @@ class RegressionTrainer(Trainer):
         loss_fn: torch.nn.Module,
         optim: torch.optim.Optimizer,
         return_model: str = "last",
-        device: Union[torch.device, str] = "cpu",
-        early_stopping_patience: Optional[int] = None,
-        checkpoint_config: Optional[Checkpoint] = None,
+        device: torch.device | str = "cpu",
+        early_stopping_patience: int | None = None,
+        checkpoint_config: Checkpoint | None = None,
     ):
         """Initialize a RegressionTrainer instance.
 
@@ -80,7 +80,7 @@ class RegressionTrainer(Trainer):
         self,
         train_loader: DataLoader,
         epochs: int,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         val_epochs: int = 1,
     ):
         """Train the model with optional validation and early stopping.
@@ -274,7 +274,7 @@ class RegressionTrainer(Trainer):
 
         return self._model
 
-    def predict(self, dataloader_or_batch: Union[DataLoader, torch.Tensor]):
+    def predict(self, dataloader_or_batch: DataLoader | torch.Tensor):
         """Predicts the output of the model for a given dataloader or batch.
 
         Args:

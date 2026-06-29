@@ -58,7 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_dash.add_argument(
         "--port", type=int, default=5000, help="Port to bind (default: 5000)"
     )
-    p_dash.add_argument("--debug", action="store_true", help="Run Flask in debug mode")
+    p_dash.add_argument("--debug", action="store_true", help="Run in debug mode")
     p_dash.set_defaults(func=dashboard.execute)
 
     # ========= RUN =========

@@ -3,10 +3,10 @@ from typing import Any, Callable, Optional
 
 from colorama import Fore, Style
 
+from fenn import Parser
 from fenn.exporter import Exporter
 from fenn.keystore import KeyStore
-from fenn.logging import logger, original_print
-from fenn.parser import Parser
+from fenn.logging import logger, original_print, redirect_prints, restore_prints
 from fenn.reproducibility import generate_session_id
 
 
@@ -105,12 +105,13 @@ class Fenn:
                 "to register your main function."
             )
 
-        Exporter().configure(self._args)
-
-        # Print parsed config (user logs)
-        self._parser.print()
-
+        redirect_prints()
         try:
+            Exporter().configure(self._args)
+
+            # Print parsed config (user logs)
+            self._parser.print()
+
             # System startup message
             logger.info(
                 f"Application starting from entrypoint: {self._entrypoint_fn.__name__}"
@@ -121,6 +122,7 @@ class Fenn:
             return result
 
         finally:
+            restore_prints()
             logger.close()
 
     def disable_disclaimer(self) -> None:

@@ -3,18 +3,24 @@ import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, MutableMapping, Optional
 
 from colorama import Fore, Style
 from rich.console import Console
 from rich.table import Table
 
-console = Console()
+console: Console = Console()
 
-_ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+_ansi_escape: re.Pattern[str] = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 class XmlMixin:
-    def _write_config_xml(self, args, flat_config, log_path) -> None:
+    _started_at: datetime
+    fn_file: Path
+
+    def _write_config_xml(
+        self, args: dict[str, Any], flat_config: dict[str, Any], log_path: Path
+    ) -> None:
         self._init_fnxml(
             args=args,
             fn_xml=log_path,
@@ -42,9 +48,9 @@ class XmlMixin:
 
     def _init_fnxml(
         self,
-        args: dict,
-        fn_xml,
-    ):
+        args: dict[str, Any],
+        fn_xml: Path,
+    ) -> None:
         with open(fn_xml, "w", encoding="utf-8") as f:
             f.write('<?xml version="1.0" encoding="utf-8"?>\n')
             f.write(
@@ -62,7 +68,7 @@ class XmlMixin:
                 f'level="{self._escape(record.levelname)}">{clean_message}</entry>\n'
             )
 
-    def _write_stop_info(self, started_at):
+    def _write_stop_info(self, started_at: datetime) -> None:
         ended_at = datetime.now().replace(microsecond=0)
         ended = ended_at.isoformat(" ")
         duration_s = int((ended_at - started_at).total_seconds()) if started_at else 0
@@ -77,13 +83,16 @@ class XmlMixin:
 
 
 class FennHandler(XmlMixin, logging.Handler):
-    def __init__(self, level=0):
+    _log_file: Optional[Path]
+    _fn_xml: Optional[Path]
+
+    def __init__(self, level: int = 0) -> None:
         self._started_at = datetime.now().replace(microsecond=0)
         self._log_file = None
         self._fn_xml = None
         super().__init__(level)
 
-    def configure(self, args, started_at):
+    def configure(self, args: dict[str, Any], started_at: datetime) -> None:
         log_root = Path(args["logger"]["dir"])
         log_dir = log_root / Path(args["project"])
         log_filename = f"{args['session_id']}.log"
@@ -96,6 +105,8 @@ class FennHandler(XmlMixin, logging.Handler):
         self,
         record: logging.LogRecord,
     ) -> None:
+        if self._log_file is None:
+            return
         ts = datetime.fromtimestamp(record.created, tz=timezone.utc)
         clean_message = _ansi_escape.sub("", record.getMessage())
         with open(self._log_file, "a", encoding="utf-8") as f:
@@ -121,8 +132,8 @@ class FennHandler(XmlMixin, logging.Handler):
 
     def emit(
         self,
-        record,
-    ):
+        record: logging.LogRecord,
+    ) -> None:
 
         if self._fn_xml and self._log_file:
             self._write_entry(record=record, file_path=self._fn_xml)
@@ -132,25 +143,32 @@ class FennHandler(XmlMixin, logging.Handler):
 
 
 class FennLogger(XmlMixin, logging.LoggerAdapter):
-    def __init__(self, logger, handler):
+    _started_at: datetime
+    handler: "FennHandler"
+    fn_file: Path
+    txt_file: Path
+
+    def __init__(self, logger: logging.Logger, handler: "FennHandler") -> None:
         super().__init__(logger, {})
         self._started_at = datetime.now().replace(microsecond=0)
         self.handler = handler
 
-    def write_config(self, args, config_file):
+    def write_config(self, args: dict[str, Any], config_file: str) -> None:
         self.handler.configure(args, self._started_at)
         self._create_config(args=args, config_file=config_file)
 
-    def close(self):
+    def close(self) -> None:
         self._write_stop_info(started_at=self._started_at)
         self.handler._log_file = None
         self.handler._fn_xml = None
 
-    def process(self, msg, kwargs):
+    def process(
+        self, msg: str, kwargs: MutableMapping[str, Any]
+    ) -> tuple[str, MutableMapping[str, Any]]:
         kwargs["extra"] = {**self.extra, **kwargs.get("extra", {})}
         return msg, kwargs
 
-    def _form_log_paths(self, args: dict) -> dict[str | Path]:
+    def _form_log_paths(self, args: dict[str, Any]) -> None:
         log_root = Path(args["logger"]["dir"]).expanduser()
         log_dir = log_root / Path(args["project"])
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -161,7 +179,7 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
 
     def _create_config(
         self,
-        args: dict,
+        args: dict[str, Any],
         config_file: str,
     ) -> None:
         flat_config = self._flatten_dict(args)
@@ -173,10 +191,12 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
             args=args, flat_config=flat_config, log_path=self.fn_file
         )
 
-    def _flatten_dict(self, d: dict, parent_key: str = "", sep: str = "/") -> dict:
+    def _flatten_dict(
+        self, d: dict[str, Any], parent_key: str = "", sep: str = "/"
+    ) -> dict[str, Any]:
         """Recursively flattens a nested dictionary."""
 
-        items = []
+        items: list[tuple[str, Any]] = []
         for k, v in d.items():
             new_key = f"{parent_key}{sep}{k}" if parent_key else k
             if isinstance(v, dict):
@@ -186,7 +206,7 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
 
         return dict(items)
 
-    def _get_colored_parts(self, key: str) -> list:
+    def _get_colored_parts(self, key: str) -> list[str]:
         colors = [
             Fore.LIGHTCYAN_EX,
             Fore.LIGHTBLUE_EX,
@@ -201,7 +221,9 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
             colored_parts.append(f"{color}{part}{Style.RESET_ALL}")
         return colored_parts
 
-    def _display_config(self, flat_config: dict, config_file: str, file_path: Path):
+    def _display_config(
+        self, flat_config: dict[str, Any], config_file: str, file_path: Path
+    ) -> None:
         table = Table(title="")
         table.add_column(f"Configuration file {config_file} loaded", style="", width=80)
         timestamp_dt = datetime.now().replace(microsecond=0)
@@ -214,20 +236,20 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
         console.print(table)
 
 
-fenn_handler = FennHandler()
-base = logging.getLogger("__name__")
+fenn_handler: FennHandler = FennHandler()
+base: logging.Logger = logging.getLogger("__name__")
 base.addHandler(fenn_handler)
 
-logger = FennLogger(base, fenn_handler)
+logger: FennLogger = FennLogger(base, fenn_handler)
 
 logger.setLevel(logging.DEBUG)
 
 
-def _custom_print(*args, **kwargs):
+def _custom_print(*args: Any, **kwargs: Any) -> None:
     logger.info(" ".join(str(a) for a in args))
 
 
-original_print = builtins.print
+original_print: Any = builtins.print
 
 
 def redirect_prints() -> None:

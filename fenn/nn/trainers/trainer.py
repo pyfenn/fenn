@@ -15,7 +15,9 @@ from torch.utils.data import DataLoader
 
 from fenn.exporter import Exporter
 from fenn.logging import logger
-from fenn.nn.utils import Checkpoint, ModelPrettyPrinter, TrainingState
+from fenn.nn.checkpoint import Checkpoint
+from fenn.nn.model_pretty_printer import ModelPrettyPrinter
+from fenn.nn.state import TrainingState
 
 
 class Trainer(ABC):

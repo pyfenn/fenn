@@ -16,7 +16,7 @@ from sklearn.metrics import accuracy_score
 from torch.utils.data import DataLoader
 
 from fenn.logging import logger
-from fenn.nn.utils import Checkpoint
+from fenn.nn.checkpoint import Checkpoint
 
 from .trainer import Trainer
 

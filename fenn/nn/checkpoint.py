@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 import torch
 
 from fenn.logging import logger
-from fenn.nn.utils.state import TrainingState
+from fenn.nn.state import TrainingState
 
 
 class Checkpoint:

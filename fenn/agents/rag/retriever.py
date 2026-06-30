@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 
-from fenn.utils.logging import logger
+from fenn.logging import logger
 
 from .chunker import chunk_text
 
@@ -310,7 +310,7 @@ class Retriever:
             )
             return True
         except Exception as e:
-            logger.info(f"[cofone] cache load failed ({e}), rebuilding index...")
+            logger.warning(f"[cofone] cache load failed ({e}), rebuilding index...")
             return False
 
     # ── Query ──────────────────────────────────────────────────────────────────

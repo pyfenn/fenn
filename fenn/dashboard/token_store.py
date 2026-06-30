@@ -17,9 +17,9 @@ import json
 import os
 import stat
 from pathlib import Path
-from typing import Optional, TypedDict
+from typing import TypedDict
 
-from fenn.utils.logging import logger
+from fenn.logging import logger
 
 _PATH = Path.home() / ".fenn" / "dashboard_session.json"
 
@@ -41,7 +41,7 @@ def _is_valid(payload: object) -> bool:
     return isinstance(user.get("user_id"), str) and isinstance(user.get("email"), str)
 
 
-def load() -> Optional[StoredSession]:
+def load() -> StoredSession | None:
     """Return the stored session, or ``None`` if absent / unreadable."""
     try:
         raw = _PATH.read_text(encoding="utf-8")

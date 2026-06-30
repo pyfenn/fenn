@@ -1,6 +1,6 @@
 """fenn dashboard — launch the Fenn log-browser web UI."""
 
-from fenn.utils.logging import logger
+from fenn.logging import logger
 
 # Must remain 127.0.0.1: the dashboard serves the user's own logs without any
 # network-layer auth, and the in-process auth gate assumes a local-only socket.

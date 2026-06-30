@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from fenn.args.parser import Parser
 from fenn.cli import build_parser
 from fenn.cli.grid import TemplateError, _build_variants, _parse_grid
+from fenn.parser import Parser
 
 
 def test_grid_parser_defaults() -> None:

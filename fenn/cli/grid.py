@@ -9,8 +9,8 @@ from pathlib import Path
 import yaml
 from colorama import Fore, Style
 
-from fenn.args.parser import Parser
-from fenn.utils.logging import logger
+from fenn.logging import logger
+from fenn.parser import Parser
 
 
 def execute(args: argparse.Namespace) -> None:
@@ -28,7 +28,7 @@ def execute(args: argparse.Namespace) -> None:
     try:
         parsed_grid: list[dict] = _parse_grid(yaml_path=yaml_path)
     except TemplateError as e:
-        logger.info(
+        logger.error(
             f"{Fore.RED}Template error: missing grid section{e}{Style.RESET_ALL}"
         )
         sys.exit(1)

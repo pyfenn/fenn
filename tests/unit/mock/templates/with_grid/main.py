@@ -1,5 +1,5 @@
 from fenn import Fenn
-from fenn.utils.logging import logger
+from fenn.logging import logger
 
 app = Fenn()
 

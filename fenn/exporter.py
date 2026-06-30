@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 
 class Exporter:
@@ -19,7 +19,7 @@ class Exporter:
         self._export_dir = Path("export/fenn")
         self._initialized = True
 
-    def configure(self, args: Dict[str, Any]) -> Path:
+    def configure(self, args: dict[str, Any]) -> Path:
         """Configure the export directory from arguments."""
 
         export_conf = args.get("export", {}) or {}

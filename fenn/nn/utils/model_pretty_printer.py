@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import torch.nn as nn
 
 
 @dataclass(frozen=True)
 class _RenderLimits:
-    max_depth: Optional[int]
-    max_children: Optional[int]
-    max_lines: Optional[int]
+    max_depth: int | None
+    max_children: int | None
+    max_lines: int | None
 
 
 class ModelPrettyPrinter:

@@ -1,4 +1,4 @@
-from typing import Iterable, List, Type
+from typing import Iterable
 
 from .service import Service
 
@@ -8,11 +8,11 @@ class Notifier:
 
     def __init__(self):
         """Initialize the notifier with an empty list of services."""
-        self._services: List[Service] = []
+        self._services: list[Service] = []
 
     def add_services(
         self,
-        services: Iterable[Type[Service]],
+        services: Iterable[type[Service]],
     ) -> None:
         """
         Add a list of notification services.
@@ -24,7 +24,7 @@ class Notifier:
         for service_cls in services:
             self.add_service(service_cls)
 
-    def add_service(self, service: Type[Service]) -> None:
+    def add_service(self, service: type[Service]) -> None:
         """Add a notification service.
 
         Args:
@@ -32,7 +32,7 @@ class Notifier:
         """
         self._services.append(service())
 
-    def remove_service(self, service: Type[Service]) -> None:
+    def remove_service(self, service: type[Service]) -> None:
         """Remove a notification service.
 
         Args:
@@ -70,7 +70,7 @@ class Notifier:
                 failed_services.append((service.__class__.__name__, str(e)))
                 # logger.error(f"Failed to send notification via {service.__class__.__name__}: {e}")
 
-    def get_services(self) -> List[str]:
+    def get_services(self) -> list[str]:
         """Get list of registered service names.
 
         Returns:

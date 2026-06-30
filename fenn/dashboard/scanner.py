@@ -3,7 +3,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from xml.etree import ElementTree
 
 # Default directories to scan (resolved at runtime)
@@ -46,17 +46,17 @@ def _running_timeout_s() -> float:
 class FennScanner:
     """Discovers and parses .fn log files from configured directories."""
 
-    def __init__(self, extra_dirs: Optional[List[str]] = None) -> None:
-        self._dirs: List[Path] = []
+    def __init__(self, extra_dirs: list[str] | None = None) -> None:
+        self._dirs: list[Path] = []
 
         # Parse-result cache keyed by file path. Stores (mtime, parsed_dict).
         # Entries are reused only when mtime matches, so any file write
         # (including in-progress logging) invalidates naturally.
-        self._parse_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+        self._parse_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
         # Directory-listing cache: (timestamp, files). Reused for up to
         # _FILES_CACHE_TTL_S to absorb bursty requests cheaply.
-        self._files_cache: Optional[Tuple[float, List[Path]]] = None
+        self._files_cache: tuple[float, list[Path]] | None = None
 
         # Load from environment variable
         env_dirs = os.environ.get("FENN_LOG_DIRS", "")
@@ -73,7 +73,7 @@ class FennScanner:
             for d in extra_dirs:
                 self._add_dir(d)
 
-    def add_dirs(self, dirs: List[str]) -> None:
+    def add_dirs(self, dirs: list[str]) -> None:
         for d in dirs:
             self._add_dir(d)
 
@@ -88,7 +88,7 @@ class FennScanner:
     # Public API
     # ------------------------------------------------------------------
 
-    def find_fn_files(self) -> List[Path]:
+    def find_fn_files(self) -> list[Path]:
         """Return all .fn files sorted by modification time (newest first)."""
         now = time.time()
         if self._files_cache is not None:
@@ -96,7 +96,7 @@ class FennScanner:
             if now - ts < _FILES_CACHE_TTL_S:
                 return cached
 
-        files: List[Path] = []
+        files: list[Path] = []
         for d in self._dirs:
             if d.exists() and d.is_dir():
                 files.extend(d.rglob("*.fn"))
@@ -110,7 +110,7 @@ class FennScanner:
         self._files_cache = (now, ordered)
         return ordered
 
-    def parse_fn_file(self, path: Path) -> Optional[Dict[str, Any]]:
+    def parse_fn_file(self, path: Path) -> dict[str, Any] | None:
         """Parse a single .fn file. Handles incomplete (running) sessions.
 
         Results are cached by ``(path, mtime)``; identical files are not
@@ -138,7 +138,7 @@ class FennScanner:
         return self._refresh_running_status(parsed, mtime)
 
     @staticmethod
-    def _parse_uncached(path: Path, stat: os.stat_result) -> Optional[Dict[str, Any]]:
+    def _parse_uncached(path: Path, stat: os.stat_result) -> dict[str, Any] | None:
         try:
             content = path.read_text(encoding="utf-8")
         except (OSError, PermissionError):
@@ -162,7 +162,7 @@ class FennScanner:
             status = meta.get("status", "completed")
 
         # Config
-        config: Dict[str, str] = {}
+        config: dict[str, str] = {}
         config_el = root.find("config")
         if config_el is not None:
             for item in config_el.findall("item"):
@@ -184,8 +184,8 @@ class FennScanner:
             )
 
         # Timing from <meta>
-        ended: Optional[str] = None
-        duration_s: Optional[int] = None
+        ended: str | None = None
+        duration_s: int | None = None
         if meta is not None:
             ended = meta.get("ended")
             try:
@@ -214,7 +214,7 @@ class FennScanner:
         }
 
     @staticmethod
-    def _refresh_running_status(parsed: Dict[str, Any], mtime: float) -> Dict[str, Any]:
+    def _refresh_running_status(parsed: dict[str, Any], mtime: float) -> dict[str, Any]:
         """Re-evaluate stale "running" sessions against the current timeout.
 
         Cached results are reused across requests, but the running→crashed
@@ -226,7 +226,7 @@ class FennScanner:
                 return {**parsed, "status": "crashed"}
         return parsed
 
-    def get_all_sessions(self) -> List[Dict[str, Any]]:
+    def get_all_sessions(self) -> list[dict[str, Any]]:
         """Return all parsed sessions, newest first."""
         sessions = []
         for path in self.find_fn_files():
@@ -236,9 +236,9 @@ class FennScanner:
         return sessions
 
     @staticmethod
-    def _build_projects_list(sessions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _build_projects_list(sessions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Aggregate per-project stats from an already-loaded sessions list."""
-        projects: Dict[str, Dict[str, Any]] = {}
+        projects: dict[str, dict[str, Any]] = {}
         for s in sessions:
             name = s["project"]
             if name not in projects:
@@ -263,7 +263,7 @@ class FennScanner:
             projects.values(), key=lambda project: project["last_active"], reverse=True
         )
 
-    def get_overview(self) -> Dict[str, Any]:
+    def get_overview(self) -> dict[str, Any]:
         """Aggregate stats for the dashboard home page."""
         sessions = self.get_all_sessions()
         project_list = self._build_projects_list(sessions)
@@ -280,7 +280,7 @@ class FennScanner:
             "active_page": "home",
         }
 
-    def get_project(self, project_name: str) -> Dict[str, Any]:
+    def get_project(self, project_name: str) -> dict[str, Any]:
         """Return all sessions for a specific project."""
         all_sessions = self.get_all_sessions()
         sessions = [s for s in all_sessions if s["project"] == project_name]
@@ -298,9 +298,7 @@ class FennScanner:
             "active_project": project_name,
         }
 
-    def get_session(
-        self, project_name: str, session_id: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_session(self, project_name: str, session_id: str) -> dict[str, Any] | None:
         """Return full data for a single session.
 
         Fenn writes ``<session_id>.fn`` so the filename stem matches the id;
@@ -331,12 +329,12 @@ class FennScanner:
 
     def list_sessions(
         self,
-        project: Optional[str] = None,
-        status: Optional[str] = None,
+        project: str | None = None,
+        status: str | None = None,
         limit: int = 20,
         offset: int = 0,
         sort: str = "-started",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Return a filtered, sorted, paginated slice of sessions.
 
         ``sort`` is a field name optionally prefixed with ``-`` for descending
@@ -363,7 +361,7 @@ class FennScanner:
         # Sorts None values last (ascending) / first (descending) without comparing None to
         # non-None values, but may raise TypeError if non-None values are of different types
         # (e.g., int vs str).
-        def sort_key(s: Dict[str, Any]):
+        def sort_key(s: dict[str, Any]):
             v = s.get(field)
             return v is None, v
 
@@ -382,7 +380,7 @@ class FennScanner:
         }
 
     @staticmethod
-    def format_duration(seconds: Optional[int]) -> str:
+    def format_duration(seconds: int | None) -> str:
         if seconds is None:
             return "—"
         if seconds < 60:

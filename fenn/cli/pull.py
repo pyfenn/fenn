@@ -9,7 +9,7 @@ from pathlib import Path
 import requests
 from colorama import Fore, Style
 
-from fenn.utils.logging import logger
+from fenn.logging import logger
 
 try:
     from rich.console import Console
@@ -46,7 +46,7 @@ def execute(args: argparse.Namespace) -> None:
     force = args.force
 
     if not template_name:
-        logger.info(
+        logger.error(
             f"{Fore.RED}Template name is required (example: {Fore.LIGHTYELLOW_EX}fenn pull base{Fore.RED}){Style.RESET_ALL}"
         )
         logger.info(
@@ -64,7 +64,7 @@ def execute(args: argparse.Namespace) -> None:
                 f"[red]Refusing to pull into non-empty directory [yellow]{target_dir}[/yellow].\nUse [yellow]--force[/yellow] to override existing files.[/red]"
             )
         else:
-            logger.info(
+            logger.error(
                 f"{Fore.RED}Refusing to pull into non-empty directory "
                 f"{Fore.LIGHTYELLOW_EX}{target_dir}{Fore.RED}. \n"
                 f"Use {Fore.LIGHTYELLOW_EX}--force{Fore.RED} to override existing files.{Style.RESET_ALL}"
@@ -146,7 +146,7 @@ def execute(args: argparse.Namespace) -> None:
                             "[yellow]Please run 'pip install -r requirements.txt' manually.[/yellow]"
                         )
                     else:
-                        logger.info(
+                        logger.error(
                             f"\n{Fore.RED}⚠️ Automatic installation failed with exit code {e.returncode}.{Style.RESET_ALL}"
                         )
                         logger.info(
@@ -163,13 +163,13 @@ def execute(args: argparse.Namespace) -> None:
                     )
 
     except TemplateNotFoundError as e:
-        logger.info(f"{Fore.RED}{e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}{e}{Style.RESET_ALL}")
         sys.exit(1)
     except NetworkError as e:
-        logger.info(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
         sys.exit(1)
     except TemplateError as e:
-        logger.info(f"{Fore.RED}Template error: {e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}Template error: {e}{Style.RESET_ALL}")
         sys.exit(1)
 
 

@@ -6,7 +6,7 @@ from colorama import Fore, Style
 from rich.console import Console
 from rich.table import Table
 
-from fenn.utils.logging import logger
+from fenn.logging import logger
 
 TEMPLATES_REPO = "pyfenn/templates"
 REPO_NAME = "templates"
@@ -21,7 +21,7 @@ def execute(args: argparse.Namespace) -> None:
     try:
         _list_templates()
     except NetworkError as e:
-        logger.info(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
         sys.exit(1)
 
 

@@ -1,10 +1,10 @@
 """Fenn Dashboard — Flask application for browsing fnxml log files."""
 
 import argparse
+import logging
 import secrets
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional
 
 from flask import (
     Flask,
@@ -19,7 +19,7 @@ from flask import (
 )
 from flask_wtf.csrf import CSRFError, CSRFProtect
 
-from fenn.utils.logging import logger
+from fenn.logging import logger
 
 try:
     from fenn.dashboard import auth as dashboard_auth
@@ -198,7 +198,7 @@ _MAX_LIMIT = 200
 _DEFAULT_LIMIT = 20
 
 
-def _api_error(code: str, message: str, param: Optional[str] = None):
+def _api_error(code: str, message: str, param: str | None = None):
     """Standard 400 envelope so clients can branch on `error.code`."""
     body = {"error": {"code": code, "message": message}}
     if param is not None:
@@ -207,7 +207,7 @@ def _api_error(code: str, message: str, param: Optional[str] = None):
 
 
 def _parse_int_arg(
-    name: str, raw: Optional[str], default: int, min_v: int, max_v: int
+    name: str, raw: str | None, default: int, min_v: int, max_v: int
 ) -> int:
     if raw is None or raw == "":
         return default
@@ -221,7 +221,7 @@ def _parse_int_arg(
 
 
 class _ApiBadRequest(Exception):
-    def __init__(self, message: str, param: Optional[str] = None):
+    def __init__(self, message: str, param: str | None = None):
         self.message = message
         self.param = param
 
@@ -333,13 +333,15 @@ def logout():
 # --------------------------------------------------------------------------- #
 
 
-# TODO: Use 'debug' in logger
 def run(
     host: str = "127.0.0.1", port: int = 5000, debug: bool = False, log_dirs=None
 ) -> None:
     """Configure and start the dashboard server."""
     if log_dirs:
         scanner.add_dirs(log_dirs)
+    log_level = logging.DEBUG if debug else logging.INFO
+    app.logger.setLevel(log_level)
+    logger.setLevel(log_level)
     logger.info(f"Fenn dashboard started at http://{host}:{port}")
     from werkzeug.serving import make_server
 

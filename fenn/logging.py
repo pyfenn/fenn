@@ -28,7 +28,7 @@ class XmlMixin:
         )
         self._write_config_params(flat_config, log_path)
 
-    def _write_config_params(self, flat_config: dict, log_file: Path) -> None:
+    def _write_config_params(self, flat_config: dict[str, Any], log_file: Path) -> None:
         with open(log_file, "a", encoding="utf-8") as f:
             f.write("  <config>\n")
             for key, value in flat_config.items():

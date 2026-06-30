@@ -1,7 +1,7 @@
 import os
 import time
 
-from fenn.utils.logging import logger
+from fenn.logging import logger
 
 PROVIDERS = {
     "openrouter": "https://openrouter.ai/api/v1",

@@ -1,5 +1,5 @@
 from fenn.agents.llm import LLMClient
-from fenn.utils.logging import logger
+from fenn.logging import logger
 
 from .loader import load_documents
 from .retriever import Retriever

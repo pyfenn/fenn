@@ -1,7 +1,7 @@
 # tests/test_utils.py
 import re
 
-from fenn.utils import generate_session_id
+from fenn.reproducibility import generate_session_id
 
 
 def test_session_id_returns_string():

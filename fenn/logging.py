@@ -143,6 +143,8 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
 
     def close(self):
         self._write_stop_info(started_at=self._started_at)
+        self.handler._log_file = None
+        self.handler._fn_xml = None
 
     def process(self, msg, kwargs):
         kwargs["extra"] = {**self.extra, **kwargs.get("extra", {})}
@@ -226,4 +228,11 @@ def _custom_print(*args, **kwargs):
 
 
 original_print = builtins.print
-builtins.print = _custom_print
+
+
+def redirect_prints() -> None:
+    builtins.print = _custom_print
+
+
+def restore_prints() -> None:
+    builtins.print = original_print

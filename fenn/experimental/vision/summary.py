@@ -1,4 +1,4 @@
-from typing import Any, Dict, Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 import numpy as np
 
@@ -7,7 +7,7 @@ from .vision_utils import detect_format
 
 def _extract_shape_info(
     shape: tuple, channel_location: Literal["first", "last"] | None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Extract shape information (H, W, C) from array shape based on channel location.
 
@@ -48,11 +48,11 @@ class ImageSummary(TypedDict):
     is_grayscale: bool
     channel_location: Literal["first", "last"] | None
     batch_size: int
-    shape_info: Dict[str, Any]  # Contains: height, width, channels, full_shape
-    dtype: Dict[str, Any]  # Contains: name, kind, itemsize
-    value_range: Dict[str, Any]  # TODO: Define structure for value_range
-    channel_stats: Dict[str, Any]  # TODO: Define structure for channel_stats
-    data_quality: Dict[str, Any]  # TODO: Define structure for data_quality
+    shape_info: dict[str, Any]  # Contains: height, width, channels, full_shape
+    dtype: dict[str, Any]  # Contains: name, kind, itemsize
+    value_range: dict[str, Any]  # TODO: Define structure for value_range
+    channel_stats: dict[str, Any]  # TODO: Define structure for channel_stats
+    data_quality: dict[str, Any]  # TODO: Define structure for data_quality
 
 
 def image_summary(array: np.ndarray) -> ImageSummary:

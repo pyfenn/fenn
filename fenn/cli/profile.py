@@ -33,7 +33,7 @@ def execute(args: argparse.Namespace) -> None:
         logger.info(f"Unknown template: {args.template}")
         sys.exit(1)
 
-    output_dir = ROOT / "profiling" / "results" / args.template
+    output_dir = ROOT / "profiling_results" / args.template
     output_dir.mkdir(parents=True, exist_ok=True)
 
     profile_path = output_dir / "cprofile.prof"

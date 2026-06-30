@@ -30,7 +30,7 @@ def execute(args: argparse.Namespace) -> None:
     entrypoint = template / "main.py"
 
     if not entrypoint.is_file() or template.parent != ROOT:
-        logger.info(f"Unknown template: {args.template}")
+        logger.error(f"Unknown template: {args.template}")
         sys.exit(1)
 
     output_dir = ROOT / "profiling_results" / args.template

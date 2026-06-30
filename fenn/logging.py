@@ -1,9 +1,10 @@
 import builtins
 import logging
 import re
+from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, MutableMapping, Optional
+from typing import Any
 
 from colorama import Fore, Style
 from rich.console import Console
@@ -83,8 +84,8 @@ class XmlMixin:
 
 
 class FennHandler(XmlMixin, logging.Handler):
-    _log_file: Optional[Path]
-    _fn_xml: Optional[Path]
+    _log_file: Path | None
+    _fn_xml: Path | None
 
     def __init__(self, level: int = 0) -> None:
         self._started_at = datetime.now().replace(microsecond=0)

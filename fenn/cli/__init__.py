@@ -3,6 +3,7 @@ import argparse
 import fenn.cli.dashboard as dashboard
 import fenn.cli.grid as grid
 import fenn.cli.list as list
+import fenn.cli.profile as profile
 import fenn.cli.pull as pull
 
 
@@ -36,6 +37,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     p_pull.set_defaults(func=pull.execute)
+
+    # ========= PROFILE =========
+    p_profile = subparsers.add_parser(
+        "profile", help="Profile a fenn template using cProfile"
+    )
+    p_profile.add_argument(
+        "template",
+        help="Template directory to profile",
+    )
+    p_profile.add_argument(
+        "--limit",
+        type=int,
+        default=25,
+        help="Rows in the report",
+    )
+    p_profile.set_defaults(func=profile.execute)
 
     # ========= LIST =========
     p_list = subparsers.add_parser(

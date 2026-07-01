@@ -44,7 +44,7 @@ def test_profile_execute_generates_profile_and_report(tmp_path, monkeypatch, cap
     caplog.set_level(logging.INFO)
     profile.execute(args)
 
-    output_dir = tmp_path / "profiling" / "results" / "default"
+    output_dir = tmp_path / "profiling_results" / "default"
     profile_file = output_dir / "cprofile.prof"
     report_file = output_dir / "cprofile.txt"
 

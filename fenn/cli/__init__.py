@@ -3,8 +3,9 @@ import argparse
 import fenn.cli.dashboard as dashboard
 import fenn.cli.grid as grid
 import fenn.cli.list as list
-import fenn.cli.pull as pull
 import fenn.cli.profile as profile
+import fenn.cli.pull as pull
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fenn")

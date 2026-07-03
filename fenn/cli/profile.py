@@ -2,7 +2,7 @@
 
 This module provides the implementation for the `fenn profile` subcommand.
 It runs the selected template's `main.py` under `cProfile` and writes a
-summary report to `profiling/results/<template>/cprofile.txt`.
+summary report to `profiling_results/<template>/cprofile.txt`.
 """
 
 import argparse

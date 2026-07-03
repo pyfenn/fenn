@@ -1,13 +1,9 @@
 """Unit tests for fenn profile CLI support."""
 
 import logging
-from pathlib import Path
 from unittest.mock import Mock
 
-import pytest
-
-from fenn.cli import build_parser
-from fenn.cli import profile
+from fenn.cli import build_parser, profile
 
 
 def test_profile_parser_defaults() -> None:
@@ -26,7 +22,9 @@ def test_profile_parser_accepts_limit() -> None:
     assert args.limit == 10
 
 
-def test_profile_execute_generates_profile_and_report(tmp_path, monkeypatch, caplog) -> None:
+def test_profile_execute_generates_profile_and_report(
+    tmp_path, monkeypatch, caplog
+) -> None:
     """Execute profile and verify output files are created and reported."""
     monkeypatch.setattr(profile, "ROOT", tmp_path)
 

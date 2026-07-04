@@ -1,7 +1,19 @@
 import os
 import time
+from collections.abc import Iterator, Mapping
+from typing import Any, Protocol, TypeVar
 
 from fenn.logging import logger
+
+_SchemaT = TypeVar("_SchemaT")
+
+
+class _ModelSchema(Protocol[_SchemaT]):
+    @classmethod
+    def model_json_schema(cls) -> dict[str, Any]: ...
+
+    @classmethod
+    def model_validate(cls, obj: Any) -> _SchemaT: ...
 
 PROVIDERS = {
     "openrouter": "https://openrouter.ai/api/v1",
@@ -71,7 +83,9 @@ ENV_KEYS = {
 LOCAL_PROVIDERS = {"ollama", "lmstudio", "llamacpp"}
 
 
-def _detect_provider(provider, model, base_url):
+def _detect_provider(
+    provider: str | None, model: str | None, base_url: str | None
+) -> str:
     if provider:
         return provider
     if base_url:
@@ -122,8 +136,13 @@ class LLMClient:
     """
 
     def __init__(
-        self, provider=None, model=None, api_key=None, api_key_env=None, base_url=None
-    ):
+        self,
+        provider: str | None = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        api_key_env: str | None = None,
+        base_url: str | None = None,
+    ) -> None:
         self.provider = _detect_provider(provider, model, base_url)
         self.model = model or DEFAULT_MODELS.get(self.provider, "gpt-4o-mini")
         self.base_url = base_url or PROVIDERS.get(
@@ -131,7 +150,7 @@ class LLMClient:
         )
         self.api_key = self._resolve_key(api_key, api_key_env)
 
-    def _resolve_key(self, api_key, api_key_env):
+    def _resolve_key(self, api_key: str | None, api_key_env: str | None) -> str:
         if api_key:
             return api_key
         if self.provider in LOCAL_PROVIDERS:
@@ -147,7 +166,7 @@ class LLMClient:
             return key
         return "local"
 
-    def _openai_client(self):
+    def _openai_client(self) -> Any:
         try:
             from openai import OpenAI
 
@@ -157,7 +176,12 @@ class LLMClient:
                 "[fenn] 'openai' package not found. Run: pip install openai"
             )
 
-    def chat_complete(self, messages, schema=None, retries=3):
+    def chat_complete(
+        self,
+        messages: list[Mapping[str, Any]],
+        schema: _ModelSchema[_SchemaT] | None = None,
+        retries: int = 3,
+    ) -> str | _SchemaT:
         """
         Call the chat completions API with a list of message dicts.
 
@@ -181,11 +205,14 @@ class LLMClient:
                 "[fenn] 'openai' package not found. Run: pip install openai"
             )
 
+        if retries < 1:
+            raise ValueError("retries must be at least 1")
+
         client = self._openai_client()
         msgs = [
             dict(m) for m in messages
         ]  # shallow-copy to avoid mutating caller's list
-        kwargs = dict(model=self.model, messages=msgs)
+        kwargs: dict[str, Any] = dict(model=self.model, messages=msgs)
 
         if schema:
             msgs[-1]["content"] += (
@@ -214,7 +241,12 @@ class LLMClient:
                 else:
                     raise
 
-    def ask(self, prompt, schema=None, retries=3):
+    def ask(
+        self,
+        prompt: str,
+        schema: _ModelSchema[_SchemaT] | None = None,
+        retries: int = 3,
+    ) -> str | _SchemaT:
         """
         Send a single prompt and return the response.
 
@@ -235,7 +267,7 @@ class LLMClient:
             [{"role": "user", "content": prompt}], schema=schema, retries=retries
         )
 
-    def stream(self, prompt):
+    def stream(self, prompt: str) -> Iterator[str]:
         """
         Send a prompt and yield response tokens one by one.
 

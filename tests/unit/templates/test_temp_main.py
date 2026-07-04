@@ -2,111 +2,76 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.abspath(os.path.join(TEST_DIR, "..", "templates"))
 
+TEMPLATES_LIST = [
+    "chatbot",
+    "cnn",
+    "empty",
+    "lora-cls",
+    "lstm-cls",
+    "lstm-gen",
+    "mlp-binary",
+    "mlp-multiclass",
+    "mlp-regression",
+    "timm-cls",
+    "vae",
+    "yolo",
+]
 
-def test_check_all_templates_dir():
-    templates = [
-        "chatbot",
-        "cnn",
-        "empty",
-        "lora-cls",
-        "lstm-cls",
-        "lstm-gen",
-        "mlp-binary",
-        "mlp-multiclass",
-        "mlp-regression",
-        "timm-cls",
-        "vae",
-        "yolo",
+
+def get_template_directories():
+    if not os.path.exists(TEMPLATE_DIR):
+        return []
+    return [
+        d
+        for d in os.listdir(TEMPLATE_DIR)
+        if d not in [".git", ".gitignore", "__init__.py", "LICENSE"]
     ]
+
+
+def test_templates_dir_exists():
     assert os.path.exists(TEMPLATE_DIR), (
-        f"Templates directory not found at {TEMPLATE_DIR}"
+        f"Templates directory not found at {TEMPLATE_DIR}. Did you pull the submodule?"
     )
 
-    template_dir = os.listdir(TEMPLATE_DIR)
-    result = False
-    for test in template_dir:
-        if test in [".git", ".gitignore", "__init__.py", "LICENSE"]:
-            continue
-        elif test in templates:
-            result = True
-        else:
-            result = False
-    assert result is True
 
+@pytest.mark.parametrize("template_name", get_template_directories())
+def test_template_structure_and_execution(template_name):
+    assert template_name in TEMPLATES_LIST, (
+        f"Unexpected directory found in templates: {template_name}"
+    )
 
-def test_check_for_main():
-    template_dir = os.listdir(TEMPLATE_DIR)
-    result = False
-    for test in template_dir:
-        main_path = os.path.join(TEMPLATE_DIR, test, "main.py")
-        if test in [".git", ".gitignore", "__init__.py", "LICENSE"]:
-            continue
-        elif os.path.exists(main_path):
-            result = True
-        else:
-            result = False
-    assert result is True
+    template_path = os.path.join(TEMPLATE_DIR, template_name)
+    main_path = os.path.join(template_path, "main.py")
+    requirement_path = os.path.join(template_path, "requirements.txt")
 
+    assert os.path.exists(main_path), f"Missing main.py in {template_name}"
+    assert os.path.exists(requirement_path), (
+        f"Missing requirements.txt in {template_name}"
+    )
 
-def test_check_for_requirement():
-    template_dir = os.listdir(TEMPLATE_DIR)
-    result = False
-    for test in template_dir:
-        requirement_path = os.path.join(TEMPLATE_DIR, test, "requirements.txt")
-        if test in [".git", ".gitignore", "__init__.py", "LICENSE"]:
-            continue
-        elif os.path.exists(requirement_path):
-            result = True
-        else:
-            result = False
-    assert result is True
-
-
-def test_main():
-    template_dir = os.listdir(TEMPLATE_DIR)
-    result = False
-    for test in template_dir:
-        requirement_path = os.path.join(TEMPLATE_DIR, test, "requirements.txt")
-        main_path = os.path.join(TEMPLATE_DIR, test, "main.py")
-
-        if test in [".git", ".gitignore", "__init__.py", "LICENSE"]:
-            continue
-        else:
-            try:
-                subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "-r", requirement_path],
-                    check=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-                subprocess.run(
-                    [sys.executable, main_path],
-                    check=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-
-                result = True
-
-            except subprocess.CalledProcessError as e:
-                raise AssertionError(f"{test} failed: {e}")
-
-            finally:
-                subprocess.run(
-                    [
-                        sys.executable,
-                        "-m",
-                        "pip",
-                        "uninstall",
-                        "-y",
-                        "-r",
-                        requirement_path,
-                    ],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-
-    assert result is True
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "-r", requirement_path],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        subprocess.run(
+            [sys.executable, main_path],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except subprocess.CalledProcessError as e:
+        raise AssertionError(f"Template '{template_name}' execution failed: {e}")
+    finally:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "uninstall", "-y", "-r", requirement_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )

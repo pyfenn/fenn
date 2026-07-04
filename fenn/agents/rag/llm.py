@@ -1,5 +1,6 @@
 import os
 import time
+from typing import Any
 
 from fenn.logging import logger
 
@@ -83,14 +84,14 @@ LOCAL_PROVIDERS = {"ollama", "lmstudio", "llamacpp"}
 
 
 def ask(
-    prompt,
-    model=None,
-    model_api_key=None,
-    base_url=None,
-    model_provider=None,
-    retries=3,
-    schema=None,
-):
+    prompt: str,
+    model: str | None = None,
+    model_api_key: str | None = None,
+    base_url: str | None = None,
+    model_provider: str | None = None,
+    retries: int = 3,
+    schema: Any | None = None,
+) -> str | Any:
     """
     Send a prompt to an LLM and return the response.
 
@@ -161,7 +162,13 @@ def ask(
         )
 
 
-def stream(prompt, model=None, model_api_key=None, base_url=None, model_provider=None):
+def stream(
+    prompt: str,
+    model: str | None = None,
+    model_api_key: str | None = None,
+    base_url: str | None = None,
+    model_provider: str | None = None,
+) -> Any:
     """
     Send a prompt to an LLM and yield response tokens one by one.
 
@@ -210,7 +217,9 @@ def stream(prompt, model=None, model_api_key=None, base_url=None, model_provider
         )
 
 
-def _detect_provider(model_provider, model, base_url):
+def _detect_provider(
+    model_provider: str | None, model: str | None, base_url: str | None
+) -> str:
     """
     Infer the provider from model name or base_url if not explicitly given.
 
@@ -246,7 +255,7 @@ def _detect_provider(model_provider, model, base_url):
     return "openrouter"
 
 
-def _resolve_key(model_api_key, model_provider):
+def _resolve_key(model_api_key: str | None, model_provider: str) -> str:
     """
     Resolve the API key from direct parameter or environment variable.
 

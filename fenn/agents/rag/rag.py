@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
 
+from typing import Optional, Union
+
 from fenn.agents.llm import LLMClient
 from fenn.logging import logger
 

@@ -2,6 +2,7 @@ import json
 import os
 from collections import defaultdict
 from pathlib import Path
+from typing import Any, Optional, Union
 
 from fenn.logging import logger
 
@@ -59,13 +60,13 @@ LOCAL_EMBEDDING_PROVIDERS = {"local", "ollama"}
 class Retriever:
     def __init__(
         self,
-        use_faiss=False,
-        embedding_provider="local",
-        embedding_model="all-MiniLM-L6-v2",
-        embedding_api_key=None,
-        chunk_mode="smart",
-        persist_path=None,
-    ):
+        use_faiss: bool = False,
+        embedding_provider: str = "local",
+        embedding_model: str = "all-MiniLM-L6-v2",
+        embedding_api_key: Optional[str] = None,
+        chunk_mode: str = "smart",
+        persist_path: Optional[Union[str, Path]] = None,
+    ) -> None:
         self.chunks = []
         self.use_faiss = use_faiss
         self.embedding_provider = embedding_provider
@@ -78,7 +79,7 @@ class Retriever:
         self._local_embedder = None
         self._loaded_from_disk = False  # FIX: track disk load
 
-    def _resolve_embedding_key(self):
+    def _resolve_embedding_key(self) -> Optional[str]:
         if self.embedding_api_key:
             return self.embedding_api_key
         if self.embedding_provider in LOCAL_EMBEDDING_PROVIDERS:
@@ -95,7 +96,7 @@ class Retriever:
             return key
         return None
 
-    def _embed(self, texts, input_type="search_document"):
+    def _embed(self, texts: list[str], input_type: str = "search_document") -> Any:
         p = self.embedding_provider
         if p == "local":
             return self._embed_local(texts)
@@ -110,7 +111,7 @@ class Retriever:
         if p == "jina":
             return self._embed_jina(texts)
 
-    def _embed_local(self, texts):
+    def _embed_local(self, texts: list[str]) -> Any:
         try:
             import numpy as np
             from sentence_transformers import SentenceTransformer
@@ -133,7 +134,7 @@ class Retriever:
                 'Run: pip install "cofone[faiss]"  or  pip install sentence-transformers'
             )
 
-    def _embed_openai_compat(self, texts):
+    def _embed_openai_compat(self, texts: list[str]) -> Any:
         try:
             import numpy as np
             from openai import OpenAI
@@ -157,7 +158,7 @@ class Retriever:
                 "[cofone] 'openai' package not found.\nRun: pip install openai"
             )
 
-    def _embed_ollama(self, texts):
+    def _embed_ollama(self, texts: list[str]) -> Any:
         try:
             import numpy as np
             from openai import OpenAI
@@ -177,7 +178,7 @@ class Retriever:
                 "[cofone] 'openai' package not found.\nRun: pip install openai"
             )
 
-    def _embed_cohere(self, texts, input_type="search_document"):
+    def _embed_cohere(self, texts: list[str], input_type: str = "search_document") -> Any:
         try:
             import cohere
             import numpy as np
@@ -199,7 +200,7 @@ class Retriever:
                 "[cofone] 'cohere' package not found.\nRun: pip install cohere"
             )
 
-    def _embed_voyage(self, texts):
+    def _embed_voyage(self, texts: list[str]) -> Any:
         try:
             import numpy as np
             import voyageai
@@ -217,7 +218,7 @@ class Retriever:
                 "[cofone] 'voyageai' package not found.\nRun: pip install voyageai"
             )
 
-    def _embed_jina(self, texts):
+    def _embed_jina(self, texts: list[str]) -> Any:
         try:
             import httpx
             import numpy as np
@@ -246,7 +247,7 @@ class Retriever:
 
     # ── Index ──────────────────────────────────────────────────────────────────
 
-    def index(self, docs):
+    def index(self, docs: list[str]) -> None:
         # FIX: load from disk only once (first call), then accumulate normally
         if self.persist_path and not self._loaded_from_disk:
             if self._load_from_disk():
@@ -264,12 +265,12 @@ class Retriever:
         else:
             self._build_bm25()
 
-    def _build_bm25(self):
+    def _build_bm25(self) -> None:
         for idx, chunk in enumerate(self.chunks):
             for word in set(chunk.lower().split()):
                 self._index[word].append(idx)
 
-    def _build_faiss(self):
+    def _build_faiss(self) -> None:
         try:
             import faiss
             import numpy as np  # noqa: F401 - cofone dependency check
@@ -283,7 +284,7 @@ class Retriever:
         self._faiss_index = faiss.IndexFlatIP(dim)
         self._faiss_index.add(vectors)
 
-    def _save_to_disk(self):
+    def _save_to_disk(self) -> None:
         import faiss
 
         self.persist_path.mkdir(parents=True, exist_ok=True)
@@ -295,7 +296,7 @@ class Retriever:
             f"[cofone] index saved to {self.persist_path} ({len(self.chunks)} chunks)"
         )
 
-    def _load_from_disk(self):
+    def _load_from_disk(self) -> bool:
         index_file = self.persist_path / "index.faiss"
         chunks_file = self.persist_path / "chunks.json"
         if not index_file.exists() or not chunks_file.exists():
@@ -315,12 +316,12 @@ class Retriever:
 
     # ── Query ──────────────────────────────────────────────────────────────────
 
-    def query(self, text, top_k=5):
+    def query(self, text: str, top_k: int = 5) -> list[str]:
         if self.use_faiss:
             return self._query_faiss(text, top_k)
         return self._query_bm25(text, top_k)
 
-    def _query_faiss(self, text, top_k):
+    def _query_faiss(self, text: str, top_k: int) -> list[str]:
         import faiss
 
         vec = self._embed([text], input_type="search_query")
@@ -328,7 +329,7 @@ class Retriever:
         _, indices = self._faiss_index.search(vec, min(top_k, len(self.chunks)))
         return [self.chunks[i] for i in indices[0] if i < len(self.chunks)]
 
-    def _query_bm25(self, text, top_k):
+    def _query_bm25(self, text: str, top_k: int) -> list[str]:
         scores = defaultdict(int)
         for word in text.lower().split():
             for idx in self._index.get(word, []):

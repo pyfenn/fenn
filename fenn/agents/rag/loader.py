@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional, Union
 
 from fenn.logging import logger
 
@@ -19,7 +20,7 @@ SUPPORTED_EXTENSIONS = {
 }
 
 
-def load_documents(source):
+def load_documents(source: Union[str, Path]) -> list[str]:
     """
     Load text content from a source and return it as a list of strings.
 
@@ -90,7 +91,7 @@ def load_documents(source):
     return [d for d in docs if d]
 
 
-def _read_file(path):
+def _read_file(path: Path) -> Optional[str]:
     """Read a single file. Returns None on error (logged to stdout)."""
     try:
         if path.suffix == ".pdf":
@@ -101,7 +102,7 @@ def _read_file(path):
         return None
 
 
-def _read_pdf(path):
+def _read_pdf(path: Path) -> Optional[str]:
     """
     Extract text from a PDF file using pypdf.
     Requires: pip install "cofone[pdf]"  or  pip install pypdf
@@ -124,7 +125,7 @@ def _read_pdf(path):
         )
 
 
-def _load_url(url):
+def _load_url(url: str) -> str:
     """
     Fetch a web page and return its visible text content.
     Requires: pip install httpx beautifulsoup4  (included in cofone core)
@@ -167,7 +168,7 @@ def _load_url(url):
         )
 
 
-def _load_wikipedia(url):
+def _load_wikipedia(url: str) -> str:
     """
     Fetch a Wikipedia article's full text using the wikipedia package.
     Automatically detects language from the URL subdomain.
@@ -204,7 +205,7 @@ def _load_wikipedia(url):
         raise ValueError(f"[cofone] Wikipedia error for '{url}': {e}")
 
 
-def _load_youtube(url):
+def _load_youtube(url: str) -> str:
     """
     Fetch a YouTube video's transcript/subtitles.
     Language priority: English first, then Italian, then any available.

@@ -15,6 +15,7 @@ class _ModelSchema(Protocol[_SchemaT]):
     @classmethod
     def model_validate(cls, obj: Any) -> _SchemaT: ...
 
+
 PROVIDERS = {
     "openrouter": "https://openrouter.ai/api/v1",
     "together": "https://api.together.xyz/v1",

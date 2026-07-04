@@ -1,4 +1,5 @@
 import yaml
+from typing import Any
 
 from fenn.agents import Flow
 from fenn.agents.node import ActNode, ObserveNode, ThinkNode
@@ -6,7 +7,7 @@ from fenn.agents.tools import get_tool_schema
 
 
 class Agent:
-    def __init__(self, config, llm):
+    def __init__(self, config: str, llm: Any) -> None:
         self.llm = llm
         with open(config) as f:
             self.config = yaml.safe_load(f)
@@ -23,7 +24,7 @@ class Agent:
 
         self.flow = Flow(start=think)
 
-    def run(self, user_input):
+    def run(self, user_input: str) -> str:
         shared = {
             "llm": self.llm,
             "messages": [

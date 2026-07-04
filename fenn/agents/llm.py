@@ -1,9 +1,10 @@
 import os
 import time
+from typing import Any, Optional, Union
 
 from fenn.logging import logger
 
-PROVIDERS = {
+PROVIDERS: dict[str, str] = {
     "openrouter": "https://openrouter.ai/api/v1",
     "together": "https://api.together.xyz/v1",
     "groq": "https://api.groq.com/openai/v1",
@@ -25,7 +26,7 @@ PROVIDERS = {
     "llamacpp": "http://localhost:8080/v1",
 }
 
-DEFAULT_MODELS = {
+DEFAULT_MODELS: dict[str, str] = {
     "openrouter": "arcee-ai/trinity-large-preview:free",
     "together": "meta-llama/Llama-3-8b-chat-hf",
     "groq": "llama-3.1-8b-instant",
@@ -46,7 +47,7 @@ DEFAULT_MODELS = {
     "llamacpp": "local-model",
 }
 
-ENV_KEYS = {
+ENV_KEYS: dict[str, Optional[str]] = {
     "openrouter": "OPENROUTER_API_KEY",
     "together": "TOGETHER_API_KEY",
     "groq": "GROQ_API_KEY",
@@ -68,10 +69,12 @@ ENV_KEYS = {
     "llamacpp": None,
 }
 
-LOCAL_PROVIDERS = {"ollama", "lmstudio", "llamacpp"}
+LOCAL_PROVIDERS: set[str] = {"ollama", "lmstudio", "llamacpp"}
 
 
-def _detect_provider(provider, model, base_url):
+def _detect_provider(
+    provider: Optional[str], model: Optional[str], base_url: Optional[str]
+) -> str:
     if provider:
         return provider
     if base_url:
@@ -122,8 +125,13 @@ class LLMClient:
     """
 
     def __init__(
-        self, provider=None, model=None, api_key=None, api_key_env=None, base_url=None
-    ):
+        self,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+        api_key_env: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ) -> None:
         self.provider = _detect_provider(provider, model, base_url)
         self.model = model or DEFAULT_MODELS.get(self.provider, "gpt-4o-mini")
         self.base_url = base_url or PROVIDERS.get(
@@ -131,7 +139,7 @@ class LLMClient:
         )
         self.api_key = self._resolve_key(api_key, api_key_env)
 
-    def _resolve_key(self, api_key, api_key_env):
+    def _resolve_key(self, api_key: Optional[str], api_key_env: Optional[str]) -> str:
         if api_key:
             return api_key
         if self.provider in LOCAL_PROVIDERS:
@@ -157,7 +165,9 @@ class LLMClient:
                 "[fenn] 'openai' package not found. Run: pip install openai"
             )
 
-    def chat_complete(self, messages, schema=None, retries=3):
+    def chat_complete(
+        self, messages: list[dict[str, str]], schema: Optional[Any] = None, retries: int = 3
+    ) -> Union[str, Any]:
         """
         Call the chat completions API with a list of message dicts.
 
@@ -185,7 +195,7 @@ class LLMClient:
         msgs = [
             dict(m) for m in messages
         ]  # shallow-copy to avoid mutating caller's list
-        kwargs = dict(model=self.model, messages=msgs)
+        kwargs: dict[str, Any] = dict(model=self.model, messages=msgs)
 
         if schema:
             msgs[-1]["content"] += (
@@ -214,7 +224,7 @@ class LLMClient:
                 else:
                     raise
 
-    def ask(self, prompt, schema=None, retries=3):
+    def ask(self, prompt: str, schema: Optional[Any] = None, retries: int = 3) -> Union[str, Any]:
         """
         Send a single prompt and return the response.
 
@@ -235,7 +245,7 @@ class LLMClient:
             [{"role": "user", "content": prompt}], schema=schema, retries=retries
         )
 
-    def stream(self, prompt):
+    def stream(self, prompt: str) -> Any:
         """
         Send a prompt and yield response tokens one by one.
 

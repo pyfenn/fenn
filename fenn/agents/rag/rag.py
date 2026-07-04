@@ -1,3 +1,7 @@
+from collections.abc import Callable, Iterator
+from pathlib import Path
+from typing import Any
+
 from fenn.agents.llm import LLMClient
 from fenn.logging import logger
 
@@ -95,22 +99,22 @@ class RAG:
     def __init__(
         self,
         # ── LLM ───────────────────────────────────────────
-        model_provider=None,
-        model=None,
-        model_api_key=None,
-        base_url=None,
+        model_provider: str | None = None,
+        model: str | None = None,
+        model_api_key: str | None = None,
+        base_url: str | None = None,
         # ── Embeddings ────────────────────────────────────
-        faiss=False,
-        embedding_provider="local",
-        embedding_model="all-MiniLM-L6-v2",
-        embedding_api_key=None,
+        faiss: bool = False,
+        embedding_provider: str = "local",
+        embedding_model: str = "all-MiniLM-L6-v2",
+        embedding_api_key: str | None = None,
         # ── RAG behaviour ─────────────────────────────────
-        chunk_mode="smart",
-        persist_path=None,
-        memory=False,
-        max_history=None,
-        system_prompt=None,
-    ):
+        chunk_mode: str = "smart",
+        persist_path: str | Path | None = None,
+        memory: bool = False,
+        max_history: int | None = None,
+        system_prompt: str | None = None,
+    ) -> None:
         self._llm = LLMClient(
             provider=model_provider,
             model=model,
@@ -142,7 +146,7 @@ class RAG:
             "Be concise, accurate, and respond in the same language as the user's question."
         )
 
-    def add_source(self, source):
+    def add_source(self, source: str | Path) -> "RAG":
         """
         Load and index a document source.
 
@@ -167,7 +171,7 @@ class RAG:
         self._retriever.index(docs)
         return self
 
-    def add_tool(self, fn):
+    def add_tool(self, fn: Callable[..., Any]) -> "RAG":
         """
         Attach a custom Python function as a tool.
 
@@ -186,7 +190,7 @@ class RAG:
         self._tools.append(fn)
         return self
 
-    def debug(self):
+    def debug(self) -> "RAG":
         """
         Enable verbose logging.
 
@@ -200,7 +204,7 @@ class RAG:
         self._debug = True
         return self
 
-    def _build_prompt(self, query, context):
+    def _build_prompt(self, query: str, context: str) -> str:
         """Build the final prompt sent to the LLM, with optional memory."""
         tool_ctx = ""
         if self._tools:
@@ -228,7 +232,7 @@ class RAG:
             f"Question: {query}\nAnswer:"
         )
 
-    def run(self, query, schema=None):
+    def run(self, query: str, schema: Any = None) -> Any:
         """
         Run a single query against the indexed documents.
 
@@ -272,7 +276,7 @@ class RAG:
 
         return answer
 
-    def chat(self, query):
+    def chat(self, query: str) -> str:
         """
         Run a query with memory enabled.
 
@@ -292,7 +296,7 @@ class RAG:
         self._memory = True
         return self.run(query)
 
-    def stream(self, query):
+    def stream(self, query: str) -> Iterator[str]:
         """
         Run a query and stream the response token by token.
 
@@ -330,7 +334,7 @@ class RAG:
 
         yield from self._llm.stream(prompt)
 
-    def reset_memory(self):
+    def reset_memory(self) -> "RAG":
         """
         Clear the conversation history.
 

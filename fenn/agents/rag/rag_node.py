@@ -1,3 +1,5 @@
+from typing import Any
+
 from fenn.agents import Node
 
 from .loader import load_documents
@@ -47,19 +49,19 @@ class RAGNode(Node):
 
     def __init__(
         self,
-        sources=None,
-        query_key="query",
-        context_key="rag_context",
-        chunks_key="rag_chunks",
-        top_k=5,
-        next_action="default",
-        faiss=False,
-        embedding_provider="local",
-        embedding_model="all-MiniLM-L6-v2",
-        embedding_api_key=None,
-        chunk_mode="smart",
-        persist_path=None,
-    ):
+        sources: str | list[str] | None = None,
+        query_key: str = "query",
+        context_key: str = "rag_context",
+        chunks_key: str = "rag_chunks",
+        top_k: int = 5,
+        next_action: str = "default",
+        faiss: bool = False,
+        embedding_provider: str = "local",
+        embedding_model: str = "all-MiniLM-L6-v2",
+        embedding_api_key: str | None = None,
+        chunk_mode: str = "smart",
+        persist_path: str | None = None,
+    ) -> None:
         super().__init__()
         self._query_key = query_key
         self._context_key = context_key
@@ -82,18 +84,18 @@ class RAGNode(Node):
             for s in sources:
                 self._retriever.index(load_documents(s))
 
-    def add_source(self, source):
+    def add_source(self, source: str) -> "RAGNode":
         """Index an additional source. Returns self for chaining."""
         self._retriever.index(load_documents(source))
         return self
 
-    def prep(self, shared):
+    def prep(self, shared: dict[str, Any]) -> str:
         return shared.get(self._query_key, "")
 
-    def exec(self, query):
+    def exec(self, query: str) -> list[str]:
         return self._retriever.query(query, top_k=self._top_k)
 
-    def post(self, shared, query, chunks):
+    def post(self, shared: dict[str, Any], query: str, chunks: list[str]) -> str:
         shared[self._chunks_key] = chunks
         shared[self._context_key] = "\n\n".join(chunks)
         return self._next_action

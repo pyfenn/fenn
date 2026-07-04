@@ -1,4 +1,6 @@
-from typing import Iterable
+from collections.abc import Iterable
+
+from fenn.logging import logger
 
 from .service import Service
 
@@ -6,7 +8,7 @@ from .service import Service
 class Notifier:
     """Central notification manager that handles multiple notification services."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the notifier with an empty list of services."""
         self._services: list[Service] = []
 
@@ -43,11 +45,10 @@ class Notifier:
         """
         try:
             self._services.remove(service())
-        except ValueError:
-            ValueError(
+        except ValueError as err:
+            raise ValueError(
                 f"Service {service.__class__.__name__} not found in services list"
-            )
-            raise
+            ) from err
 
     def notify(self, message: str) -> None:
         """Send notification to all registered services.
@@ -58,17 +59,12 @@ class Notifier:
         if not self._services:
             return
 
-        successful_services = []
-        failed_services = []
-
         for service in self._services:
             try:
                 service.send_notification(message)
-                successful_services.append(service.__class__.__name__)
-                # logger.info(f"Successfully sent notification via {service.__class__.__name__}")
+                logger.info("Successfully sent notification via %s", service.__class__.__name__)
             except Exception as e:
-                failed_services.append((service.__class__.__name__, str(e)))
-                # logger.error(f"Failed to send notification via {service.__class__.__name__}: {e}")
+                logger.error("Failed to send notification via %s: %s", service.__class__.__name__, e)
 
     def get_services(self) -> list[str]:
         """Get list of registered service names.

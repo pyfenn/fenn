@@ -12,7 +12,12 @@ try:
 
     transformers.logging.set_verbosity_error()
 except ImportError:
-    pass
+    logger.debug("transformers not available; skipping verbosity setting.")
+
+try:
+    import faiss
+except ImportError:
+    faiss = None
 
 
 EMBEDDING_ENV_KEYS = {
@@ -269,25 +274,35 @@ class Retriever:
             for word in set(chunk.lower().split()):
                 self._index[word].append(idx)
 
-    def _build_faiss(self):
-        try:
-            import faiss
-            import numpy as np  # noqa: F401 - cofone dependency check
-        except ImportError:
+    def _get_faiss(self):
+        import sys
+        if sys.modules.get("faiss") is None:
             raise ImportError(
                 '[cofone] faiss-cpu not installed.\nRun: pip install "cofone[faiss]"'
             )
+        global faiss
+        if faiss is None:
+            try:
+                import faiss as _faiss
+                faiss = _faiss
+            except ImportError:
+                raise ImportError(
+                    '[cofone] faiss-cpu not installed.\nRun: pip install "cofone[faiss]"'
+                )
+        return faiss
+
+    def _build_faiss(self):
+        faiss_mod = self._get_faiss()
         vectors = self._embed(self.chunks)
-        faiss.normalize_L2(vectors)
+        faiss_mod.normalize_L2(vectors)
         dim = vectors.shape[1]
-        self._faiss_index = faiss.IndexFlatIP(dim)
+        self._faiss_index = faiss_mod.IndexFlatIP(dim)
         self._faiss_index.add(vectors)
 
     def _save_to_disk(self):
-        import faiss
-
+        faiss_mod = self._get_faiss()
         self.persist_path.mkdir(parents=True, exist_ok=True)
-        faiss.write_index(self._faiss_index, str(self.persist_path / "index.faiss"))
+        faiss_mod.write_index(self._faiss_index, str(self.persist_path / "index.faiss"))
         (self.persist_path / "chunks.json").write_text(
             json.dumps(self.chunks, ensure_ascii=False), encoding="utf-8"
         )
@@ -301,15 +316,14 @@ class Retriever:
         if not index_file.exists() or not chunks_file.exists():
             return False
         try:
-            import faiss
-
-            self._faiss_index = faiss.read_index(str(index_file))
+            faiss_mod = self._get_faiss()
+            self._faiss_index = faiss_mod.read_index(str(index_file))
             self.chunks = json.loads(chunks_file.read_text(encoding="utf-8"))
             logger.info(
                 f"[cofone] index loaded from {self.persist_path} ({len(self.chunks)} chunks)"
             )
             return True
-        except Exception as e:
+        except (ImportError, OSError, json.JSONDecodeError, RuntimeError, ValueError) as e:
             logger.warning(f"[cofone] cache load failed ({e}), rebuilding index...")
             return False
 
@@ -321,10 +335,9 @@ class Retriever:
         return self._query_bm25(text, top_k)
 
     def _query_faiss(self, text, top_k):
-        import faiss
-
+        faiss_mod = self._get_faiss()
         vec = self._embed([text], input_type="search_query")
-        faiss.normalize_L2(vec)
+        faiss_mod.normalize_L2(vec)
         _, indices = self._faiss_index.search(vec, min(top_k, len(self.chunks)))
         return [self.chunks[i] for i in indices[0] if i < len(self.chunks)]
 

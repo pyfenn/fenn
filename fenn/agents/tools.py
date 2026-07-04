@@ -1,17 +1,18 @@
 import inspect
+from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
 TOOLS_REGISTRY: dict[str, dict[str, Any]] = {}
 
 
-def tool(func):
+def tool(func: Callable[..., Any]) -> Callable[..., Any]:
     """
     A decorator that registers an executable function as a tool
     """
 
     @wraps(func)
-    def decorator(*args, **kwargs):
+    def decorator(*args: Any, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
 
     tool_name = func.__name__
@@ -24,11 +25,11 @@ def tool(func):
     return decorator
 
 
-def get_tool_schema():
+def get_tool_schema() -> list[dict[str, Any]]:
     return [info["schema"] for info in TOOLS_REGISTRY.values()]
 
 
-def execute_tool(name: str, *args, **kwargs):
+def execute_tool(name: str, *args: Any, **kwargs: Any) -> Any:
     if name not in TOOLS_REGISTRY:
         raise ValueError(f"Tool '{name}' is not registered.")
     return TOOLS_REGISTRY[name]["execute"](*args, **kwargs)

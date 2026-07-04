@@ -96,7 +96,7 @@ def _read_file(path):
         if path.suffix == ".pdf":
             return _read_pdf(path)
         return path.read_text(encoding="utf-8")
-    except Exception as e:
+    except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as e:
         logger.error(f"[cofone] read error {path.name}: {e}")
         return None
 
@@ -201,7 +201,7 @@ def _load_wikipedia(url):
             'Run: pip install "cofone[web]"  or  pip install wikipedia'
         )
     except Exception as e:
-        raise ValueError(f"[cofone] Wikipedia error for '{url}': {e}")
+        raise ValueError(f"[cofone] Wikipedia error for '{url}': {e}") from e
 
 
 def _load_youtube(url):
@@ -235,7 +235,8 @@ def _load_youtube(url):
                 t.get("text", str(t)) if isinstance(t, dict) else str(t)
                 for t in transcript
             )
-        except Exception:
+        except Exception as e:
+            logger.debug("[cofone] YouTubeTranscriptApi >=0.7.0 list() failed (%s), falling back to list_transcripts()", e)
             # Fallback: API < 0.7.0
             transcript = (
                 YouTubeTranscriptApi.list_transcripts(vid)

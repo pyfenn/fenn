@@ -1,17 +1,19 @@
+from typing import Any
+
 from fenn.agents import Node
 from fenn.agents.tools import execute_tool
 
 
 class ThinkNode(Node):
-    def prep(self, shared):
+    def prep(self, shared: dict[str, Any]) -> dict[str, Any]:
         return {"llm": shared["llm"], "messages": shared["messages"]}
 
-    def exec(self, prep_res):
+    def exec(self, prep_res: dict[str, Any]) -> Any:
         llm = prep_res["llm"]
         response = llm.chat_complete(prep_res["messages"])
         return response
 
-    def post(self, shared, prep_res, exec_res):
+    def post(self, shared: dict[str, Any], prep_res: Any, exec_res: Any) -> str:
         shared["last_thought"] = exec_res
         shared["messages"].append({"role": "assistant", "content": exec_res})
         if "Action:" in exec_res:
@@ -20,10 +22,10 @@ class ThinkNode(Node):
 
 
 class ActNode(Node):
-    def prep(self, shared):
+    def prep(self, shared: dict[str, Any]) -> Any:
         return shared["last_thought"]
 
-    def exec(self, thought):
+    def exec(self, thought: str) -> Any:
         if "Action:" in thought:
             action_line = [
                 line for line in thought.split("\n") if line.startswith("Action:")
@@ -38,23 +40,23 @@ class ActNode(Node):
 
         try:
             result = execute_tool(tool_name, *tool_args)
-        except Exception as e:
+        except (ValueError, TypeError, RuntimeError, KeyError, AttributeError, OSError) as e:
             result = f"Error: {e}"
         return result
 
-    def post(self, shared, prep_res, exec_res):
+    def post(self, shared: dict[str, Any], prep_res: Any, exec_res: Any) -> str:
         shared["last_observation"] = exec_res
         return "observe"
 
 
 class ObserveNode(Node):
-    def prep(self, shared):
+    def prep(self, shared: dict[str, Any]) -> Any:
         return shared["last_observation"]
 
-    def exec(self, observation):
+    def exec(self, observation: Any) -> Any:
         return observation
 
-    def post(self, shared, prep_res, exec_res):
+    def post(self, shared: dict[str, Any], prep_res: Any, exec_res: Any) -> str:
         shared["messages"].append(
             {"role": "user", "content": f"Observation: {exec_res}"}
         )
@@ -62,3 +64,4 @@ class ObserveNode(Node):
         if shared["iterations"] >= shared["max_iterations"]:
             return "done"
         return "think"
+

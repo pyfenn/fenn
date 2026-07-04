@@ -40,7 +40,7 @@ class Resend(Service):
             message: The message to send as email body.
 
         Raises:
-            Exception: If the email fails to send.
+            RuntimeError: If the email fails to send.
         """
         try:
             params = {
@@ -53,7 +53,7 @@ class Resend(Service):
             response = resend.Emails.send(params)
 
             if isinstance(response, dict) and "error" in response:
-                raise Exception(f"Resend API error: {response['error']}")
+                raise RuntimeError(f"Resend API error: {response['error']}")
 
         except Exception as err:
-            raise Exception(f"Failed to send email notification: {err}")
+            raise RuntimeError(f"Failed to send email notification: {err}") from err

@@ -3,13 +3,20 @@ import subprocess
 import sys
 import pytest
 
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.abspath(os.path.join(TEST_DIR, "..", "templates"))
+
 def test_check_all_templates_dir():
-    templates = [ "chatbot", "cnn", "empty", "lora-cls", "lstm-cls", "lstm-gen", "mlp-binary",
-                "mlp-multiclass", "mlp-regression", "timm-cls", "vae", "yolo"]
-    template_dir = os.listdir(r"\fenn\templates")
-    result  = False
+    templates = [
+        "chatbot", "cnn", "empty", "lora-cls", "lstm-cls", "lstm-gen", 
+        "mlp-binary", "mlp-multiclass", "mlp-regression", "timm-cls", "vae", "yolo"
+    ]
+    assert os.path.exists(TEMPLATE_DIR), f"Templates directory not found at {TEMPLATE_DIR}"
+    
+    template_dir = os.listdir(TEMPLATE_DIR)
+    result = False
     for test in template_dir:
-        if test in [".git",".gitignore","__init__.py","LICENSE"]:
+        if test in [".git", ".gitignore", "__init__.py", "LICENSE"]:
             continue
         elif test in templates:
             result = True
@@ -18,12 +25,11 @@ def test_check_all_templates_dir():
     assert result == True
 
 def test_check_for_main():
-    path = r"\fenn\templates"
-    template_dir = os.listdir(path)
-    result  = False
+    template_dir = os.listdir(TEMPLATE_DIR)
+    result = False
     for test in template_dir:
-        main_path = os.path.join(path, test, "main.py")
-        if test in [".git",".gitignore","__init__.py","LICENSE"]:
+        main_path = os.path.join(TEMPLATE_DIR, test, "main.py")
+        if test in [".git", ".gitignore", "__init__.py", "LICENSE"]:
             continue
         elif os.path.exists(main_path):
             result = True
@@ -32,12 +38,11 @@ def test_check_for_main():
     assert result == True
 
 def test_check_for_requirement():
-    path = r"\fenn\templates"
-    template_dir = os.listdir(path)
-    result  = False
+    template_dir = os.listdir(TEMPLATE_DIR)
+    result = False
     for test in template_dir:
-        requirement_path = os.path.join(path, test, "requirements.txt")
-        if test in [".git",".gitignore","__init__.py","LICENSE"]:
+        requirement_path = os.path.join(TEMPLATE_DIR, test, "requirements.txt")
+        if test in [".git", ".gitignore", "__init__.py", "LICENSE"]:
             continue
         elif os.path.exists(requirement_path):
             result = True
@@ -46,13 +51,13 @@ def test_check_for_requirement():
     assert result == True
 
 def test_main():
-    path = r"\fenn\templates"
-    template_dir = os.listdir(path)
-    result  = False
+    template_dir = os.listdir(TEMPLATE_DIR)
+    result = False
     for test in template_dir:
-        requirement_path = os.path.join(path, test, "requirements.txt")
-        main_path = os.path.join(path, test, "main.py")
-        if test in [".git",".gitignore","__init__.py","LICENSE"]:
+        requirement_path = os.path.join(TEMPLATE_DIR, test, "requirements.txt")
+        main_path = os.path.join(TEMPLATE_DIR, test, "main.py")
+        
+        if test in [".git", ".gitignore", "__init__.py", "LICENSE"]:
             continue
         else:
             try:
@@ -72,6 +77,7 @@ def test_main():
                 )
 
                 print(f"{test} ran successfully")
+                result = True
 
             except subprocess.CalledProcessError as e:
                 raise AssertionError(f"{test} failed: {e}")

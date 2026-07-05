@@ -236,7 +236,10 @@ def _load_youtube(url):
                 for t in transcript
             )
         except Exception as e:
-            logger.debug("[cofone] YouTubeTranscriptApi >=0.7.0 list() failed (%s), falling back to list_transcripts()", e)
+            logger.debug(
+                "[cofone] YouTubeTranscriptApi >=0.7.0 list() failed (%s), falling back to list_transcripts()",
+                e,
+            )
             # Fallback: API < 0.7.0
             transcript = (
                 YouTubeTranscriptApi.list_transcripts(vid)

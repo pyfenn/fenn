@@ -62,9 +62,15 @@ class Notifier:
         for service in self._services:
             try:
                 service.send_notification(message)
-                logger.info("Successfully sent notification via %s", service.__class__.__name__)
+                logger.info(
+                    "Successfully sent notification via %s", service.__class__.__name__
+                )
             except Exception as e:
-                logger.error("Failed to send notification via %s: %s", service.__class__.__name__, e)
+                logger.error(
+                    "Failed to send notification via %s: %s",
+                    service.__class__.__name__,
+                    e,
+                )
 
     def get_services(self) -> list[str]:
         """Get list of registered service names.

@@ -40,7 +40,14 @@ class ActNode(Node):
 
         try:
             result = execute_tool(tool_name, *tool_args)
-        except (ValueError, TypeError, RuntimeError, KeyError, AttributeError, OSError) as e:
+        except (
+            ValueError,
+            TypeError,
+            RuntimeError,
+            KeyError,
+            AttributeError,
+            OSError,
+        ) as e:
             result = f"Error: {e}"
         return result
 
@@ -64,4 +71,3 @@ class ObserveNode(Node):
         if shared["iterations"] >= shared["max_iterations"]:
             return "done"
         return "think"
-

@@ -276,6 +276,7 @@ class Retriever:
 
     def _get_faiss(self):
         import sys
+
         if sys.modules.get("faiss") is None:
             raise ImportError(
                 '[cofone] faiss-cpu not installed.\nRun: pip install "cofone[faiss]"'
@@ -284,6 +285,7 @@ class Retriever:
         if faiss is None:
             try:
                 import faiss as _faiss
+
                 faiss = _faiss
             except ImportError:
                 raise ImportError(
@@ -323,7 +325,13 @@ class Retriever:
                 f"[cofone] index loaded from {self.persist_path} ({len(self.chunks)} chunks)"
             )
             return True
-        except (ImportError, OSError, json.JSONDecodeError, RuntimeError, ValueError) as e:
+        except (
+            ImportError,
+            OSError,
+            json.JSONDecodeError,
+            RuntimeError,
+            ValueError,
+        ) as e:
             logger.warning(f"[cofone] cache load failed ({e}), rebuilding index...")
             return False
 

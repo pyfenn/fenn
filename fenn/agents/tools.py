@@ -1,22 +1,38 @@
 import inspect
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import Any, ParamSpec, TypeAlias, TypedDict, TypeVar
 
-TOOLS_REGISTRY: dict[str, dict[str, Any]] = {}
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
-def tool(func: Callable[..., Any]) -> Callable[..., Any]:
+class ToolSchema(TypedDict):
+    name: str
+    description: str
+
+
+class ToolEntry(TypedDict):
+    schema: ToolSchema
+    execute: Callable[..., Any]
+
+
+ToolRegistry: TypeAlias = dict[str, ToolEntry]
+
+TOOLS_REGISTRY: ToolRegistry = {}
+
+
+def tool(func: Callable[P, R]) -> Callable[P, R]:
     """
     A decorator that registers an executable function as a tool
     """
 
     @wraps(func)
-    def decorator(*args: Any, **kwargs: Any) -> Any:
+    def decorator(*args: P.args, **kwargs: P.kwargs) -> R:
         return func(*args, **kwargs)
 
-    tool_name = func.__name__
-    tools_description = inspect.getdoc(func) or "No description provided"
+    tool_name: str = func.__name__
+    tools_description: str = inspect.getdoc(func) or "No description provided"
 
     TOOLS_REGISTRY[tool_name] = {
         "schema": {"name": tool_name, "description": tools_description},
@@ -25,7 +41,7 @@ def tool(func: Callable[..., Any]) -> Callable[..., Any]:
     return decorator
 
 
-def get_tool_schema() -> list[dict[str, Any]]:
+def get_tool_schema() -> list[ToolSchema]:
     return [info["schema"] for info in TOOLS_REGISTRY.values()]
 
 

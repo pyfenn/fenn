@@ -44,10 +44,7 @@ class Notifier:
         try:
             self._services.remove(service())
         except ValueError:
-            ValueError(
-                f"Service {service.__class__.__name__} not found in services list"
-            )
-            raise
+            raise ValueError(f"Service {service.__name__} not found in services list")
 
     def notify(self, message: str) -> None:
         """Send notification to all registered services.

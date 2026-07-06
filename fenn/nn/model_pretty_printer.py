@@ -58,7 +58,7 @@ class ModelPrettyPrinter:
             A multi-line string containing the model class name, parameter
             counts, and a tree view of the module hierarchy.
         """
-        module_count = len(self._model.modules())
+        module_count = sum(1 for _ in self._model.modules())
         total_params = sum(param.numel() for param in self._model.parameters())
         trainable_params = sum(
             param.numel() for param in self._model.parameters() if param.requires_grad

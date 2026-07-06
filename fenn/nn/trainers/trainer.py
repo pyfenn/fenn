@@ -218,6 +218,7 @@ class Trainer(ABC):
             self._replace_state(new_state)
         except Exception as e:
             logger.error(f"[cofone] read error: {e}")
+            raise
 
     def load_checkpoint_at_epoch(self, epoch: int) -> None:
         """Load the checkpoint saved at a specific epoch.
@@ -242,6 +243,7 @@ class Trainer(ABC):
             self._replace_state(new_state)
         except Exception as e:
             logger.error(f"[cofone] read error: {e}")
+            raise
 
     def load_best_checkpoint(self) -> None:
         """Load the best-performing checkpoint into the trainer's model.
@@ -263,6 +265,7 @@ class Trainer(ABC):
             self._replace_state(new_state)
         except Exception as e:
             logger.error(f"[cofone] read error: {e}")
+            raise
 
     def save_model(self, model_name: str = "model.pth"):
         torch.save(self._model.state_dict(), (self._exporter.export_dir / model_name))

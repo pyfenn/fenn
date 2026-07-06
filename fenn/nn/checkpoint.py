@@ -85,7 +85,7 @@ class Checkpoint:
                 extra={"skip_console": True},
             )
 
-        elif is_best and self.save_best:
+        elif self.save_best:
             filename = f"{self.name}_best.pt"
             filepath = self.dir / filename
             torch.save(state.to_dict(), filepath)

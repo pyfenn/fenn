@@ -1,10 +1,12 @@
 import argparse
 
+import fenn.cli.auth as auth
 import fenn.cli.dashboard as dashboard
 import fenn.cli.grid as grid
 import fenn.cli.list as list
 import fenn.cli.profile as profile
 import fenn.cli.pull as pull
+import fenn.cli.run as run
 
 
 def build_parser() -> argparse.ArgumentParser:

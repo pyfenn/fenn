@@ -4,7 +4,7 @@ from typing import Optional
 import torch
 
 from fenn.logging import logger
-from fenn.nn.utils.state import TrainingState
+from fenn.nn.state import TrainingState
 
 
 class Checkpoint:
@@ -54,13 +54,6 @@ class Checkpoint:
         """Set up the checkpoint directory and checks."""
         self.dir.mkdir(parents=True, exist_ok=True)
 
-        if self.epochs is None and not self.save_best:
-            logger.warning(
-                "Checkpoint configuration is passed, but both `epochs` and `save_best` are unset.\n"
-                "Models will not be checkpointed."
-            )
-            return
-
         if self.epochs is not None:
             logger.info(
                 f"Checkpointing enabled. Checkpoints will be saved to {self.dir} every {self.epochs} epochs."
@@ -92,7 +85,7 @@ class Checkpoint:
                 extra={"skip_console": True},
             )
 
-        elif is_best and self.save_best:
+        elif self.save_best:
             filename = f"{self.name}_best.pt"
             filepath = self.dir / filename
             torch.save(state.to_dict(), filepath)

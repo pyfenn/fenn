@@ -20,7 +20,7 @@ from sklearn.metrics import (  # noqa: F401
 from torch.utils.data import DataLoader
 
 from fenn.logging import logger
-from fenn.nn.utils import Checkpoint
+from fenn.nn.checkpoint import Checkpoint
 
 from .trainer import Trainer
 
@@ -50,7 +50,7 @@ class ClassificationTrainer(Trainer):
         device: Device to run training on (``'cpu'``, ``'cuda'``, or ``'mps'``).
         early_stopping_patience: Stop training after this many epochs without
             improvement in validation/training loss. ``None`` disables.
-        checkpoint_config: Optional :class:`~fenn.nn.utils.Checkpoint` for
+        checkpoint_config: Optional :class:`~fenn.nn.checkpoint.Checkpoint` for
             saving training state to disk.
 
     Note:

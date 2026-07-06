@@ -15,7 +15,9 @@ from torch.utils.data import DataLoader
 
 from fenn.exporter import Exporter
 from fenn.logging import logger
-from fenn.nn.utils import Checkpoint, ModelPrettyPrinter, TrainingState
+from fenn.nn.checkpoint import Checkpoint
+from fenn.nn.model_pretty_printer import ModelPrettyPrinter
+from fenn.nn.state import TrainingState
 
 
 class Trainer(ABC):
@@ -206,11 +208,17 @@ class Trainer(ABC):
             ValueError: If no checkpoint configuration was provided at init.
             FileNotFoundError: If the checkpoint file does not exist.
         """
-        if self._checkpoint is None:
-            raise ValueError("Cannot load checkpoint: checkpoint_config is missing.")
+        try:
+            if self._checkpoint is None:
+                raise ValueError(
+                    "Cannot load checkpoint: checkpoint_config is missing."
+                )
 
-        new_state = self._checkpoint.load(checkpoint_path)
-        self._replace_state(new_state)
+            new_state = self._checkpoint.load(checkpoint_path)
+            self._replace_state(new_state)
+        except Exception as e:
+            logger.error(f"[cofone] read error: {e}")
+            raise
 
     def load_checkpoint_at_epoch(self, epoch: int) -> None:
         """Load the checkpoint saved at a specific epoch.
@@ -225,11 +233,17 @@ class Trainer(ABC):
             ValueError: If no checkpoint configuration was provided at init.
             FileNotFoundError: If no checkpoint exists for the given epoch.
         """
-        if self._checkpoint is None:
-            raise ValueError("Cannot load checkpoint: checkpoint_config is missing.")
+        try:
+            if self._checkpoint is None:
+                raise ValueError(
+                    "Cannot load checkpoint: checkpoint_config is missing."
+                )
 
-        new_state = self._checkpoint.load_at_epoch(epoch)
-        self._replace_state(new_state)
+            new_state = self._checkpoint.load_at_epoch(epoch)
+            self._replace_state(new_state)
+        except Exception as e:
+            logger.error(f"[cofone] read error: {e}")
+            raise
 
     def load_best_checkpoint(self) -> None:
         """Load the best-performing checkpoint into the trainer's model.
@@ -241,11 +255,17 @@ class Trainer(ABC):
             ValueError: If no checkpoint configuration was provided at init.
             FileNotFoundError: If no best checkpoint file exists.
         """
-        if self._checkpoint is None:
-            raise ValueError("Cannot load checkpoint: checkpoint_config is missing.")
+        try:
+            if self._checkpoint is None:
+                raise ValueError(
+                    "Cannot load checkpoint: checkpoint_config is missing."
+                )
 
-        new_state = self._checkpoint.load_best()
-        self._replace_state(new_state)
+            new_state = self._checkpoint.load_best()
+            self._replace_state(new_state)
+        except Exception as e:
+            logger.error(f"[cofone] read error: {e}")
+            raise
 
     def save_model(self, model_name: str = "model.pth"):
         torch.save(self._model.state_dict(), (self._exporter.export_dir / model_name))

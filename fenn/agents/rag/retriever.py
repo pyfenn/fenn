@@ -281,17 +281,18 @@ class Retriever:
             raise ImportError(
                 '[cofone] faiss-cpu not installed.\nRun: pip install "cofone[faiss]"'
             )
-        global faiss
-        if faiss is None:
+        mod = sys.modules[__name__]
+        faiss_mod = getattr(mod, "faiss", None)
+        if faiss_mod is None:
             try:
-                import faiss as _faiss
+                import faiss as faiss_mod
 
-                faiss = _faiss
+                setattr(mod, "faiss", faiss_mod)
             except ImportError:
                 raise ImportError(
                     '[cofone] faiss-cpu not installed.\nRun: pip install "cofone[faiss]"'
                 )
-        return faiss
+        return faiss_mod
 
     def _build_faiss(self):
         faiss_mod = self._get_faiss()

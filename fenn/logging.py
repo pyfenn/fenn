@@ -183,6 +183,8 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
         args: dict[str, Any],
         config_file: str,
     ) -> None:
+        if not args:
+            return
         flat_config = self._flatten_dict(args)
         self._form_log_paths(args=args)
         self._display_config(

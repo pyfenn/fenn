@@ -184,8 +184,7 @@ Use built-in trainers to handle your training loops with minimal boilerplate.
 import torch.nn as nn
 import torch.optim as optim
 
-from fenn.nn.trainers import ClassificationTrainer
-from fenn.nn.utils import Checkpoint
+from fenn.nn import ClassificationTrainer, Checkpoint
 
 @app.entrypoint
 def main(args):

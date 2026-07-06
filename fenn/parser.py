@@ -11,6 +11,13 @@ from fenn.logging import logger
 class Parser:
     _instance = None
 
+    @classmethod
+    def reset(cls) -> None:
+        """Reset singleton state. Use between tests or distinct Fenn instances.
+        Note: all existing Parser references become stale after calling this.
+        """
+        cls._instance = None
+
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -18,7 +25,7 @@ class Parser:
 
     def __init__(self, config_file: str | Path = "fenn.yaml") -> None:
         if hasattr(self, "_initialized"):
-            return
+            return  # singleton: __init__ is a no-op after first construction
 
         self._config_file: Path = Path(config_file)
         self._args: dict[str, Any] = {}
@@ -53,6 +60,11 @@ class Parser:
 
     def print(self) -> None:
         """Public method to trigger the flattened print with colored paths."""
+        if not self._args:
+            raise RuntimeError(
+                "Parser.print() called before load_configuration(). "
+                "Call load_configuration() first."
+            )
         logger.write_config(self._args, self.config_file)
 
     @property

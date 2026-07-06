@@ -4,8 +4,20 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, cast
 from xml.etree import ElementTree
+
+from fenn.dashboard.types import (
+    LogEntry,
+    OverviewPayload,
+    ProjectPayload,
+    ProjectStats,
+    SessionData,
+    SessionListItem,
+    SessionListResponse,
+    SessionPagePayload,
+    SessionStatus,
+)
 
 # Default directories to scan (resolved at runtime)
 _DEFAULT_DIRS = [
@@ -22,7 +34,12 @@ _DEFAULT_RUNNING_TIMEOUT_S = 300
 # pages auto-refreshing) without making the dashboard feel stale.
 _FILES_CACHE_TTL_S = 1.0
 
-_VALID_STATUSES = ("running", "crashed", "completed", "failed")
+_VALID_STATUSES: tuple[SessionStatus, ...] = (
+    "running",
+    "crashed",
+    "completed",
+    "failed",
+)
 _VALID_SORT_FIELDS = (
     "started",
     "ended",
@@ -53,7 +70,7 @@ class FennScanner:
         # Parse-result cache keyed by file path. Stores (mtime, parsed_dict).
         # Entries are reused only when mtime matches, so any file write
         # (including in-progress logging) invalidates naturally.
-        self._parse_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+        self._parse_cache: dict[str, tuple[float, SessionData]] = {}
 
         # Directory-listing cache: (timestamp, files). Reused for up to
         # _FILES_CACHE_TTL_S to absorb bursty requests cheaply.
@@ -111,7 +128,7 @@ class FennScanner:
         self._files_cache = (now, ordered)
         return ordered
 
-    def parse_fn_file(self, path: Path) -> dict[str, Any] | None:
+    def parse_fn_file(self, path: Path) -> SessionData | None:
         """Parse a single .fn file. Handles incomplete (running) sessions.
 
         Results are cached by ``(path, mtime)``; identical files are not
@@ -139,13 +156,13 @@ class FennScanner:
         return self._refresh_running_status(parsed, mtime)
 
     @staticmethod
-    def _parse_uncached(path: Path, stat: os.stat_result) -> dict[str, Any] | None:
+    def _parse_uncached(path: Path, stat: os.stat_result) -> SessionData | None:
         try:
             content = path.read_text(encoding="utf-8")
         except (OSError, PermissionError):
             return None
 
-        status = "completed"
+        status: SessionStatus = "completed"
 
         try:
             root = ElementTree.fromstring(content)
@@ -160,7 +177,7 @@ class FennScanner:
         # Override status from <meta> if present
         meta = root.find("meta")
         if meta is not None:
-            status = meta.get("status", "completed")
+            status = cast(SessionStatus, meta.get("status", "completed"))
 
         # Config
         config: dict[str, str] = {}
@@ -173,15 +190,15 @@ class FennScanner:
                     config[k] = v
 
         # Log entries
-        entries = []
+        entries: list[LogEntry] = []
         for entry in root.findall("entry"):
             entries.append(
-                {
-                    "ts": entry.get("ts", ""),
-                    "kind": entry.get("kind", ""),
-                    "level": entry.get("level", ""),
-                    "message": entry.text or "",
-                }
+                LogEntry(
+                    ts=entry.get("ts", ""),
+                    kind=entry.get("kind", ""),
+                    level=entry.get("level", ""),
+                    message=entry.text or "",
+                )
             )
 
         # Timing from <meta>
@@ -197,25 +214,25 @@ class FennScanner:
         warnings = sum(1 for e in entries if e["level"] == "warning")
         exceptions = sum(1 for e in entries if e["level"] == "exception")
 
-        return {
-            "session_id": root.get("session_id", path.stem),
-            "project": root.get("project", path.parent.name),
-            "started": root.get("started", ""),
-            "ended": ended,
-            "duration_s": duration_s,
-            "status": status,
-            "config": config,
-            "entries": entries,
-            "entry_count": len(entries),
-            "warning_count": warnings,
-            "exception_count": exceptions,
-            "file_path": str(path),
-            "file_size": stat.st_size,
-            "file_mtime": stat.st_mtime,
-        }
+        return SessionData(
+            session_id=root.get("session_id", path.stem),
+            project=root.get("project", path.parent.name),
+            started=root.get("started", ""),
+            ended=ended,
+            duration_s=duration_s,
+            status=status,
+            config=config,
+            entries=entries,
+            entry_count=len(entries),
+            warning_count=warnings,
+            exception_count=exceptions,
+            file_path=str(path),
+            file_size=stat.st_size,
+            file_mtime=stat.st_mtime,
+        )
 
     @staticmethod
-    def _refresh_running_status(parsed: dict[str, Any], mtime: float) -> dict[str, Any]:
+    def _refresh_running_status(parsed: SessionData, mtime: float) -> SessionData:
         """Re-evaluate stale "running" sessions against the current timeout.
 
         Cached results are reused across requests, but the running→crashed
@@ -224,12 +241,12 @@ class FennScanner:
         """
         if parsed.get("status") == "running" and mtime > 0:
             if time.time() - mtime > _running_timeout_s():
-                return {**parsed, "status": "crashed"}
+                return cast(SessionData, {**parsed, "status": "crashed"})
         return parsed
 
-    def get_all_sessions(self) -> list[dict[str, Any]]:
+    def get_all_sessions(self) -> list[SessionData]:
         """Return all parsed sessions, newest first."""
-        sessions = []
+        sessions: list[SessionData] = []
         for path in self.find_fn_files():
             parsed = self.parse_fn_file(path)
             if parsed:
@@ -237,21 +254,21 @@ class FennScanner:
         return sessions
 
     @staticmethod
-    def _build_projects_list(sessions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _build_projects_list(sessions: list[SessionData]) -> list[ProjectStats]:
         """Aggregate per-project stats from an already-loaded sessions list."""
-        projects: dict[str, dict[str, Any]] = {}
+        projects: dict[str, ProjectStats] = {}
         for s in sessions:
             name = s["project"]
             if name not in projects:
-                projects[name] = {
-                    "name": name,
-                    "session_count": 0,
-                    "running_count": 0,
-                    "crashed_count": 0,
-                    "warning_count": 0,
-                    "exception_count": 0,
-                    "last_active": s["started"],
-                }
+                projects[name] = ProjectStats(
+                    name=name,
+                    session_count=0,
+                    running_count=0,
+                    crashed_count=0,
+                    warning_count=0,
+                    exception_count=0,
+                    last_active=s["started"],
+                )
             p = projects[name]
             p["session_count"] += 1
             p["warning_count"] += s["warning_count"]
@@ -264,42 +281,44 @@ class FennScanner:
             projects.values(), key=lambda project: project["last_active"], reverse=True
         )
 
-    def get_overview(self) -> dict[str, Any]:
+    def get_overview(self) -> OverviewPayload:
         """Aggregate stats for the dashboard home page."""
         sessions = self.get_all_sessions()
         project_list = self._build_projects_list(sessions)
 
-        return {
-            "projects": project_list,
-            "recent_sessions": sessions[:20],
-            "total_sessions": len(sessions),
-            "total_projects": len(project_list),
-            "total_warnings": sum(s["warning_count"] for s in sessions),
-            "total_exceptions": sum(s["exception_count"] for s in sessions),
-            "running_sessions": sum(1 for s in sessions if s["status"] == "running"),
-            "crashed_sessions": sum(1 for s in sessions if s["status"] == "crashed"),
-            "active_page": "home",
-        }
+        return OverviewPayload(
+            projects=project_list,
+            recent_sessions=sessions[:20],
+            total_sessions=len(sessions),
+            total_projects=len(project_list),
+            total_warnings=sum(s["warning_count"] for s in sessions),
+            total_exceptions=sum(s["exception_count"] for s in sessions),
+            running_sessions=sum(1 for s in sessions if s["status"] == "running"),
+            crashed_sessions=sum(1 for s in sessions if s["status"] == "crashed"),
+            active_page="home",
+        )
 
-    def get_project(self, project_name: str) -> dict[str, Any]:
+    def get_project(self, project_name: str) -> ProjectPayload:
         """Return all sessions for a specific project."""
         all_sessions = self.get_all_sessions()
         sessions = [s for s in all_sessions if s["project"] == project_name]
 
-        return {
-            "projects": self._build_projects_list(all_sessions),
-            "project_name": project_name,
-            "sessions": sessions,
-            "total_sessions": len(sessions),
-            "running_sessions": sum(1 for s in sessions if s["status"] == "running"),
-            "crashed_sessions": sum(1 for s in sessions if s["status"] == "crashed"),
-            "total_warnings": sum(s["warning_count"] for s in sessions),
-            "total_exceptions": sum(s["exception_count"] for s in sessions),
-            "active_page": "project",
-            "active_project": project_name,
-        }
+        return ProjectPayload(
+            projects=self._build_projects_list(all_sessions),
+            project_name=project_name,
+            sessions=sessions,
+            total_sessions=len(sessions),
+            running_sessions=sum(1 for s in sessions if s["status"] == "running"),
+            crashed_sessions=sum(1 for s in sessions if s["status"] == "crashed"),
+            total_warnings=sum(s["warning_count"] for s in sessions),
+            total_exceptions=sum(s["exception_count"] for s in sessions),
+            active_page="project",
+            active_project=project_name,
+        )
 
-    def get_session(self, project_name: str, session_id: str) -> dict[str, Any] | None:
+    def get_session(
+        self, project_name: str, session_id: str
+    ) -> SessionPagePayload | None:
         """Return full data for a single session.
 
         Fenn writes ``<session_id>.fn`` so the filename stem matches the id;
@@ -316,12 +335,15 @@ class FennScanner:
                 and parsed["session_id"] == session_id
             ):
                 overview = self.get_overview()
-                return {
-                    **parsed,
-                    "projects": overview["projects"],
-                    "active_page": "session",
-                    "active_project": project_name,
-                }
+                return cast(
+                    SessionPagePayload,
+                    {
+                        **parsed,
+                        "projects": overview["projects"],
+                        "active_page": "session",
+                        "active_project": project_name,
+                    },
+                )
         return None
 
     # ------------------------------------------------------------------
@@ -332,12 +354,12 @@ class FennScanner:
         self,
         project: str | None = None,
         status: str | None = None,
-        started_after: Optional[datetime] = None,
-        started_before: Optional[datetime] = None,
+        started_after: datetime | None = None,
+        started_before: datetime | None = None,
         limit: int = 20,
         offset: int = 0,
         sort: str = "-started",
-    ) -> dict[str, Any]:
+    ) -> SessionListResponse:
         """Return a filtered, sorted, paginated slice of sessions.
 
         ``sort`` is a field name optionally prefixed with ``-`` for descending
@@ -392,7 +414,7 @@ class FennScanner:
         # Sorts None values last (ascending) / first (descending) without comparing None to
         # non-None values, but may raise TypeError if non-None values are of different types
         # (e.g., int vs str).
-        def sort_key(s: dict[str, Any]):
+        def sort_key(s: SessionData) -> tuple[bool, Any]:
             v = s.get(field)
             return v is None, v
 
@@ -400,15 +422,21 @@ class FennScanner:
 
         total = len(sessions)
         items = sessions[offset : offset + limit]
-        # Strip the heavy 'entries' list from the listing payload — clients
+        # Strip the heavy 'entries' list and 'config' from the listing payload — clients
         # that need per-entry data fetch the single-session endpoint.
-        slim = [{k: v for k, v in s.items() if k != "entries"} for s in items]
-        return {
-            "items": slim,
-            "total": total,
-            "limit": limit,
-            "offset": offset,
-        }
+        slim = [
+            cast(
+                SessionListItem,
+                {k: v for k, v in s.items() if k not in ("entries", "config")},
+            )
+            for s in items
+        ]
+        return SessionListResponse(
+            items=slim,
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
 
     @staticmethod
     def format_duration(seconds: int | None) -> str:

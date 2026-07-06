@@ -47,7 +47,7 @@ class Notifier:
             self._services.remove(service())
         except ValueError as err:
             raise ValueError(
-                f"Service {service.__class__.__name__} not found in services list"
+                f"Service {service.__name__} not found in services list"
             ) from err
 
     def notify(self, message: str) -> None:

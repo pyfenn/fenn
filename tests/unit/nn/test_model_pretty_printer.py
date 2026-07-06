@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from fenn.nn.utils import ModelPrettyPrinter
+from fenn.nn.model_pretty_printer import ModelPrettyPrinter
 
 
 class _LargeModel(nn.Module):

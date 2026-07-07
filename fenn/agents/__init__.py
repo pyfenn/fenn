@@ -14,13 +14,16 @@ class BaseNode:
         self.params = params
 
     def prep(self, shared):
-        pass
+        """Prepare data for execution."""
+        return None
 
     def exec(self, prep_res):
-        pass
+        """Execute the node logic."""
+        return None
 
     def post(self, shared, prep_res, exec_res):
-        pass
+        """Post-process execution results."""
+        return None
 
     def _exec(self, prep_res):
         return self.exec(prep_res)
@@ -183,16 +186,19 @@ class BatchFlow(Flow):
 
 class AsyncNode(Node):
     async def prep_async(self, shared):
-        pass
+        """Prepare data asynchronously."""
+        return None
 
     async def exec_async(self, prep_res):
-        pass
+        """Execute logic asynchronously."""
+        return None
 
     async def exec_fallback_async(self, prep_res, exc):
         raise exc
 
     async def post_async(self, shared, prep_res, exec_res):
-        pass
+        """Post-process results asynchronously."""
+        return None
 
     async def _exec(self, prep_res):
         for self.cur_retry in range(self.max_retries):

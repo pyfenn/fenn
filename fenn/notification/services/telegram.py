@@ -54,4 +54,4 @@ class Telegram(Service):
         except requests.exceptions.RequestException as err:
             raise requests.exceptions.RequestException(
                 f"Failed to send Telegram notification: {err}"
-            )
+            ) from err

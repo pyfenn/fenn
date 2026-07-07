@@ -59,7 +59,7 @@ def _parse_grid(yaml_path: Path) -> list[dict[str, int]]:
 
 
 def _execute_fenn(
-    hyperparameter: dict[str:int], main_path: Path, yaml_path: Path
+    hyperparameter: dict[str, int], main_path: Path, yaml_path: Path
 ) -> None:
     with open(yaml_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
@@ -73,5 +73,3 @@ def _execute_fenn(
 
 class TemplateError(Exception):
     """Raised when a template has an invalid structure."""
-
-    pass

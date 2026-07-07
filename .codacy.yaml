@@ -1,0 +1,74 @@
+---
+engines:
+  prospector:
+    exclude_paths:
+      - "tests/**"
+      - "docs/**"
+      - "templates/**"
+      - "fenn/experimental/**"
+      - "noxfile.py"
+      - "**.md"
+  pylint:
+    exclude_paths:
+      - "tests/**"
+      - "docs/**"
+      - "templates/**"
+      - "fenn/experimental/**"
+      - "noxfile.py"
+      - "**.md"
+  flake8:
+    exclude_paths:
+      - "tests/**"
+      - "docs/**"
+      - "templates/**"
+      - "fenn/experimental/**"
+      - "noxfile.py"
+      - "**.md"
+  bandit:
+    exclude_paths:
+      - "tests/**"
+      - "docs/**"
+      - "templates/**"
+      - "fenn/experimental/**"
+      - "noxfile.py"
+      - "**.md"
+  ruff:
+    exclude_paths:
+      - "tests/**"
+      - "docs/**"
+      - "templates/**"
+      - "fenn/experimental/**"
+      - "noxfile.py"
+      - "**.md"
+  radom:
+    exclude_paths:
+      - "tests/**"
+      - "docs/**"
+      - "templates/**"
+      - "fenn/experimental/**"
+      - "noxfile.py"
+      - "**.md"
+  sonarpython:
+    exclude_paths:
+      - "tests/**"
+      - "docs/**"
+      - "templates/**"
+      - "fenn/experimental/**"
+      - "noxfile.py"
+      - "**.md"
+duplication:
+  exclude_paths:
+    - "tests/**"
+    - "docs/**"
+    - "templates/**"
+    - "fenn/experimental/**"
+    - "noxfile.py"
+    - "**.md"
+metric:
+  exclude_paths:
+    - "tests/**"
+    - "docs/**"
+    - "templates/**"
+    - "fenn/experimental/**"
+    - "noxfile.py"
+    - "**.md"

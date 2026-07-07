@@ -5,13 +5,13 @@ from typing import Any, Callable
 TOOLS_REGISTRY: dict[str, dict[str, Any]] = {}
 
 
-def tool(func):
+def tool(func: Callable[..., Any]) -> Callable[..., Any]:
     """
     A decorator that registers an executable function as a tool
     """
 
     @wraps(func)
-    def decorator(*args, **kwargs):
+    def decorator(*args: Any, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
 
     tool_name = func.__name__

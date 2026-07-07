@@ -13,7 +13,7 @@ class ThinkNode(Node):
         response = llm.chat_complete(prep_res["messages"])
         return response
 
-    def post(self, shared, prep_res, exec_res):
+    def post(self, shared: dict[str, Any], prep_res: dict[str, Any], exec_res: str) -> str:
         shared["last_thought"] = exec_res
         shared["messages"].append({"role": "assistant", "content": exec_res})
         if "Action:" in exec_res:

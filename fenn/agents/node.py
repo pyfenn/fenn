@@ -44,7 +44,7 @@ class ActNode(Node):
             result = f"Error: {e}"
         return str(result)
 
-    def post(self, shared, prep_res, exec_res):
+    def post(self, shared: dict[str, Any], prep_res: str, exec_res: str) -> str:
         shared["last_observation"] = exec_res
         return "observe"
 

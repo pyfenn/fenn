@@ -50,13 +50,13 @@ class ActNode(Node):
 
 
 class ObserveNode(Node):
-    def prep(self, shared):
+    def prep(self, shared: dict[str, Any]) -> str:
         return shared["last_observation"]
 
-    def exec(self, observation):
+    def exec(self, observation: str) -> str:
         return observation
 
-    def post(self, shared, prep_res, exec_res):
+    def post(self, shared: dict[str, Any], prep_res: str, exec_res: str) -> str:
         shared["messages"].append(
             {"role": "user", "content": f"Observation: {exec_res}"}
         )

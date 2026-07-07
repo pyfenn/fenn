@@ -19,3 +19,10 @@ repos:
         pass_filenames: false
         types: [python]
         args: [fenn/, --exit-zero]
+  - repo: local
+    hooks:
+      - id: commit-msg
+        name: conventional commit message
+        entry: python .githooks/commit-msg.py
+        language: system
+        stages: [commit-msg]

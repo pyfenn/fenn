@@ -22,8 +22,8 @@ If you are new to Git and GitHub, the steps below describe a simple way to contr
   `nox`
 - Stage your changes:
   `git add <files>`
-- Commit with a clear message:
-  `git commit -m "Describe your change"`
+- Commit with a clear message following the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format:
+  `git commit -m "fix: [#123] Describe your change"`
 - Push your branch:
   `git push origin feature`
 - Open a pull request from your branch into the main `fenn` repository.
@@ -49,12 +49,35 @@ pip install -e ".[dev,test]"
 Run the following command once after cloning your fork to install `pre-commit` and wire up the Git hook:
 
 ```bash
-python -m pip install pre-commit && pre-commit install
+python -m pip install pre-commit && pre-commit install --hook-type commit-msg
 ```
 
 This only needs to be done once after cloning your fork.
 
 This makes pre-commit run the configured hooks on every `git commit`. Your commit may be blocked if a hook reports a failure or modifies a file. `ruff format` may reformat your code automatically, so you'll need to review the modifications and stage them again before committing. Without this step your commits may fail CI.
+
+### Commit message format
+
+Commits must follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format with an issue reference:
+
+```
+<type>: [#<issue-id>] <description>
+```
+
+Supported types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+
+An optional scope and/or breaking change indicator (`!`) may be added:
+
+```
+<type>(<scope>):   [#<issue-id>] <description>
+<type>!:           [#<issue-id>] <description>
+<type>(<scope>)!:  [#<issue-id>] <description>
+```
+
+Examples:
+- `fix: [#178] Add commit message check in pre-commit`
+- `feat(dashboard): [#180] Add new dashboard widget`
+- `docs!: [#181] Update API documentation`
 
 For more information on `ruff` and `typos` see the docs:
 

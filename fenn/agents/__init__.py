@@ -130,15 +130,29 @@ class BatchNode(Node):
 
 
 class Flow(BaseNode):
+    """
+    A Flow represents a directed graph of Nodes, orchestrating their execution.
+    It manages the transition between nodes based on the actions returned by each node.
+    """
+    
     def __init__(self, start=None):
         super().__init__()
         self.start_node = start
 
     def start(self, start):
+        """Sets the starting node for the flow."""
         self.start_node = start
         return start
 
     def connect(self, src, dst, action="default"):
+        """
+        Connects a source node to a destination node for a specific action.
+        
+        Args:
+            src: The source Node.
+            dst: The destination Node (or None to terminate the flow).
+            action: The action string returned by the source node to trigger this transition.
+        """
         if action in src.successors:
             warnings.warn(f"Overwriting successor for action '{action}'")
         src.successors[action] = _TERMINAL if dst is None else dst

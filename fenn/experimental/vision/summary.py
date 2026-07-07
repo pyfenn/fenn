@@ -42,17 +42,47 @@ def _extract_shape_info(
     }
 
 
+class ShapeInfo(TypedDict):
+    height: int
+    width: int
+    channels: int
+    full_shape: tuple[int, ...]
+
+
+class DTypeInfo(TypedDict):
+    name: str
+    kind: str
+    itemsize: int
+
+
+class ValueRange(TypedDict):
+    min: float
+    max: float
+
+
+class ChannelStats(TypedDict):
+    mean: list[float]
+    std: list[float]
+
+
+class DataQuality(TypedDict):
+    has_nan: bool
+    has_inf: bool
+    nan_count: int
+    inf_count: int
+
+
 class ImageSummary(TypedDict):
     """Summary information for an image batch."""
 
     is_grayscale: bool
     channel_location: Literal["first", "last"] | None
     batch_size: int
-    shape_info: dict[str, Any]  # Contains: height, width, channels, full_shape
-    dtype: dict[str, Any]  # Contains: name, kind, itemsize
-    value_range: dict[str, Any]  # TODO: Define structure for value_range
-    channel_stats: dict[str, Any]  # TODO: Define structure for channel_stats
-    data_quality: dict[str, Any]  # TODO: Define structure for data_quality
+    shape_info: ShapeInfo
+    dtype: DTypeInfo
+    value_range: ValueRange
+    channel_stats: ChannelStats
+    data_quality: DataQuality
 
 
 def image_summary(array: np.ndarray) -> ImageSummary:

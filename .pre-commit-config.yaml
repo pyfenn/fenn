@@ -19,3 +19,8 @@ repos:
         pass_filenames: false
         types: [python]
         args: [fenn/, --exit-zero]
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.4.2
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]

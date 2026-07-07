@@ -22,10 +22,10 @@ class ThinkNode(Node):
 
 
 class ActNode(Node):
-    def prep(self, shared):
+    def prep(self, shared: dict[str, Any]) -> str:
         return shared["last_thought"]
 
-    def exec(self, thought):
+    def exec(self, thought: str) -> str:
         if "Action:" in thought:
             action_line = [
                 line for line in thought.split("\n") if line.startswith("Action:")
@@ -42,7 +42,7 @@ class ActNode(Node):
             result = execute_tool(tool_name, *tool_args)
         except Exception as e:
             result = f"Error: {e}"
-        return result
+        return str(result)
 
     def post(self, shared, prep_res, exec_res):
         shared["last_observation"] = exec_res

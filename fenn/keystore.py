@@ -1,17 +1,22 @@
 import os
+import threading
+from typing import Optional
 
 from dotenv import dotenv_values
 
 
 class KeyStore:
-    _instance = None
+    _instance: Optional["KeyStore"] = None
+    _lock: threading.Lock = threading.Lock()
 
-    def __new__(cls):
+    def __new__(cls) -> "KeyStore":
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         if not hasattr(self, "_keys"):
             self._keys = dotenv_values(".env")
 

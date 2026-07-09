@@ -133,21 +133,97 @@ class BatchNode(Node):
 
 
 class Flow(BaseNode):
+    """
+    A directed-graph orchestrator for chaining Node executions.
+
+    Flow manages the traversal of a directed graph of nodes. Each node
+    returns an action string after execution, and Flow uses that action
+    to look up the next node via the successor mappings created with
+    connect(). The graph can branch, terminate explicitly, or warn on
+    missing transitions.
+
+    Parameters
+    ----------
+    start : Node or None
+        The first node to execute when the flow is run. Can be set
+        later via start().
+    """
+
     def __init__(self, start=None):
+        """
+        Initialize the flow with an optional start node.
+
+        Parameters
+        ----------
+        start : Node or None
+            The first node to execute, or None if start() will be
+            called later.
+        """
         super().__init__()
         self.start_node = start
 
     def start(self, start):
+        """
+        Set the start node for the flow.
+
+        Parameters
+        ----------
+        start : Node
+            The node that will be executed first.
+
+        Returns
+        -------
+        Node
+            The start node, enabling method chaining.
+        """
         self.start_node = start
         return start
 
     def connect(self, src, dst, action="default"):
+        """
+        Wire a transition from *src* to *dst* triggered by *action*.
+
+        When *src* returns *action* from its lifecycle methods, the flow
+        will move to *dst*. Passing ``None`` for *dst* marks the path
+        as an explicit terminal transition.
+
+        Parameters
+        ----------
+        src : Node
+            The source node whose return value selects the destination.
+        dst : Node or None
+            The next node to execute, or None to terminate the flow.
+        action : str
+            The action string returned by the source node that triggers
+            this transition. Default: ``"default"``.
+
+        Returns
+        -------
+        Flow
+            self, enabling method chaining.
+        """
         if action in src.successors:
             warnings.warn(f"Overwriting successor for action '{action}'")
         src.successors[action] = _TERMINAL if dst is None else dst
         return self
 
     def get_next_node(self, curr, action):
+        """
+        Resolve the next node given the current node and action.
+
+        Parameters
+        ----------
+        curr : Node
+            The currently executing node.
+        action : str or None
+            The action returned by the current node's lifecycle.
+
+        Returns
+        -------
+        Node or None
+            The next node to execute, or None if the flow should
+            terminate.
+        """
         nxt = curr.successors.get(action or "default")
         if nxt is _TERMINAL:
             return None
@@ -173,6 +249,27 @@ class Flow(BaseNode):
         return self.post(shared, p, o)
 
     def post(self, shared, prep_res, exec_res):
+        """
+        Post-process execution results.
+
+        Returns the result of the final node's execution unchanged.
+        Override this method when subclasses need to inspect or
+        transform the flow-level result.
+
+        Parameters
+        ----------
+        shared : dict
+            Mutable state shared across all nodes in the flow.
+        prep_res : Any
+            The value returned by prep().
+        exec_res : Any
+            The action string returned by the final node's lifecycle.
+
+        Returns
+        -------
+        Any
+            The final action from the last executed node.
+        """
         return exec_res
 
 

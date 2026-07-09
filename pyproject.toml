@@ -155,3 +155,9 @@ extend-exclude = [
 
 [tool.typos.default.extend-words]
 certifi = "certifi"
+
+[tool.ty.src]
+exclude = [
+    "tests/**",
+    "fenn/agents/**",
+]

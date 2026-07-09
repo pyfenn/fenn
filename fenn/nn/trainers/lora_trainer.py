@@ -106,7 +106,7 @@ class LoRATrainer(Trainer):
             lora_alpha=lora_alpha,
             lora_dropout=lora_dropout,
             target_modules=target_modules,
-            bias=bias,
+            bias=bias,  # ty: ignore[invalid-argument-type]
         )
         model = get_peft_model(model, lora_config)
         model.print_trainable_parameters()
@@ -128,7 +128,7 @@ class LoRATrainer(Trainer):
 
         super().__init__(
             model=model,
-            loss_fn=loss_fn,  # type: ignore[arg-type]
+            loss_fn=loss_fn,  # ty: ignore[invalid-argument-type]
             optim=optim,
             device=device,
             early_stopping_patience=early_stopping_patience,
@@ -334,9 +334,9 @@ class LoRATrainer(Trainer):
                     state.patience_counter = 0
                 else:
                     state.patience_counter += 1
-
-                if state.acc > state.best_acc:
-                    state.best_acc = state.acc
+                if state.acc is not None:
+                    if state.acc > state.best_acc:
+                        state.best_acc = state.acc
 
             # --- CHECKPOINTING ---
             if self._should_save_checkpoint(epoch, is_last_epoch=(epoch == epochs)):

@@ -68,7 +68,7 @@ class Parser:
         logger.write_config(self._args, self.config_file)
 
     @property
-    def config_file(self) -> str:
+    def config_file(self) -> Path:
         return self._config_file
 
     @config_file.setter

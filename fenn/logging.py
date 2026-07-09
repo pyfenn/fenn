@@ -154,7 +154,7 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
         self._started_at = datetime.now().replace(microsecond=0)
         self.handler = handler
 
-    def write_config(self, args: dict[str, Any], config_file: str) -> None:
+    def write_config(self, args: dict[str, Any], config_file: Path) -> None:
         self.handler.configure(args, self._started_at)
         self._create_config(args=args, config_file=config_file)
 
@@ -166,7 +166,7 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
     def process(
         self, msg: str, kwargs: MutableMapping[str, Any]
     ) -> tuple[str, MutableMapping[str, Any]]:
-        kwargs["extra"] = {**self.extra, **kwargs.get("extra", {})}
+        kwargs["extra"] = {**self.extra, **kwargs.get("extra", {})}  # ty: ignore[invalid-argument-type]
         return msg, kwargs
 
     def _form_log_paths(self, args: dict[str, Any]) -> None:
@@ -181,7 +181,7 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
     def _create_config(
         self,
         args: dict[str, Any],
-        config_file: str,
+        config_file: Path,
     ) -> None:
         if not args:
             return
@@ -225,7 +225,7 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
         return colored_parts
 
     def _display_config(
-        self, flat_config: dict[str, Any], config_file: str, file_path: Path
+        self, flat_config: dict[str, Any], config_file: Path, file_path: Path
     ) -> None:
         table = Table(title="")
         table.add_column(f"Configuration file {config_file} loaded", style="", width=80)
@@ -256,7 +256,7 @@ original_print: Any = builtins.print
 
 
 def redirect_prints() -> None:
-    builtins.print = _custom_print
+    builtins.print = _custom_print  # ty: ignore[invalid-assignment]
 
 
 def restore_prints() -> None:

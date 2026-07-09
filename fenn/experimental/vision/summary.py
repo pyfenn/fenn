@@ -183,9 +183,9 @@ def image_summary(array: np.ndarray) -> ImageSummary:
         "is_grayscale": is_grayscale,
         "channel_location": channel_location,
         "batch_size": batch_size,
-        "shape_info": shape_info,
-        "dtype": dtype_info,
-        "value_range": value_range,
-        "channel_stats": channel_stats,
-        "data_quality": data_quality,
-    }
+        "shape_info": shape_info,  # ty: ignore[invalid-argument-type]
+        "dtype": dtype_info,  # ty: ignore[invalid-argument-type]
+        "value_range": value_range,  # ty: ignore[invalid-argument-type]
+        "channel_stats": channel_stats,  # ty: ignore[invalid-argument-type]
+        "data_quality": data_quality,  # ty: ignore[invalid-argument-type]
+    }  # ty: ignore[invalid-return-type]

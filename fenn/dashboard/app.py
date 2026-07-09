@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
+import werkzeug
 from flask import (
     Flask,
     Response,
@@ -32,9 +33,9 @@ try:
     from fenn.dashboard import token_store
     from fenn.dashboard.scanner import FennScanner
 except ImportError:  # standalone: python app.py
-    import auth as dashboard_auth  # type: ignore[no-redef]
-    import token_store  # type: ignore[no-redef]
-    from scanner import FennScanner  # type: ignore[no-redef]
+    import auth as dashboard_auth  # ty: ignore[unresolved-import]
+    import token_store  # ty: ignore[unresolved-import]
+    from scanner import FennScanner  # ty: ignore[unresolved-import]
 
 _HERE = Path(__file__).parent
 
@@ -82,7 +83,7 @@ _STORED_TOKEN_OFFLINE_MESSAGE = (
 )
 
 
-def _try_stored_session() -> Response | None:
+def _try_stored_session() -> werkzeug.wrappers.response.Response | None:
     """Re-establish a Flask session from ``~/.fenn/dashboard_session.json``.
 
     Returns ``None`` if the caller should proceed normally, or a Flask
@@ -120,7 +121,7 @@ def _try_stored_session() -> Response | None:
 
 
 @app.before_request
-def _require_login() -> Response | None:
+def _require_login() -> werkzeug.wrappers.response.Response | None:
     endpoint = request.endpoint
     if endpoint in _PUBLIC_ENDPOINTS:
         return None
@@ -152,7 +153,7 @@ def _csrf_failed(_e: CSRFError) -> tuple[str, int]:
 
 
 @app.template_filter("duration")
-def duration_filter(seconds: float) -> str:
+def duration_filter(seconds: int | None) -> str:
     return scanner.format_duration(seconds)
 
 
@@ -199,7 +200,7 @@ def api_session(project_name: str, session_id: str) -> Response:
     data = scanner.get_session(project_name, session_id)
     if data is None:
         abort(404)
-    data.pop("projects", None)
+    data.pop("projects", None)  # ty: ignore[call-non-callable]
     return jsonify(data)
 
 
@@ -240,7 +241,7 @@ def _parse_int_arg(
 
 
 @app.route("/api/sessions")
-def api_sessions() -> Response:
+def api_sessions() -> tuple[Response, int] | Response:
     """Filtered, sorted, paginated session listing.
 
     Query params:
@@ -396,7 +397,7 @@ def connect_callback():
 
 
 @app.route("/logout", methods=["POST"])
-def logout() -> Response:
+def logout() -> werkzeug.wrappers.response.Response:
     session.clear()
     # Also drop the disk cache — otherwise the next request would
     # silently re-establish the same session via _try_stored_session().

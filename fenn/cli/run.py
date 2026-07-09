@@ -6,7 +6,7 @@ import argparse
 import sys
 import tempfile
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Sequence
 
 from colorama import Fore, Style
 
@@ -99,7 +99,7 @@ def _run_remote(
     detach: bool,
     download: bool,
     includes: Iterable[str],
-    excludes: Iterable[str],
+    excludes: Sequence[str],
     tier: Optional[str] = None,
 ) -> None:
     from fenn.remote.artifacts import extract_artifacts

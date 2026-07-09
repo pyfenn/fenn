@@ -18,7 +18,7 @@ repos:
         language: system
         pass_filenames: false
         types: [python]
-        args: [fenn/, --exit-zero]
+        args: [fenn/]
   - repo: local
     hooks:
       - id: commit-msg

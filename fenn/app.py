@@ -39,7 +39,7 @@ class Fenn:
         # This class is the base class for all Fenn applications.
         # It is designed to be subclassed, not instantiated directly.
         # Please do not modify this class unless you know what you are doing.
-        self._config_file: str = None
+        self._config_file: str | None = None
 
         self._entrypoint_fn: Callable | None = None
 
@@ -115,7 +115,7 @@ class Fenn:
 
             # System startup message
             logger.info(
-                f"Application starting from entrypoint: {self._entrypoint_fn.__name__}"
+                f"Application starting from entrypoint: {self._entrypoint_fn.__name__}"  # ty: ignore[unresolved-attribute]
             )
 
             # Execute user function
@@ -149,7 +149,7 @@ class Fenn:
         return self._args
 
     @property
-    def config_file(self) -> str:
+    def config_file(self) -> str | None:
         """Path to the active YAML configuration file."""
         return self._config_file
 

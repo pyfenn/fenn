@@ -50,7 +50,7 @@ class Resend(Service):
                 "html": f"<p>{message}</p>",
             }
 
-            response = resend.Emails.send(params)
+            response = resend.Emails.send(params)  # ty: ignore[invalid-argument-type]
 
             if isinstance(response, dict) and "error" in response:
                 raise RuntimeError(f"Resend API error: {response['error']}")

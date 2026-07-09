@@ -195,7 +195,7 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
         response = requests.get(api_url, timeout=10)
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 404:
+        if e.response.status_code == 404:  # ty: ignore[unresolved-attribute]
             raise TemplateNotFoundError(
                 f"Template {Fore.LIGHTYELLOW_EX}{template_name}{Fore.RED} not found. "
                 f"Use {Fore.LIGHTYELLOW_EX}fenn pull --list{Fore.RED} to see available templates, "

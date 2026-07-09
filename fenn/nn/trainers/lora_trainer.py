@@ -21,13 +21,16 @@ from fenn.nn.checkpoint import Checkpoint
 from .trainer import Trainer
 
 try:
-    from peft import LoraConfig, TaskType, get_peft_model
+    from peft import (
+        LoraConfig,
+        TaskType,
+        get_peft_model,
+    )
 
     PEFT_AVAILABLE = True
 except ImportError:
     PEFT_AVAILABLE = False
-    LoraConfig = None  # type: ignore
-    TaskType = None  # type: ignore
+    LoraConfig = None  # ty: ignore[invalid-assignment]
 
 _SUPPORTED_TASK_TYPES = {
     "SEQ_CLS",

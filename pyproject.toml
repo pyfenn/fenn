@@ -161,3 +161,4 @@ exclude = [
     "tests/**",
     "fenn/agents/**",
 ]
+unused-ignore-comment = "ignore"

@@ -161,4 +161,6 @@ exclude = [
     "tests/**",
     "fenn/agents/**",
 ]
+
+[tool.ty.rules]
 unused-ignore-comment = "ignore"

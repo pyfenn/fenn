@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 from colorama import Fore, Style
 
+from fenn.exceptions import TemplateError
 from fenn.logging import logger
 from fenn.parser import Parser
 
@@ -69,7 +70,3 @@ def _execute_fenn(
     with open(yaml_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     subprocess.run(["python3", main_path], cwd=main_path.parent)
-
-
-class TemplateError(Exception):
-    """Raised when a template has an invalid structure."""

@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Optional, Sequence
 
-from fenn.remote.exceptions import WorkspaceTooLargeError
+from fenn.exceptions import WorkspaceTooLargeError
 
 DEFAULT_MAX_BYTES = 100 * 1024 * 1024  # 100 MB uncompressed
 

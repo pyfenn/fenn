@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from fenn.remote.exceptions import CredentialsError
+from fenn.exceptions import CredentialsError
 
 DEFAULT_PROFILE = "default"
 

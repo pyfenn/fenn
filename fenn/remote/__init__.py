@@ -9,6 +9,15 @@ Used by ``fenn auth`` and ``fenn run``. Public surface:
 - :mod:`fenn.remote.exceptions` — typed error hierarchy
 """
 
+from fenn.exceptions import (
+    AuthError,
+    CredentialsError,
+    InsufficientCreditsError,
+    JobFailedError,
+    NetworkError,
+    RemoteError,
+    WorkspaceTooLargeError,
+)
 from fenn.remote.client import DEFAULT_REMOTE_HOST, RemoteClient
 from fenn.remote.credentials import (
     DEFAULT_PROFILE,
@@ -18,15 +27,6 @@ from fenn.remote.credentials import (
     mask_key,
     resolve_api_key,
     write_credentials,
-)
-from fenn.remote.exceptions import (
-    AuthError,
-    CredentialsError,
-    InsufficientCreditsError,
-    JobFailedError,
-    NetworkError,
-    RemoteError,
-    WorkspaceTooLargeError,
 )
 
 __all__ = [

@@ -8,6 +8,7 @@ import sys
 
 from colorama import Fore, Style
 
+from fenn.exceptions import AuthError, NetworkError, RemoteError
 from fenn.logging import logger
 from fenn.remote.client import DEFAULT_REMOTE_HOST, RemoteClient
 from fenn.remote.credentials import (
@@ -16,7 +17,6 @@ from fenn.remote.credentials import (
     mask_key,
     write_credentials,
 )
-from fenn.remote.exceptions import AuthError, NetworkError, RemoteError
 
 
 def execute(args: argparse.Namespace) -> None:

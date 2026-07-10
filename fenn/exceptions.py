@@ -42,3 +42,21 @@ class JobFailedError(RemoteError):
         super().__init__(message)
         self.job_id = job_id
         self.status = status
+
+
+class TemplateError(Exception):
+    """Raised when a template has an invalid structure."""
+
+
+class TemplateNotFoundError(Exception):
+    """Raised when a template is not found in the repository."""
+
+    pass
+
+
+class InvalidTokenError(Exception):
+    """Token was rejected by pyfenn.com (401 or malformed)."""
+
+
+class AuthUnreachableError(Exception):
+    """pyfenn.com could not be reached or returned an unexpected response."""

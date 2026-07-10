@@ -10,7 +10,7 @@ from typing import Iterator, Optional
 
 import requests
 
-from fenn.remote.exceptions import (
+from fenn.exceptions import (
     AuthError,
     InsufficientCreditsError,
     NetworkError,

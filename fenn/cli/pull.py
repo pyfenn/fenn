@@ -9,6 +9,7 @@ from pathlib import Path
 import requests
 from colorama import Fore, Style
 
+from fenn.exceptions import NetworkError, TemplateError, TemplateNotFoundError
 from fenn.logging import logger
 
 try:
@@ -270,21 +271,3 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
             # Clean up temporary file
             tmp_file.close()
             os.unlink(tmp_file.name)
-
-
-class TemplateNotFoundError(Exception):
-    """Raised when a template is not found in the repository."""
-
-    pass
-
-
-class NetworkError(Exception):
-    """Raised when a network request fails."""
-
-    pass
-
-
-class TemplateError(Exception):
-    """Raised when a template has an invalid structure."""
-
-    pass

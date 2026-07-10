@@ -10,14 +10,14 @@ from typing import Iterable, Optional, Sequence
 
 from colorama import Fore, Style
 
-from fenn.logging import logger
-from fenn.remote.exceptions import (
+from fenn.exceptions import (
     CredentialsError,
     InsufficientCreditsError,
     JobFailedError,
     RemoteError,
     WorkspaceTooLargeError,
 )
+from fenn.logging import logger
 
 DEFAULT_SCRIPT = "main.py"
 TERMINAL_STATUSES = {"succeeded", "failed", "cancelled"}

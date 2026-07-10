@@ -17,6 +17,7 @@ from functools import wraps
 import requests
 from flask import g, redirect, session, url_for
 
+from fenn.exceptions import AuthUnreachableError, InvalidTokenError
 from fenn.logging import logger
 
 AUTH_URL = "https://pyfenn.com"
@@ -32,14 +33,6 @@ _TOKEN_RE = re.compile(r"^fdt_[A-Za-z0-9_-]{43}$")
 _MAX_TOKEN_LEN = 64
 _MAX_RESPONSE_BYTES = 4096
 _TIMEOUT = (5, 10)  # (connect, read) seconds
-
-
-class InvalidTokenError(Exception):
-    """Token was rejected by pyfenn.com (401 or malformed)."""
-
-
-class AuthUnreachableError(Exception):
-    """pyfenn.com could not be reached or returned an unexpected response."""
 
 
 def current_user() -> dict | None:

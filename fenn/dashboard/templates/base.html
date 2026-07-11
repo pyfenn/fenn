@@ -15,7 +15,7 @@
 <div class="layout">
 
   <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <img src="{{ url_for('static', filename='images/icon.png') }}"
            alt="fenn"
@@ -57,6 +57,9 @@
   <div class="main">
 
     <header class="topbar">
+      <button class="hamburger" id="sidebar-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
       <div class="breadcrumb">
         {% block breadcrumb %}{% endblock %}
       </div>
@@ -77,7 +80,7 @@
               aria-labelledby="logout-dialog-title">
         <h2 class="confirm-title" id="logout-dialog-title">Disconnect?</h2>
         <p class="confirm-body">
-          You'll need to paste your dashboard token again next launch.
+          You'll need to sign in with pyfenn.com again next launch.
           To just stop using the dashboard, close this tab instead.
         </p>
         <div class="confirm-actions">

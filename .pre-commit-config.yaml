@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.6
+    rev: v0.15.16
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -10,3 +10,19 @@ repos:
     rev: v1.47.0
     hooks:
       - id: typos
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty type checker
+        entry: ty check
+        language: system
+        pass_filenames: false
+        types: [python]
+        args: [fenn/]
+  - repo: local
+    hooks:
+      - id: commit-msg
+        name: conventional commit message
+        entry: python .githooks/commit-msg.py
+        language: system
+        stages: [commit-msg]

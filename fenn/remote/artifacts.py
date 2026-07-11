@@ -1,57 +1,33 @@
-"""Safe extraction of a remote artifact tarball into the local workspace.
-
-The server sends a ``.tar.gz`` containing ``logger/`` and ``export/`` trees so
-the local on-disk state mirrors what a local run would have produced. We
-extract with explicit path-traversal protection (no ``..``, no absolute paths,
-no symlinks, no device files) so a malicious server can't write outside the
-destination directory.
-"""
+"""Extraction of job artifact tarballs downloaded from the remote service."""
 
 from __future__ import annotations
 
 import tarfile
 from pathlib import Path
-from typing import List
 
 
-def extract_artifacts(tarball: Path, dest: Path) -> List[str]:
-    """Extract ``tarball`` into ``dest``. Returns the list of written paths.
+def extract_artifacts(tar_path: Path, dest_root: Path) -> list[Path]:
+    """Safely extract ``tar_path`` under ``dest_root``.
 
-    Existing files in ``dest`` are overwritten (the remote run is the source
-    of truth for log/export directories).
+    Members that would escape ``dest_root`` (absolute paths, ``..`` traversal,
+    symlinks) are skipped. Returns the list of files written.
     """
-    dest = dest.resolve()
-    dest.mkdir(parents=True, exist_ok=True)
-    written: List[str] = []
-    with tarfile.open(tarball, mode="r:*") as tar:
+    dest_root = Path(dest_root).resolve()
+    written: list[Path] = []
+
+    with tarfile.open(tar_path, mode="r:*") as tar:
         for member in tar.getmembers():
-            if not (member.isfile() or member.isdir()):
-                # skip symlinks, device files, etc.
+            if not member.isfile():
                 continue
-            name = member.name
-            if name.startswith("/") or ".." in Path(name).parts:
-                raise ValueError(f"Refusing to extract unsafe path: {name!r}")
-            target = (dest / name).resolve()
-            try:
-                target.relative_to(dest)
-            except ValueError as exc:
-                raise ValueError(
-                    f"Refusing to extract path escaping destination: {name!r}"
-                ) from exc
-
-            if member.isdir():
-                target.mkdir(parents=True, exist_ok=True)
-                continue
-
+            target = (dest_root / member.name).resolve()
+            if dest_root != target and dest_root not in target.parents:
+                continue  # path traversal attempt — skip
             target.parent.mkdir(parents=True, exist_ok=True)
-            extracted = tar.extractfile(member)
-            if extracted is None:
+            source = tar.extractfile(member)
+            if source is None:
                 continue
-            with open(target, "wb") as fh:
-                while True:
-                    chunk = extracted.read(64 * 1024)
-                    if not chunk:
-                        break
-                    fh.write(chunk)
-            written.append(name)
+            with source, open(target, "wb") as fh:
+                fh.write(source.read())
+            written.append(target)
+
     return written

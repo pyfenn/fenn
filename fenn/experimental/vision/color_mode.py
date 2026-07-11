@@ -150,16 +150,16 @@ def _convert_color_mode(
 
     elif current_mode == "RGB":
         if target_mode == "GRAY":
-            return _rgb_to_gray(array, channel_location)
+            return _rgb_to_gray(array, channel_location)  # ty: ignore[invalid-argument-type]
         else:  # target_mode == "RGBA"
-            return _rgb_to_rgba(array, channel_location)
+            return _rgb_to_rgba(array, channel_location)  # ty: ignore[invalid-argument-type]
 
     else:  # current_mode == "RGBA"
         if target_mode == "RGB":
-            return _rgba_to_rgb(array, channel_location)
+            return _rgba_to_rgb(array, channel_location)  # ty: ignore[invalid-argument-type]
         else:  # target_mode == "GRAY"
-            rgb = _rgba_to_rgb(array, channel_location)
-            return _rgb_to_gray(rgb, channel_location)
+            rgb = _rgba_to_rgb(array, channel_location)  # ty: ignore[invalid-argument-type]
+            return _rgb_to_gray(rgb, channel_location)  # ty: ignore[invalid-argument-type]
 
 
 def ensure_color_mode(array: np.ndarray, mode: str = "RGB") -> np.ndarray:

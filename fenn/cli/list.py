@@ -6,6 +6,9 @@ from colorama import Fore, Style
 from rich.console import Console
 from rich.table import Table
 
+from fenn.exceptions import NetworkError
+from fenn.logging import logger
+
 TEMPLATES_REPO = "pyfenn/templates"
 REPO_NAME = "templates"
 GITHUB_API_BASE = "https://api.github.com"
@@ -19,14 +22,8 @@ def execute(args: argparse.Namespace) -> None:
     try:
         _list_templates()
     except NetworkError as e:
-        print(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
         sys.exit(1)
-
-
-class NetworkError(Exception):
-    """Raised when a network request fails."""
-
-    pass
 
 
 def _list_templates() -> None:
@@ -49,7 +46,9 @@ def _list_templates() -> None:
     templates = [item["name"] for item in contents if item.get("type") == "dir"]
 
     if not templates:
-        print(f"{Fore.YELLOW}No templates found in the repository.{Style.RESET_ALL}")
+        logger.info(
+            f"{Fore.YELLOW}No templates found in the repository.{Style.RESET_ALL}"
+        )
         return
 
     templates.sort()

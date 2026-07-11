@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fenn"
-version = "0.2.1"
+version = "0.2.2"
 description = "Friendly Environment for Neural Networks (fenn) is a simple framework that automates ML/DL workflows by providing prebuilt trainers, templates, logging, configuration management, and much more."
 
 authors = [
@@ -44,14 +44,17 @@ dependencies = [
   "flask~=3.0.2",
   "flask-wtf>=1.2.0",
   "python-dotenv>=1.2.2",
+  "faker>=40.8.0",
+  "torchvision>=0.25.0",
 ]
 
 requires-python = ">=3.11"
 
-[project.optional-dependencies]
+[dependency-groups]
 
-torch = [
-  "torch>=2.9.1"
+ci = [
+  "uv==0.11.19",
+  "nox==2026.4.10",
 ]
 
 vision = [
@@ -60,12 +63,43 @@ vision = [
   "torchvision>=0.24.1"
 ]
 
+torch = [
+  "torch>=2.9.1"
+]
+
+test = [
+  "pytest>=8.0.0",
+  "pytest-cov>=7.0.0",
+  "requests-mock>=1.11.0",
+  "numpy>=2,<2.3.0",
+  "colorama>=0.4.6",
+  "PyYAML>=6.0.3",
+  "python-dotenv>=1.2.2",
+  "pydantic>=2.13.0",
+  "rich~=13.0.0",
+  "resend>=2.0.0",
+  "scikit-learn>=1.7.2",
+  "Faker>=25.0.0",
+  "flask~=3.0.2",
+  "flask-wtf>=1.2.0",
+  "peft ~= 0.18.0",
+  { include-group = "vision" },
+  { include-group = "ci" },
+]
+
+pre-commit = [
+    "pre-commit>=4.5.1",
+    "ruff>=0.15.6",
+    "typos==1.47.0",
+    "ty>=0.0.44",
+]
+
 transformers = [
   "peft ~= 0.18.0",
   "transformers ~= 4.57.3"
 ]
 
-llms = [ 
+llms = [
   "openai>=1.0.0",
   "httpx>=0.27.0",
   "beautifulsoup4>=4.12.0",
@@ -84,16 +118,10 @@ rag-all  = [
     "youtube-transcript-api>=0.6.0",
 ]
 
-test = [
-  "pytest>=8.0.0",
-  "pytest-cov>=7.0.0",
-  "requests-mock>=1.11.0",
-  "Faker>=25.0.0"
-]
-
 dev = [
-    "pre-commit>=4.5.1",
-    "ruff>=0.15.6",
+    { include-group = "ci" },
+    { include-group = "test" },
+    { include-group = "pre-commit" },
 ]
 
 [tool.setuptools.packages.find]
@@ -130,3 +158,12 @@ extend-exclude = [
 
 [tool.typos.default.extend-words]
 certifi = "certifi"
+
+[tool.ty.src]
+exclude = [
+    "tests/**",
+    "fenn/agents/**",
+]
+
+[tool.ty.rules]
+unused-ignore-comment = "ignore"

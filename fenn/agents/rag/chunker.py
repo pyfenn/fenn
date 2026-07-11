@@ -1,7 +1,13 @@
 import re
+from typing import Literal
 
 
-def chunk_text(text, mode="smart", size=500, overlap=50):
+def chunk_text(
+    text: str,
+    mode: Literal["smart", "paragraphs", "sentences", "fixed"] = "smart",
+    size: int = 500,
+    overlap: int = 50,
+) -> list[str]:
     """
     Split a document string into chunks for indexing.
 
@@ -40,7 +46,7 @@ def chunk_text(text, mode="smart", size=500, overlap=50):
         )
 
 
-def _chunk_smart(text):
+def _chunk_smart(text: str) -> list[str]:
     """
     Smart chunking: paragraph-first with sentence-level fallback.
 
@@ -59,13 +65,13 @@ def _chunk_smart(text):
     return [c for c in chunks if c.strip()]
 
 
-def _chunk_paragraphs(text):
+def _chunk_paragraphs(text: str) -> list[str]:
     """Split on blank lines. Each paragraph is one chunk."""
     blocks = re.split(r"\n\s*\n", text)
     return [b.strip() for b in blocks if b.strip()]
 
 
-def _chunk_sentences(text):
+def _chunk_sentences(text: str) -> list[str]:
     """
     Split on sentence boundaries (. ! ?) and group sentences
     into chunks of up to ~500 characters.
@@ -85,7 +91,7 @@ def _chunk_sentences(text):
     return chunks
 
 
-def _chunk_fixed(text, size, overlap):
+def _chunk_fixed(text: str, size: int, overlap: int) -> list[str]:
     """
     Split into fixed-length slices of `size` characters,
     with `overlap` characters shared between consecutive chunks.

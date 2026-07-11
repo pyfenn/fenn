@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import torch
 import torch.nn
@@ -13,9 +13,11 @@ from sklearn.metrics import (  # noqa: F401
 )
 from torch.utils.data import DataLoader
 
-from fenn.export import Exporter
-from fenn.logging import Logger
-from fenn.nn.utils import Checkpoint, ModelPrettyPrinter, TrainingState
+from fenn.exporter import Exporter
+from fenn.logging import logger
+from fenn.nn.checkpoint import Checkpoint
+from fenn.nn.model_pretty_printer import ModelPrettyPrinter
+from fenn.nn.state import TrainingState
 
 
 class Trainer(ABC):
@@ -38,9 +40,9 @@ class Trainer(ABC):
         model: torch.nn.Module,
         loss_fn: torch.nn.Module,
         optim: torch.optim.Optimizer,
-        device: Union[torch.device, str] = "cpu",
-        early_stopping_patience: Optional[int] = None,
-        checkpoint_config: Optional[Checkpoint] = None,
+        device: torch.device | str = "cpu",
+        early_stopping_patience: int | None = None,
+        checkpoint_config: Checkpoint | None = None,
     ):
         """Initialize a Trainer instance to fit a neural network model.
 
@@ -54,7 +56,6 @@ class Trainer(ABC):
             checkpoint_config: The checkpoint configuration. If `None`, checkpointing is disabled.
         """
 
-        self._logger = Logger()
         self._exporter = Exporter()
 
         self._loss_fn = loss_fn
@@ -67,10 +68,10 @@ class Trainer(ABC):
         self._state = TrainingState(epoch=0)
         self._log_model_summary()
 
-        self._best_state: Optional[TrainingState] = None
+        self._best_state: TrainingState | None = None
         """Best training state based on validation loss."""
 
-        self._best_model: Optional[torch.nn.Module] = None
+        self._best_model: torch.nn.Module | None = None
 
         # checkpoint setup
         self._checkpoint = checkpoint_config
@@ -80,15 +81,15 @@ class Trainer(ABC):
         # early stopping setup
         self._early_stopping_patience = early_stopping_patience
         if self._early_stopping_patience is not None:
-            self._logger.display_info(
+            logger.info(
                 f"Early stopping enabled with patience of {self._early_stopping_patience} epochs."
             )
 
     def _log_model_summary(self) -> None:
         summary = ModelPrettyPrinter(self._model).render()
-        self._logger.display_info(summary, display_on_terminal=False)
+        logger.info(summary, extra={"skip_console": True})
 
-    def _move_to_device(self, batch: Any, device: Union[torch.device, str]) -> Any:
+    def _move_to_device(self, batch: Any, device: torch.device | str) -> Any:
         """Recursively move tensor data to the specified device.
 
         Handles tensors, lists, tuples, and dictionaries of tensors.
@@ -146,7 +147,7 @@ class Trainer(ABC):
         self,
         train_loader: DataLoader,
         epochs: int,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         val_epochs: int = 1,
     ):
         """Train the model for a fixed number of epochs.
@@ -194,7 +195,7 @@ class Trainer(ABC):
         if new_state.optimizer_state_dict:
             self._optimizer.load_state_dict(new_state.optimizer_state_dict)
 
-    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> None:
+    def load_checkpoint(self, checkpoint_path: str | Path) -> None:
         """Load a checkpoint from the given file path and restore training state.
 
         Restores the model weights, optimizer state, and epoch counter from
@@ -207,11 +208,17 @@ class Trainer(ABC):
             ValueError: If no checkpoint configuration was provided at init.
             FileNotFoundError: If the checkpoint file does not exist.
         """
-        if self._checkpoint is None:
-            raise ValueError("Cannot load checkpoint: checkpoint_config is missing.")
+        try:
+            if self._checkpoint is None:
+                raise ValueError(
+                    "Cannot load checkpoint: checkpoint_config is missing."
+                )
 
-        new_state = self._checkpoint.load(checkpoint_path)
-        self._replace_state(new_state)
+            new_state = self._checkpoint.load(checkpoint_path)
+            self._replace_state(new_state)
+        except Exception as e:
+            logger.error(f"[cofone] read error: {e}")
+            raise
 
     def load_checkpoint_at_epoch(self, epoch: int) -> None:
         """Load the checkpoint saved at a specific epoch.
@@ -226,11 +233,17 @@ class Trainer(ABC):
             ValueError: If no checkpoint configuration was provided at init.
             FileNotFoundError: If no checkpoint exists for the given epoch.
         """
-        if self._checkpoint is None:
-            raise ValueError("Cannot load checkpoint: checkpoint_config is missing.")
+        try:
+            if self._checkpoint is None:
+                raise ValueError(
+                    "Cannot load checkpoint: checkpoint_config is missing."
+                )
 
-        new_state = self._checkpoint.load_at_epoch(epoch)
-        self._replace_state(new_state)
+            new_state = self._checkpoint.load_at_epoch(epoch)
+            self._replace_state(new_state)
+        except Exception as e:
+            logger.error(f"[cofone] read error: {e}")
+            raise
 
     def load_best_checkpoint(self) -> None:
         """Load the best-performing checkpoint into the trainer's model.
@@ -242,17 +255,23 @@ class Trainer(ABC):
             ValueError: If no checkpoint configuration was provided at init.
             FileNotFoundError: If no best checkpoint file exists.
         """
-        if self._checkpoint is None:
-            raise ValueError("Cannot load checkpoint: checkpoint_config is missing.")
+        try:
+            if self._checkpoint is None:
+                raise ValueError(
+                    "Cannot load checkpoint: checkpoint_config is missing."
+                )
 
-        new_state = self._checkpoint.load_best()
-        self._replace_state(new_state)
+            new_state = self._checkpoint.load_best()
+            self._replace_state(new_state)
+        except Exception as e:
+            logger.error(f"[cofone] read error: {e}")
+            raise
 
     def save_model(self, model_name: str = "model.pth"):
         torch.save(self._model.state_dict(), (self._exporter.export_dir / model_name))
 
     @abstractmethod
-    def predict(self, dataloader_or_batch: Union[DataLoader, torch.Tensor]):
+    def predict(self, dataloader_or_batch: DataLoader | torch.Tensor):
         """Generate predictions from the trained model.
 
         Runs inference on the provided data without computing gradients,

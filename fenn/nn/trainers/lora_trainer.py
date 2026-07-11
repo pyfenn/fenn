@@ -1,6 +1,6 @@
 import inspect
 from copy import deepcopy
-from typing import Dict, List, Optional, Union, cast
+from typing import cast
 
 import torch
 import torch.nn
@@ -15,19 +15,22 @@ from rich.progress import (
 from sklearn.metrics import accuracy_score
 from torch.utils.data import DataLoader
 
-from fenn.logging import Logger
-from fenn.nn.utils import Checkpoint
+from fenn.logging import logger
+from fenn.nn.checkpoint import Checkpoint
 
 from .trainer import Trainer
 
 try:
-    from peft import LoraConfig, TaskType, get_peft_model
+    from peft import (  # ty: ignore[unresolved-import]
+        LoraConfig,
+        TaskType,
+        get_peft_model,
+    )
 
     PEFT_AVAILABLE = True
 except ImportError:
     PEFT_AVAILABLE = False
-    LoraConfig = None  # type: ignore
-    TaskType = None  # type: ignore
+    LoraConfig = None  # ty: ignore[invalid-assignment]
 
 _SUPPORTED_TASK_TYPES = {
     "SEQ_CLS",
@@ -58,12 +61,12 @@ class LoRATrainer(Trainer):
         r: int = 8,
         lora_alpha: int = 16,
         lora_dropout: float = 0.1,
-        target_modules: Optional[List[str]] = None,
+        target_modules: list[str] | None = None,
         bias: str = "none",
-        loss_fn: Optional[torch.nn.Module] = None,
-        device: Union[torch.device, str] = "cpu",
-        early_stopping_patience: Optional[int] = None,
-        checkpoint_config: Optional[Checkpoint] = None,
+        loss_fn: torch.nn.Module | None = None,
+        device: torch.device | str = "cpu",
+        early_stopping_patience: int | None = None,
+        checkpoint_config: Checkpoint | None = None,
     ):
         """Initialize the LoRATrainer.
 
@@ -100,13 +103,13 @@ class LoRATrainer(Trainer):
                 f"Choose from: {sorted(_SUPPORTED_TASK_TYPES)}"
             )
 
-        lora_config = LoraConfig(
+        lora_config = LoraConfig(  # ty: ignore[call-non-callable]
             task_type=getattr(TaskType, task_type_upper),
             r=r,
             lora_alpha=lora_alpha,
             lora_dropout=lora_dropout,
             target_modules=target_modules,
-            bias=bias,
+            bias=bias,  # ty: ignore[invalid-argument-type]
         )
         model = get_peft_model(model, lora_config)
         model.print_trainable_parameters()
@@ -128,28 +131,26 @@ class LoRATrainer(Trainer):
 
         super().__init__(
             model=model,
-            loss_fn=loss_fn,  # type: ignore[arg-type]
+            loss_fn=loss_fn,  # ty: ignore[invalid-argument-type]
             optim=optim,
             device=device,
             early_stopping_patience=early_stopping_patience,
             checkpoint_config=checkpoint_config,
         )
 
-        self._logger = Logger()
         self._task_type = task_type_upper
         self._is_generative = task_type_upper in _GENERATIVE_TASK_TYPES
 
-        self._logger.display_info(
-            f"LoRA applied — task: {task_type_upper} | r={r} | alpha={lora_alpha} | dropout={lora_dropout}"
+        logger.info(
+            f"LoRA applied — task: {task_type_upper} | r={r} | alpha={lora_alpha} | dropout={lora_dropout}",
+            extra={"skip_console": "True"},
         )
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _forward(
-        self, batch: Dict
-    ) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def _forward(self, batch: dict) -> tuple[torch.Tensor | None, torch.Tensor | None]:
         """Run one forward pass.
 
         Returns:
@@ -157,8 +158,8 @@ class LoRATrainer(Trainer):
             does not produce them.
         """
         outputs = self._model(**batch)
-        loss: Optional[torch.Tensor] = getattr(outputs, "loss", None)
-        logits: Optional[torch.Tensor] = getattr(outputs, "logits", None)
+        loss: torch.Tensor | None = getattr(outputs, "loss", None)
+        logits: torch.Tensor | None = getattr(outputs, "logits", None)
 
         if loss is None and self._loss_fn is not None and logits is not None:
             labels = batch.get("labels")
@@ -175,7 +176,7 @@ class LoRATrainer(Trainer):
         self,
         train_loader: DataLoader,
         epochs: int,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         val_epochs: int = 1,
     ):
         """Train the model with optional validation and early stopping.
@@ -256,9 +257,9 @@ class LoRATrainer(Trainer):
                     f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] "
                     f"Train Loss: {state.train_loss:.4f}"
                 )
-                Logger().display_info(
+                logger.info(
                     f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}",
-                    display_on_terminal=False,
+                    extra={"skip_console": True},
                 )
 
                 if state.train_loss < state.best_train_loss:
@@ -304,20 +305,20 @@ class LoRATrainer(Trainer):
                         f"Train Loss: {state.train_loss:.4f} | "
                         f"Val Loss: {state.val_loss:.4f} | Val Acc: {val_acc:.4f}"
                     )
-                    Logger().display_info(
+                    logger.info(
                         f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | "
                         f"Val Loss: {state.val_loss:.4f} | Val Acc: {val_acc:.4f}",
-                        display_on_terminal=False,
+                        extra={"skip_console": True},
                     )
                 else:
                     progress.console.print(
                         f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] "
                         f"Train Loss: {state.train_loss:.4f} | Val Loss: {state.val_loss:.4f}"
                     )
-                    Logger().display_info(
+                    logger.info(
                         f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | "
                         f"Val Loss: {state.val_loss:.4f}",
-                        display_on_terminal=False,
+                        extra={"skip_console": True},
                     )
 
                 if state.val_loss < state.best_val_loss:
@@ -336,9 +337,9 @@ class LoRATrainer(Trainer):
                     state.patience_counter = 0
                 else:
                     state.patience_counter += 1
-
-                if state.acc > state.best_acc:
-                    state.best_acc = state.acc
+                if state.acc is not None:
+                    if state.acc > state.best_acc:
+                        state.best_acc = state.acc
 
             # --- CHECKPOINTING ---
             if self._should_save_checkpoint(epoch, is_last_epoch=(epoch == epochs)):
@@ -354,16 +355,16 @@ class LoRATrainer(Trainer):
                 _reason = (
                     "validation loss" if val_loader is not None else "training loss"
                 )
-                self._logger.display_info(
+                logger.info(
                     f"Early stopping triggered. No improvement in {_reason} "
                     f"for {self._early_stopping_patience} epochs.",
-                    display_on_terminal=False,
+                    extra={"skip_console": True},
                 )
                 break
 
         progress.stop()
 
-    def predict(self, dataloader_or_batch: Union[DataLoader, Dict, torch.Tensor]):
+    def predict(self, dataloader_or_batch: DataLoader | dict | torch.Tensor):
         """Generate predictions for a dataloader or a single batch.
 
         Labels are stripped from dict batches before inference so the model

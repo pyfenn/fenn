@@ -7,7 +7,11 @@ diff.txt
 venv/
 logger/
 site/
+
 .*/
+
+# whitelist the .githooks directory only
+!.githooks/
 
 remote-server/
 

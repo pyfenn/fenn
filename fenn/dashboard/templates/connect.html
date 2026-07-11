@@ -23,10 +23,8 @@
         <span class="connect-title-sub">/dashboard</span>
       </h1>
       <p class="connect-lead">
-        Paste a dashboard token to view your logs. Generate one at
-        <a href="https://pyfenn.com/dashboard/dashboard-tokens"
-           target="_blank"
-           rel="noopener noreferrer">pyfenn.com/dashboard/dashboard-tokens</a>.
+        Sign in with your pyfenn.com account to view your logs. A browser tab
+        opens for sign-in and consent, then brings you right back here.
       </p>
 
       {% if error_message %}
@@ -36,24 +34,14 @@
       <div class="connect-info">{{ info_message }}</div>
       {% endif %}
 
-      <form method="POST" action="{{ url_for('connect') }}" class="connect-form">
+      <form method="POST" action="{{ url_for('connect_start') }}" class="connect-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="token" class="connect-label">Dashboard token</label>
-        <input type="password"
-               name="token"
-               id="token"
-               autocomplete="off"
-               spellcheck="false"
-               maxlength="64"
-               pattern="fdt_[A-Za-z0-9_\-]{43}"
-               placeholder="fdt_…"
-               required>
-        <button type="submit" class="connect-submit">Connect</button>
+        <button type="submit" class="connect-submit">Sign in with pyfenn.com</button>
       </form>
 
       <p class="connect-foot">
         Don't have an account?
-        <a href="https://pyfenn.com/login" target="_blank" rel="noopener noreferrer">Sign in at pyfenn.com</a>.
+        <a href="https://pyfenn.com/login" target="_blank" rel="noopener noreferrer">Create one at pyfenn.com</a>.
       </p>
     </div>
   </main>

@@ -4,6 +4,7 @@ import fenn.cli.auth as auth
 import fenn.cli.dashboard as dashboard
 import fenn.cli.grid as grid
 import fenn.cli.list as list
+import fenn.cli.profile as profile
 import fenn.cli.pull as pull
 import fenn.cli.run as run
 
@@ -39,6 +40,22 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_pull.set_defaults(func=pull.execute)
 
+    # ========= PROFILE =========
+    p_profile = subparsers.add_parser(
+        "profile", help="Profile a fenn template using cProfile"
+    )
+    p_profile.add_argument(
+        "template",
+        help="Template directory to profile",
+    )
+    p_profile.add_argument(
+        "--limit",
+        type=int,
+        default=25,
+        help="Rows in the report",
+    )
+    p_profile.set_defaults(func=profile.execute)
+
     # ========= LIST =========
     p_list = subparsers.add_parser(
         "list", help="List available templates in the fenn templates repository"
@@ -58,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_dash.add_argument(
         "--port", type=int, default=5000, help="Port to bind (default: 5000)"
     )
-    p_dash.add_argument("--debug", action="store_true", help="Run Flask in debug mode")
+    p_dash.add_argument("--debug", action="store_true", help="Run in debug mode")
     p_dash.set_defaults(func=dashboard.execute)
 
     # ========= RUN =========
@@ -87,6 +104,14 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=10,
         help="Maximum allowed wall-time in minutes (server enforces; default: 10)",
+    )
+    p_run.add_argument(
+        "--tier",
+        default=None,
+        help=(
+            "Machine tier to run on (e.g. 'cpu.small'). "
+            "See `fenn auth status` for available tiers; default: server's choice"
+        ),
     )
     p_run.add_argument(
         "--detach",

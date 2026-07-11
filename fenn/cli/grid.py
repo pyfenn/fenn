@@ -9,7 +9,9 @@ from pathlib import Path
 import yaml
 from colorama import Fore, Style
 
-from fenn.args.parser import Parser
+from fenn.exceptions import TemplateError
+from fenn.logging import logger
+from fenn.parser import Parser
 
 
 def execute(args: argparse.Namespace) -> None:
@@ -27,7 +29,9 @@ def execute(args: argparse.Namespace) -> None:
     try:
         parsed_grid: list[dict] = _parse_grid(yaml_path=yaml_path)
     except TemplateError as e:
-        print(f"{Fore.RED}Template error: missing grid section{e}{Style.RESET_ALL}")
+        logger.error(
+            f"{Fore.RED}Template error: missing grid section{e}{Style.RESET_ALL}"
+        )
         sys.exit(1)
     shutil.copy(yaml_path, yaml_copy)
     try:
@@ -56,7 +60,7 @@ def _parse_grid(yaml_path: Path) -> list[dict[str, int]]:
 
 
 def _execute_fenn(
-    hyperparameter: dict[str:int], main_path: Path, yaml_path: Path
+    hyperparameter: dict[str, int], main_path: Path, yaml_path: Path
 ) -> None:
     with open(yaml_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
@@ -66,9 +70,3 @@ def _execute_fenn(
     with open(yaml_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     subprocess.run(["python3", main_path], cwd=main_path.parent)
-
-
-class TemplateError(Exception):
-    """Raised when a template has an invalid structure."""
-
-    pass

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from fenn.logging import logger
+
 SUPPORTED_EXTENSIONS = {
     ".txt",
     ".md",
@@ -76,8 +78,10 @@ def load_documents(source):
             f for f in found if f.is_file() and f.suffix in SUPPORTED_EXTENSIONS
         ]
         if not supported:
-            print(f"[cofone] warning: no supported files found in {path}")
-            print(f"[cofone] supported extensions: {', '.join(SUPPORTED_EXTENSIONS)}")
+            logger.warning(f"[cofone] warning: no supported files found in {path}")
+            logger.warning(
+                f"[cofone] supported extensions: {', '.join(SUPPORTED_EXTENSIONS)}"
+            )
         for f in supported:
             doc = _read_file(f)
             if doc:
@@ -92,8 +96,8 @@ def _read_file(path):
         if path.suffix == ".pdf":
             return _read_pdf(path)
         return path.read_text(encoding="utf-8")
-    except Exception as e:
-        print(f"[cofone] read error {path.name}: {e}")
+    except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as e:
+        logger.error(f"[cofone] read error {path.name}: {e}")
         return None
 
 
@@ -109,7 +113,7 @@ def _read_pdf(path):
         pages = [p.extract_text() or "" for p in reader.pages]
         text = "\n".join(pages).strip()
         if not text:
-            print(
+            logger.warning(
                 f"[cofone] warning: PDF '{path.name}' returned no text (may be scanned/image-based)"
             )
         return text or None
@@ -197,7 +201,7 @@ def _load_wikipedia(url):
             'Run: pip install "cofone[web]"  or  pip install wikipedia'
         )
     except Exception as e:
-        raise ValueError(f"[cofone] Wikipedia error for '{url}': {e}")
+        raise ValueError(f"[cofone] Wikipedia error for '{url}': {e}") from e
 
 
 def _load_youtube(url):
@@ -231,7 +235,11 @@ def _load_youtube(url):
                 t.get("text", str(t)) if isinstance(t, dict) else str(t)
                 for t in transcript
             )
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "[cofone] YouTubeTranscriptApi >=0.7.0 list() failed (%s), falling back to list_transcripts()",
+                e,
+            )
             # Fallback: API < 0.7.0
             transcript = (
                 YouTubeTranscriptApi.list_transcripts(vid)

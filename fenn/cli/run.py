@@ -6,17 +6,18 @@ import argparse
 import sys
 import tempfile
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Sequence
 
 from colorama import Fore, Style
 
-from fenn.remote.exceptions import (
+from fenn.exceptions import (
     CredentialsError,
     InsufficientCreditsError,
     JobFailedError,
     RemoteError,
     WorkspaceTooLargeError,
 )
+from fenn.logging import logger
 
 DEFAULT_SCRIPT = "main.py"
 TERMINAL_STATUSES = {"succeeded", "failed", "cancelled"}
@@ -27,8 +28,8 @@ def execute(args: argparse.Namespace) -> None:
 
     Args:
         args: Parsed arguments with attributes ``script``, ``api_key``,
-            ``profile``, ``max_runtime``, ``detach``, ``no_download``,
-            ``include``, ``exclude``.
+            ``profile``, ``max_runtime``, ``tier``, ``detach``,
+            ``no_download``, ``include``, ``exclude``.
     """
     script_path = _resolve_script(args.script)
 
@@ -38,32 +39,29 @@ def execute(args: argparse.Namespace) -> None:
             explicit_key=args.api_key,
             profile=args.profile,
             max_runtime=args.max_runtime * 60,
+            tier=getattr(args, "tier", None),
             detach=args.detach,
             download=not args.no_download,
             includes=args.include or (),
             excludes=args.exclude or (),
         )
     except CredentialsError as exc:
-        print(f"{Fore.RED}{exc}{Style.RESET_ALL}", file=sys.stderr)
+        logger.info(f"{Fore.RED}{exc}{Style.RESET_ALL}")
         sys.exit(2)
     except WorkspaceTooLargeError as exc:
-        print(f"{Fore.RED}{exc}{Style.RESET_ALL}", file=sys.stderr)
+        logger.info(f"{Fore.RED}{exc}{Style.RESET_ALL}")
         sys.exit(2)
     except InsufficientCreditsError as exc:
-        print(
-            f"{Fore.RED}Insufficient credits: {exc}{Style.RESET_ALL}",
-            file=sys.stderr,
-        )
+        logger.info(f"{Fore.RED}Insufficient credits: {exc}{Style.RESET_ALL}")
         sys.exit(3)
     except JobFailedError as exc:
-        print(
+        logger.info(
             f"{Fore.RED}Remote job {exc.job_id} ended with status "
-            f"{exc.status!r}: {exc}{Style.RESET_ALL}",
-            file=sys.stderr,
+            f"{exc.status!r}: {exc}{Style.RESET_ALL}"
         )
         sys.exit(1)
     except RemoteError as exc:
-        print(f"{Fore.RED}Remote error: {exc}{Style.RESET_ALL}", file=sys.stderr)
+        logger.info(f"{Fore.RED}Remote error: {exc}{Style.RESET_ALL}")
         sys.exit(1)
 
 
@@ -71,10 +69,7 @@ def _resolve_script(raw: Optional[str]) -> Path:
     name = raw or DEFAULT_SCRIPT
     candidate = Path(name).resolve()
     if not candidate.is_file():
-        print(
-            f"{Fore.RED}Script not found: {candidate}{Style.RESET_ALL}",
-            file=sys.stderr,
-        )
+        logger.info(f"{Fore.RED}Script not found: {candidate}{Style.RESET_ALL}")
         sys.exit(1)
     return candidate
 
@@ -104,7 +99,8 @@ def _run_remote(
     detach: bool,
     download: bool,
     includes: Iterable[str],
-    excludes: Iterable[str],
+    excludes: Sequence[str],
+    tier: Optional[str] = None,
 ) -> None:
     from fenn.remote.artifacts import extract_artifacts
     from fenn.remote.client import DEFAULT_REMOTE_HOST, RemoteClient
@@ -117,9 +113,8 @@ def _run_remote(
     include_paths = [Path(p) for p in includes]
     project = _read_project_name(root)
 
-    print(
-        f"{Fore.CYAN}Packing workspace from {Fore.LIGHTYELLOW_EX}{root}{Style.RESET_ALL}",
-        file=sys.stderr,
+    logger.info(
+        f"{Fore.CYAN}Packing workspace from {Fore.LIGHTYELLOW_EX}{root}{Style.RESET_ALL}"
     )
     pack = pack_workspace(
         root=root,
@@ -130,20 +125,18 @@ def _run_remote(
 
     venv_spec = detect_venv_spec(root)
     if venv_spec:
-        print(
+        logger.info(
             f"{Fore.CYAN}Found {Fore.LIGHTYELLOW_EX}{venv_spec['requirements']}"
             f"{Fore.CYAN} — remote will build a temporary venv and install "
-            f"dependencies before running.{Style.RESET_ALL}",
-            file=sys.stderr,
+            f"dependencies before running.{Style.RESET_ALL}"
         )
 
     try:
         with RemoteClient(DEFAULT_REMOTE_HOST, creds.api_key) as client:
-            print(
+            logger.info(
                 f"{Fore.CYAN}Submitting {pack.file_count} files "
                 f"({pack.uncompressed_bytes / 1024:,.1f} KB) to "
-                f"{Fore.LIGHTYELLOW_EX}{DEFAULT_REMOTE_HOST}{Style.RESET_ALL}",
-                file=sys.stderr,
+                f"{Fore.LIGHTYELLOW_EX}{DEFAULT_REMOTE_HOST}{Style.RESET_ALL}"
             )
             submission = client.submit_job(
                 pack.path,
@@ -151,20 +144,19 @@ def _run_remote(
                 max_runtime=max_runtime,
                 project=project,
                 venv=venv_spec,
+                machine_class=tier,
             )
             job_id = submission["job_id"]
             hold = submission.get("credit_hold")
-            print(
+            logger.info(
                 f"{Fore.GREEN}Job {Fore.LIGHTYELLOW_EX}{job_id}{Fore.GREEN} "
-                f"submitted (hold: {hold} credits).{Style.RESET_ALL}",
-                file=sys.stderr,
+                f"submitted (hold: {hold} credits).{Style.RESET_ALL}"
             )
 
             if detach:
-                print(
+                logger.info(
                     f"{Fore.CYAN}--detach set; not streaming. "
-                    f"Save this job id to check later.{Style.RESET_ALL}",
-                    file=sys.stderr,
+                    f"Save this job id to check later.{Style.RESET_ALL}"
                 )
                 return
 
@@ -179,10 +171,9 @@ def _run_remote(
                 try:
                     client.download_artifacts(job_id, tar_path)
                     written = extract_artifacts(tar_path, root)
-                    print(
+                    logger.info(
                         f"{Fore.GREEN}Downloaded {len(written)} files into "
-                        f"{Fore.LIGHTYELLOW_EX}{root}{Style.RESET_ALL}",
-                        file=sys.stderr,
+                        f"{Fore.LIGHTYELLOW_EX}{root}{Style.RESET_ALL}"
                     )
                 finally:
                     tar_path.unlink(missing_ok=True)
@@ -212,10 +203,7 @@ def _stream_to_completion(client, job_id: str) -> tuple[str, dict]:
                     _render_log(data)
                 elif kind == "status":
                     status = _coerce_status(data)
-                    print(
-                        f"{Fore.CYAN}[status] {status}{Style.RESET_ALL}",
-                        file=sys.stderr,
-                    )
+                    logger.info(f"{Fore.CYAN}[status] {status}{Style.RESET_ALL}")
                     if status in TERMINAL_STATUSES:
                         final_status = status
                         break
@@ -224,22 +212,15 @@ def _stream_to_completion(client, job_id: str) -> tuple[str, dict]:
                         last_billing = data
                 else:
                     # unknown event kind — show raw
-                    print(
-                        f"{Fore.LIGHTBLACK_EX}[{kind}] {data}{Style.RESET_ALL}",
-                        file=sys.stderr,
-                    )
+                    logger.info(f"{Fore.LIGHTBLACK_EX}[{kind}] {data}{Style.RESET_ALL}")
     except KeyboardInterrupt:
-        print(
-            f"{Fore.YELLOW}Interrupted — cancelling remote job...{Style.RESET_ALL}",
-            file=sys.stderr,
+        logger.info(
+            f"{Fore.YELLOW}Interrupted — cancelling remote job...{Style.RESET_ALL}"
         )
         try:
             client.cancel(job_id)
         except RemoteError as exc:
-            print(
-                f"{Fore.RED}Cancel request failed: {exc}{Style.RESET_ALL}",
-                file=sys.stderr,
-            )
+            logger.info(f"{Fore.RED}Cancel request failed: {exc}{Style.RESET_ALL}")
         raise
     return final_status, last_billing
 
@@ -251,7 +232,7 @@ def _render_log(data) -> None:
         line = str(data)
     # Logs from the remote already carry their own colorization (the user's
     # script ran with the same fenn logger). Pass through as-is.
-    print(line)
+    logger.info(line)
 
 
 def _coerce_status(data) -> str:
@@ -272,7 +253,7 @@ def _print_summary(final_status: str, billing: dict) -> None:
         parts.append(f"credits_used={used}")
     if remaining is not None:
         parts.append(f"credits_remaining={remaining}")
-    print(f"{color}[summary] {' '.join(parts)}{Style.RESET_ALL}", file=sys.stderr)
+    logger.info(f"{color}[summary] {' '.join(parts)}{Style.RESET_ALL}")
 
 
 def _read_project_name(root: Path) -> Optional[str]:

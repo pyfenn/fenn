@@ -9,6 +9,9 @@ from pathlib import Path
 import requests
 from colorama import Fore, Style
 
+from fenn.exceptions import NetworkError, TemplateError, TemplateNotFoundError
+from fenn.logging import logger
+
 try:
     from rich.console import Console
     from rich.progress import (
@@ -44,10 +47,10 @@ def execute(args: argparse.Namespace) -> None:
     force = args.force
 
     if not template_name:
-        print(
+        logger.error(
             f"{Fore.RED}Template name is required (example: {Fore.LIGHTYELLOW_EX}fenn pull base{Fore.RED}){Style.RESET_ALL}"
         )
-        print(
+        logger.info(
             f"{Fore.CYAN}Use {Fore.LIGHTYELLOW_EX}fenn list{Fore.CYAN} to see available templates.{Style.RESET_ALL}"
         )
         sys.exit(1)
@@ -62,7 +65,7 @@ def execute(args: argparse.Namespace) -> None:
                 f"[red]Refusing to pull into non-empty directory [yellow]{target_dir}[/yellow].\nUse [yellow]--force[/yellow] to override existing files.[/red]"
             )
         else:
-            print(
+            logger.error(
                 f"{Fore.RED}Refusing to pull into non-empty directory "
                 f"{Fore.LIGHTYELLOW_EX}{target_dir}{Fore.RED}. \n"
                 f"Use {Fore.LIGHTYELLOW_EX}--force{Fore.RED} to override existing files.{Style.RESET_ALL}"
@@ -72,7 +75,7 @@ def execute(args: argparse.Namespace) -> None:
     try:
         # Download and extract template
         _download_template(template_name, target_dir, force)
-        print(
+        logger.info(
             f"{Fore.GREEN}Successfully pulled template "
             f"{Fore.LIGHTYELLOW_EX}{template_name}{Fore.GREEN} into "
             f"{Fore.LIGHTYELLOW_EX}{target_dir}{Fore.GREEN}.{Style.RESET_ALL}"
@@ -87,7 +90,7 @@ def execute(args: argparse.Namespace) -> None:
                     "\n[bold green]📦 Found template dependencies at requirements.txt[/bold green]"
                 )
             else:
-                print(
+                logger.info(
                     f"\n{Fore.GREEN}📦 Found template dependencies at requirements.txt{Style.RESET_ALL}"
                 )
 
@@ -110,7 +113,7 @@ def execute(args: argparse.Namespace) -> None:
                         "[cyan]Installing requirements automatically... (this may take a moment)[/cyan]\n"
                     )
                 else:
-                    print(
+                    logger.info(
                         f"{Fore.CYAN}Installing requirements automatically... (this may take a moment){Style.RESET_ALL}\n"
                     )
 
@@ -132,7 +135,7 @@ def execute(args: argparse.Namespace) -> None:
                             "\n[bold green]✅ All dependencies installed successfully![/bold green]"
                         )
                     else:
-                        print(
+                        logger.info(
                             f"\n{Fore.GREEN}✅ All dependencies installed successfully!{Style.RESET_ALL}"
                         )
                 except subprocess.CalledProcessError as e:
@@ -144,10 +147,10 @@ def execute(args: argparse.Namespace) -> None:
                             "[yellow]Please run 'pip install -r requirements.txt' manually.[/yellow]"
                         )
                     else:
-                        print(
+                        logger.error(
                             f"\n{Fore.RED}⚠️ Automatic installation failed with exit code {e.returncode}.{Style.RESET_ALL}"
                         )
-                        print(
+                        logger.info(
                             f"{Fore.YELLOW}Please run 'pip install -r requirements.txt' manually.{Style.RESET_ALL}"
                         )
             else:
@@ -156,18 +159,18 @@ def execute(args: argparse.Namespace) -> None:
                         "[yellow]Skipping dependency installation.[/yellow]\n"
                     )
                 else:
-                    print(
+                    logger.info(
                         f"{Fore.YELLOW}Skipping dependency installation.{Style.RESET_ALL}\n"
                     )
 
     except TemplateNotFoundError as e:
-        print(f"{Fore.RED}{e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}{e}{Style.RESET_ALL}")
         sys.exit(1)
     except NetworkError as e:
-        print(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
         sys.exit(1)
     except TemplateError as e:
-        print(f"{Fore.RED}Template error: {e}{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}Template error: {e}{Style.RESET_ALL}")
         sys.exit(1)
 
 
@@ -193,7 +196,7 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
         response = requests.get(api_url, timeout=10)
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 404:
+        if e.response.status_code == 404:  # ty: ignore[unresolved-attribute]
             raise TemplateNotFoundError(
                 f"Template {Fore.LIGHTYELLOW_EX}{template_name}{Fore.RED} not found. "
                 f"Use {Fore.LIGHTYELLOW_EX}fenn pull --list{Fore.RED} to see available templates, "
@@ -268,21 +271,3 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
             # Clean up temporary file
             tmp_file.close()
             os.unlink(tmp_file.name)
-
-
-class TemplateNotFoundError(Exception):
-    """Raised when a template is not found in the repository."""
-
-    pass
-
-
-class NetworkError(Exception):
-    """Raised when a network request fails."""
-
-    pass
-
-
-class TemplateError(Exception):
-    """Raised when a template has an invalid structure."""
-
-    pass

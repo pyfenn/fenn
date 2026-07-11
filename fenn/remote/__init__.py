@@ -1,37 +1,49 @@
-"""Client-side remote execution helpers for the Fenn premium service.
+"""Client library for the Fenn remote execution service.
 
-This package is imported when ``fenn run`` or ``fenn auth`` is invoked.
+Used by ``fenn auth`` and ``fenn run``. Public surface:
+
+- :mod:`fenn.remote.credentials` — ``~/.fenn/credentials`` profile store
+- :mod:`fenn.remote.client` — HTTP/SSE client for the ``/v1/*`` API
+- :mod:`fenn.remote.workspace` — project packing for upload
+- :mod:`fenn.remote.artifacts` — artifact tarball extraction
+- :mod:`fenn.remote.exceptions` — typed error hierarchy
 """
 
+from fenn.exceptions import (
+    AuthError,
+    CredentialsError,
+    InsufficientCreditsError,
+    JobFailedError,
+    NetworkError,
+    RemoteError,
+    WorkspaceTooLargeError,
+)
 from fenn.remote.client import DEFAULT_REMOTE_HOST, RemoteClient
 from fenn.remote.credentials import (
     DEFAULT_PROFILE,
     Credentials,
+    delete_profile,
     load_credentials,
+    mask_key,
     resolve_api_key,
     write_credentials,
 )
-from fenn.remote.exceptions import (
-    CredentialsError,
-    InsufficientCreditsError,
-    JobFailedError,
-    RemoteError,
-    WorkspaceTooLargeError,
-)
-from fenn.remote.workspace import pack_workspace
 
 __all__ = [
-    "RemoteClient",
     "DEFAULT_REMOTE_HOST",
-    "Credentials",
-    "CredentialsError",
     "DEFAULT_PROFILE",
+    "Credentials",
+    "RemoteClient",
+    "delete_profile",
     "load_credentials",
+    "mask_key",
     "resolve_api_key",
     "write_credentials",
-    "RemoteError",
+    "AuthError",
+    "CredentialsError",
     "InsufficientCreditsError",
     "JobFailedError",
+    "NetworkError",
+    "RemoteError",
     "WorkspaceTooLargeError",
-    "pack_workspace",
 ]

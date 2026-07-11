@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Optional, Union, cast
+from typing import cast
 
 import torch
 import torch.nn
@@ -14,8 +14,8 @@ from rich.progress import (
 from sklearn.metrics import r2_score
 from torch.utils.data import DataLoader
 
-from fenn.logging import Logger
-from fenn.nn.utils import Checkpoint
+from fenn.logging import logger
+from fenn.nn.checkpoint import Checkpoint
 
 from .trainer import Trainer
 
@@ -47,9 +47,9 @@ class RegressionTrainer(Trainer):
         loss_fn: torch.nn.Module,
         optim: torch.optim.Optimizer,
         return_model: str = "last",
-        device: Union[torch.device, str] = "cpu",
-        early_stopping_patience: Optional[int] = None,
-        checkpoint_config: Optional[Checkpoint] = None,
+        device: torch.device | str = "cpu",
+        early_stopping_patience: int | None = None,
+        checkpoint_config: Checkpoint | None = None,
     ):
         """Initialize a RegressionTrainer instance.
 
@@ -71,7 +71,6 @@ class RegressionTrainer(Trainer):
             checkpoint_config=checkpoint_config,
         )
 
-        self._logger = Logger()
         self._return_model = return_model.lower()
 
         if self._return_model not in {"last", "best"}:
@@ -81,7 +80,7 @@ class RegressionTrainer(Trainer):
         self,
         train_loader: DataLoader,
         epochs: int,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         val_epochs: int = 1,
     ):
         """Train the model with optional validation and early stopping.
@@ -168,9 +167,9 @@ class RegressionTrainer(Trainer):
                 progress.console.print(
                     f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f}"
                 )
-                Logger().display_info(
+                logger.info(
                     f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}",
-                    display_on_terminal=False,
+                    extra={"skip_console": True},
                 )
 
                 if state.train_loss < state.best_train_loss:
@@ -214,9 +213,9 @@ class RegressionTrainer(Trainer):
                     progress.console.print(
                         f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val R2: {val_r2:.4f}"
                     )
-                    Logger().display_info(
+                    logger.info(
                         f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val R2: {val_r2:.4f}",
-                        display_on_terminal=False,
+                        extra={"skip_console": True},
                     )
 
                 state.val_loss = val_total_loss / val_n_batches
@@ -263,7 +262,7 @@ class RegressionTrainer(Trainer):
                     _reason = "training loss"
                 else:
                     _reason = "validation loss"
-                self._logger.display_info(
+                logger.info(
                     f"Early stopping triggered. No improvement in {_reason} for {self._early_stopping_patience} epochs."
                 )
                 break
@@ -275,7 +274,7 @@ class RegressionTrainer(Trainer):
 
         return self._model
 
-    def predict(self, dataloader_or_batch: Union[DataLoader, torch.Tensor]):
+    def predict(self, dataloader_or_batch: DataLoader | torch.Tensor):
         """Predicts the output of the model for a given dataloader or batch.
 
         Args:

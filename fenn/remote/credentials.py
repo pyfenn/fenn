@@ -1,82 +1,82 @@
-"""Profile-aware credentials store for the Fenn remote service.
+"""Local credential storage for the Fenn remote service.
 
-The credentials file lives at ``~/.fenn/credentials`` and follows a TOML-like
-flat profile layout, mirroring the AWS CLI's ``~/.aws/credentials``::
+Credentials live in ``~/.fenn/credentials`` as JSON, one entry per named
+profile::
 
-    [default]
-    api_key = "fk_live_..."
+    {
+      "profiles": {
+        "default": {"api_key": "fk_live_...", "host": null}
+      }
+    }
 
-    [work]
-    api_key = "fk_live_..."
+Resolution order for :func:`resolve_api_key`:
 
-API key resolution order (highest priority first):
-
-1. Explicit ``--api-key`` flag (passed in by the caller).
-2. ``FENN_API_KEY`` environment variable.
-3. ``~/.fenn/credentials`` ``[profile]`` section.
-4. ``.env`` via :class:`fenn.secrets.keystore.KeyStore`.
-
-Reads use stdlib ``tomllib`` (Python >=3.11). Writes use a small hand-rolled
-serializer so we do not need to add ``tomli_w`` as a dependency.
+1. explicit ``--api-key`` flag
+2. ``FENN_API_KEY`` environment variable
+3. profile from the credentials file (name from argument, else
+   ``FENN_PROFILE`` env var, else ``default``)
 """
 
 from __future__ import annotations
 
+import json
 import os
-import sys
-import tomllib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
-from fenn.remote.exceptions import CredentialsError
+from fenn.exceptions import CredentialsError
 
 DEFAULT_PROFILE = "default"
-CREDENTIALS_DIR = Path.home() / ".fenn"
-CREDENTIALS_FILE = CREDENTIALS_DIR / "credentials"
+
 ENV_API_KEY = "FENN_API_KEY"
 ENV_PROFILE = "FENN_PROFILE"
 
 
-@dataclass
-class Credentials:
-    """A single resolved profile entry."""
+def _home() -> Path:
+    home = os.environ.get("HOME") or os.environ.get("USERPROFILE")
+    return Path(home) if home else Path.home()
 
+
+CREDENTIALS_DIR = _home() / ".fenn"
+CREDENTIALS_PATH = CREDENTIALS_DIR / "credentials"
+
+
+@dataclass(frozen=True)
+class Credentials:
     profile: str
     api_key: str
     host: Optional[str] = None
 
 
-def _read_file() -> Dict[str, Dict[str, str]]:
-    if not CREDENTIALS_FILE.exists():
-        return {}
+def _read_store() -> dict:
+    if not CREDENTIALS_PATH.is_file():
+        return {"profiles": {}}
     try:
-        with open(CREDENTIALS_FILE, "rb") as f:
-            data = tomllib.load(f)
-    except (OSError, tomllib.TOMLDecodeError) as exc:
+        with open(CREDENTIALS_PATH, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
         raise CredentialsError(
-            f"Failed to read credentials file {CREDENTIALS_FILE}: {exc}"
+            f"Could not read credentials file {CREDENTIALS_PATH}: {exc}"
         ) from exc
+    if not isinstance(data, dict) or not isinstance(data.get("profiles"), dict):
+        raise CredentialsError(
+            f"Malformed credentials file {CREDENTIALS_PATH}; "
+            "delete it and run `fenn auth login` again."
+        )
+    return data
 
-    out: Dict[str, Dict[str, str]] = {}
-    for profile, section in data.items():
-        if not isinstance(section, dict):
-            continue
-        out[profile] = {str(k): str(v) for k, v in section.items()}
-    return out
 
-
-def load_credentials(profile: str = DEFAULT_PROFILE) -> Optional[Credentials]:
-    """Return the ``[profile]`` section, or ``None`` if missing."""
-    data = _read_file()
-    section = data.get(profile)
-    if section is None or "api_key" not in section:
-        return None
-    return Credentials(
-        profile=profile,
-        api_key=section["api_key"],
-        host=section.get("host"),
-    )
+def _write_store(data: dict) -> None:
+    CREDENTIALS_DIR.mkdir(parents=True, exist_ok=True)
+    with open(CREDENTIALS_PATH, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2)
+        fh.write("\n")
+    try:
+        os.chmod(CREDENTIALS_PATH, 0o600)
+    except OSError:
+        # Best effort — not supported on all platforms (e.g. Windows).
+        pass
 
 
 def write_credentials(
@@ -85,73 +85,34 @@ def write_credentials(
     profile: str = DEFAULT_PROFILE,
     host: Optional[str] = None,
 ) -> Path:
-    """Persist ``api_key`` under ``[profile]``.
+    """Persist ``api_key`` under ``profile`` and return the file path."""
+    store = _read_store()
+    store["profiles"][profile] = {"api_key": api_key, "host": host}
+    _write_store(store)
+    return CREDENTIALS_PATH
 
-    ``host`` is retained for backward-compatible callers; the CLI uses the
-    fixed remote endpoint from :mod:`fenn.remote.client`.
 
-    Existing profiles are preserved. The file is created with mode ``0o600``
-    on POSIX; on Windows the umask is left to the OS (the file lives under
-    the user's home, which is already user-private).
-    """
-    CREDENTIALS_DIR.mkdir(parents=True, exist_ok=True)
-    data = _read_file()
-    data[profile] = {"api_key": api_key}
-    if host:
-        data[profile]["host"] = host
-
-    serialized = _serialize(data)
-    CREDENTIALS_FILE.write_text(serialized, encoding="utf-8")
-    if sys.platform != "win32":
-        try:
-            os.chmod(CREDENTIALS_FILE, 0o600)
-        except OSError:
-            pass
-    return CREDENTIALS_FILE
+def load_credentials(profile: str = DEFAULT_PROFILE) -> Optional[Credentials]:
+    """Return the stored :class:`Credentials` for ``profile``, or ``None``."""
+    store = _read_store()
+    entry = store["profiles"].get(profile)
+    if not isinstance(entry, dict) or not entry.get("api_key"):
+        return None
+    return Credentials(
+        profile=profile,
+        api_key=str(entry["api_key"]),
+        host=entry.get("host") or None,
+    )
 
 
 def delete_profile(profile: str = DEFAULT_PROFILE) -> bool:
-    """Remove ``[profile]`` from the credentials file. Returns ``True`` if removed."""
-    data = _read_file()
-    if profile not in data:
+    """Remove ``profile`` from the store. Returns True if it existed."""
+    store = _read_store()
+    if profile not in store["profiles"]:
         return False
-    del data[profile]
-    if data:
-        CREDENTIALS_FILE.write_text(_serialize(data), encoding="utf-8")
-    else:
-        try:
-            CREDENTIALS_FILE.unlink()
-        except FileNotFoundError:
-            pass
+    del store["profiles"][profile]
+    _write_store(store)
     return True
-
-
-def _serialize(data: Dict[str, Dict[str, str]]) -> str:
-    """Render the profile dict back into TOML.
-
-    Only string values are supported; keys are constrained to a small ASCII
-    set so we can emit them as bare keys. Values are emitted as basic strings
-    with backslash escaping.
-    """
-    out: list[str] = []
-    for profile in sorted(data.keys()):
-        out.append(f"[{profile}]")
-        for key in sorted(data[profile].keys()):
-            value = data[profile][key]
-            out.append(f"{key} = {_toml_string(value)}")
-        out.append("")
-    return "\n".join(out).rstrip() + "\n"
-
-
-def _toml_string(value: str) -> str:
-    escaped = (
-        value.replace("\\", "\\\\")
-        .replace('"', '\\"')
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-        .replace("\t", "\\t")
-    )
-    return f'"{escaped}"'
 
 
 def resolve_api_key(
@@ -159,44 +120,30 @@ def resolve_api_key(
     explicit: Optional[str] = None,
     profile: Optional[str] = None,
 ) -> Credentials:
-    """Resolve an API key using the documented priority chain.
+    """Resolve an API key from flag > env > credentials file.
 
     Raises:
-        CredentialsError: if no key can be resolved.
+        CredentialsError: when no key can be found anywhere.
     """
-    profile = profile or os.getenv(ENV_PROFILE) or DEFAULT_PROFILE
-
     if explicit:
-        return Credentials(profile=profile, api_key=explicit, host=None)
+        return Credentials(profile=profile or DEFAULT_PROFILE, api_key=explicit)
 
-    env_value = os.getenv(ENV_API_KEY)
-    if env_value:
-        return Credentials(profile=profile, api_key=env_value, host=None)
+    env_key = os.environ.get(ENV_API_KEY)
+    if env_key:
+        return Credentials(profile=profile or DEFAULT_PROFILE, api_key=env_key)
 
-    creds = load_credentials(profile)
-    if creds is not None:
-        return creds
-
-    try:
-        from fenn.secrets.keystore import KeyStore
-
-        dotenv_value = KeyStore().get_key(ENV_API_KEY)
-    except KeyError:
-        dotenv_value = None
-    except Exception:
-        dotenv_value = None
-
-    if dotenv_value:
-        return Credentials(profile=profile, api_key=dotenv_value, host=None)
-
-    raise CredentialsError(
-        "No Fenn API key found. Run `fenn auth login` to save one, "
-        f"or set the {ENV_API_KEY} environment variable."
-    )
+    profile_name = profile or os.environ.get(ENV_PROFILE) or DEFAULT_PROFILE
+    creds = load_credentials(profile_name)
+    if creds is None:
+        raise CredentialsError(
+            f"No API key found. Pass --api-key, set {ENV_API_KEY}, or run "
+            f"`fenn auth login` (profile: {profile_name})."
+        )
+    return creds
 
 
 def mask_key(api_key: str) -> str:
-    """Return a display-safe rendering of ``api_key`` (first 8 + last 4 chars)."""
+    """Return a redacted form safe for terminal output."""
     if len(api_key) <= 12:
         return "*" * len(api_key)
     return f"{api_key[:8]}...{api_key[-4:]}"

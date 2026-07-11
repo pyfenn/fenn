@@ -1,4 +1,4 @@
-from typing import Any, Dict, Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 import numpy as np
 
@@ -7,7 +7,7 @@ from .vision_utils import detect_format
 
 def _extract_shape_info(
     shape: tuple, channel_location: Literal["first", "last"] | None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Extract shape information (H, W, C) from array shape based on channel location.
 
@@ -42,17 +42,47 @@ def _extract_shape_info(
     }
 
 
+class ShapeInfo(TypedDict):
+    height: int
+    width: int
+    channels: int
+    full_shape: tuple[int, ...]
+
+
+class DTypeInfo(TypedDict):
+    name: str
+    kind: str
+    itemsize: int
+
+
+class ValueRange(TypedDict):
+    min: float
+    max: float
+
+
+class ChannelStats(TypedDict):
+    mean: list[float]
+    std: list[float]
+
+
+class DataQuality(TypedDict):
+    has_nan: bool
+    has_inf: bool
+    nan_count: int
+    inf_count: int
+
+
 class ImageSummary(TypedDict):
     """Summary information for an image batch."""
 
     is_grayscale: bool
     channel_location: Literal["first", "last"] | None
     batch_size: int
-    shape_info: Dict[str, Any]  # Contains: height, width, channels, full_shape
-    dtype: Dict[str, Any]  # Contains: name, kind, itemsize
-    value_range: Dict[str, Any]  # TODO: Define structure for value_range
-    channel_stats: Dict[str, Any]  # TODO: Define structure for channel_stats
-    data_quality: Dict[str, Any]  # TODO: Define structure for data_quality
+    shape_info: ShapeInfo
+    dtype: DTypeInfo
+    value_range: ValueRange
+    channel_stats: ChannelStats
+    data_quality: DataQuality
 
 
 def image_summary(array: np.ndarray) -> ImageSummary:
@@ -153,9 +183,9 @@ def image_summary(array: np.ndarray) -> ImageSummary:
         "is_grayscale": is_grayscale,
         "channel_location": channel_location,
         "batch_size": batch_size,
-        "shape_info": shape_info,
-        "dtype": dtype_info,
-        "value_range": value_range,
-        "channel_stats": channel_stats,
-        "data_quality": data_quality,
-    }
+        "shape_info": shape_info,  # ty: ignore[invalid-argument-type]
+        "dtype": dtype_info,  # ty: ignore[invalid-argument-type]
+        "value_range": value_range,  # ty: ignore[invalid-argument-type]
+        "channel_stats": channel_stats,  # ty: ignore[invalid-argument-type]
+        "data_quality": data_quality,  # ty: ignore[invalid-argument-type]
+    }  # ty: ignore[invalid-return-type]

@@ -124,6 +124,30 @@
     });
   }
 
+  // ── Session search (index page) ────────────────────────────────────────── //
+
+  const sessionSearch = document.getElementById("session-search");
+  if (sessionSearch) {
+     sessionSearch.addEventListener("input", () => {
+    const q = sessionSearch.value.toLowerCase().trim();
+    const rows = document.querySelectorAll("tr[data-session]");
+
+    rows.forEach((row) => {
+      const cells = row.querySelectorAll("td[data-searchable]");
+      let match = false;
+
+      cells.forEach((cell) => {
+        const text = cell.getAttribute("data-searchable").toLowerCase();
+        if (text.includes(q)) {
+          match = true;
+        }
+      });
+
+      row.style.display = match ? "" : "none";
+    });
+  });
+  }
+
   // ── Logout confirmation dialog ─────────────────────────────────────────── //
 
   const logoutForm    = document.getElementById("logout-form");
@@ -133,7 +157,7 @@
 
   if (logoutForm && logoutDialog) {
     const fallbackPrompt =
-      "Disconnect? You'll need to paste your dashboard token again next time. " +
+      "Disconnect? You'll need to sign in with pyfenn.com again next time. " +
       "If you just want to stop, close this tab instead.";
 
     logoutForm.addEventListener("submit", (e) => {
@@ -269,6 +293,38 @@
       document.activeElement?.blur();
     }
   });
+  // ── Sidebar hamburger toggle ───────────────────────────────────────────── //
+
+  const sidebarToggle = document.getElementById("sidebar-toggle");
+  const sidebar = document.getElementById("sidebar");
+
+  if (sidebarToggle && sidebar) {
+    sidebarToggle.addEventListener("click", () => {
+      const isOpen = sidebar.classList.toggle("open");
+      sidebarToggle.classList.toggle("is-open", isOpen);
+    });
+
+    // Close sidebar when clicking a nav item on mobile
+    sidebar.querySelectorAll(".nav-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        if (window.innerWidth <= 600) {
+          sidebar.classList.remove("open");
+          sidebarToggle.classList.remove("is-open");
+        }
+      });
+    });
+
+    // Close sidebar when clicking outside
+    document.addEventListener("click", (e) => {
+      if (window.innerWidth <= 600 &&
+          sidebar.classList.contains("open") &&
+          !sidebar.contains(e.target) &&
+          !sidebarToggle.contains(e.target)) {
+        sidebar.classList.remove("open");
+        sidebarToggle.classList.remove("is-open");
+      }
+    });
+  }
 
   // ── Init ───────────────────────────────────────────────────────────────── //
 

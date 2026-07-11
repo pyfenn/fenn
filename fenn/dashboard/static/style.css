@@ -512,6 +512,7 @@ tbody tr:hover { background: var(--bg-elevated); }
   padding: 6px 10px 6px 26px;
   border-radius: var(--radius-sm);
   outline: none;
+  margin-bottom: 8px;
 }
 .search-input:focus {
   border-color: var(--accent);
@@ -804,6 +805,55 @@ mark, .log-msg .hl, .log-msg .highlight {
   color: var(--text-fade);
 }
 
+/* ── Hamburger menu ─────────────────────────────────────────────────── */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  margin-right: 12px;
+}
+.hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text-mute);
+  border-radius: 2px;
+  transition: background .15s;
+}
+.hamburger:hover span { background: var(--accent); }
+.hamburger.is-open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburger.is-open span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.is-open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+.hamburger span {
+  transition: transform .2s, opacity .2s, background .15s;
+}
+
+@media (max-width: 600px) {
+  .hamburger { display: flex; }
+  .sidebar {
+    display: none;
+    width: 100%;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9;
+    overflow-y: auto;
+  }
+  .sidebar.open { display: flex; }
+}
+
 /* ── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 860px) {
   .log-entry {
@@ -866,5 +916,54 @@ mark, .log-msg .hl, .log-msg .highlight {
 
   .search-input:focus {
     background: #0d1117;
+  }
+}/* ── Mobile Responsiveness Improvements ────────────────────────────── */
+
+@media (max-width: 600px) {
+  .log-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrap {
+    width: 100%;
+  }
+  .search-input {
+    width: 100%;
+  }
+  .log-count {
+    margin-left: 0;
+  }
+  .filter-group {
+    flex-wrap: wrap;
+  }
+  .page-404 .code {
+    font-size: 52px;
+  }
+  .page-404 .msg {
+    font-size: 16px;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .section-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .meta-row {
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 380px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+  .stat-value {
+    font-size: 20px;
   }
 }

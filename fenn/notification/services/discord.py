@@ -29,4 +29,4 @@ class Discord(Service):
         except requests.exceptions.RequestException as err:
             raise requests.exceptions.RequestException(
                 f"Failed to send Discord notification: {err}"
-            )
+            ) from err

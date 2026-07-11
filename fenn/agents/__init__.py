@@ -14,13 +14,16 @@ class BaseNode:
         self.params = params
 
     def prep(self, shared):
-        pass
+        """Prepare data for execution."""
+        return None
 
     def exec(self, prep_res):
-        pass
+        """Execute the node logic."""
+        return None
 
     def post(self, shared, prep_res, exec_res):
-        pass
+        """Post-process execution results."""
+        return None
 
     def _exec(self, prep_res):
         return self.exec(prep_res)
@@ -37,14 +40,83 @@ class BaseNode:
 
 
 class Node(BaseNode):
+    """
+    A retryable unit of work in a Flow.
+
+    Wraps the prep/exec/post lifecycle from BaseNode with automatic
+    retry support around the exec step. If all retry attempts are
+    exhausted, execution falls back to exec_fallback instead of
+    propagating the exception.
+
+    Parameters
+    ----------
+    max_retries : int
+        Maximum number of attempts to run exec before giving up and
+        calling exec_fallback. Default: 1 (no retries).
+    wait : int or float
+        Seconds to sleep between failed attempts. Default: 0.
+    """
+
     def __init__(self, max_retries=1, wait=0):
+        """
+        Initialize the node's retry configuration.
+
+        Parameters
+        ----------
+        max_retries : int
+            Maximum number of attempts to run exec before giving up.
+            Default: 1.
+        wait : int or float
+            Seconds to sleep between failed attempts. Default: 0.
+        """
         super().__init__()
         self.max_retries, self.wait = max_retries, wait
 
     def exec_fallback(self, prep_res, exc):
+        """
+        Handle the final exec failure after all retries are exhausted.
+
+        Default behavior is to re-raise the exception. Override this
+        to return a fallback result instead of failing.
+
+        Parameters
+        ----------
+        prep_res : Any
+            The result returned by prep, passed through to exec.
+        exc : Exception
+            The exception raised by the final failed exec attempt.
+
+        Returns
+        -------
+        Any
+            Fallback result to use in place of a successful exec call.
+
+        Raises
+        ------
+        Exception
+            Re-raises `exc` by default.
+        """
         raise exc
 
     def _exec(self, prep_res):
+        """
+        Run exec with retry handling.
+
+        Attempts to call exec up to max_retries times, sleeping `wait`
+        seconds between failed attempts. On the final failed attempt,
+        delegates to exec_fallback instead of raising.
+
+        Parameters
+        ----------
+        prep_res : Any
+            The result returned by prep, passed through to exec.
+
+        Returns
+        -------
+        Any
+            The result of a successful exec call, or the result of
+            exec_fallback if all retries are exhausted.
+        """
         for self.cur_retry in range(self.max_retries):
             try:
                 return self.exec(prep_res)
@@ -61,21 +133,97 @@ class BatchNode(Node):
 
 
 class Flow(BaseNode):
+    """
+    A directed-graph orchestrator for chaining Node executions.
+
+    Flow manages the traversal of a directed graph of nodes. Each node
+    returns an action string after execution, and Flow uses that action
+    to look up the next node via the successor mappings created with
+    connect(). The graph can branch, terminate explicitly, or warn on
+    missing transitions.
+
+    Parameters
+    ----------
+    start : Node or None
+        The first node to execute when the flow is run. Can be set
+        later via start().
+    """
+
     def __init__(self, start=None):
+        """
+        Initialize the flow with an optional start node.
+
+        Parameters
+        ----------
+        start : Node or None
+            The first node to execute, or None if start() will be
+            called later.
+        """
         super().__init__()
         self.start_node = start
 
     def start(self, start):
+        """
+        Set the start node for the flow.
+
+        Parameters
+        ----------
+        start : Node
+            The node that will be executed first.
+
+        Returns
+        -------
+        Node
+            The start node, enabling method chaining.
+        """
         self.start_node = start
         return start
 
     def connect(self, src, dst, action="default"):
+        """
+        Wire a transition from *src* to *dst* triggered by *action*.
+
+        When *src* returns *action* from its lifecycle methods, the flow
+        will move to *dst*. Passing ``None`` for *dst* marks the path
+        as an explicit terminal transition.
+
+        Parameters
+        ----------
+        src : Node
+            The source node whose return value selects the destination.
+        dst : Node or None
+            The next node to execute, or None to terminate the flow.
+        action : str
+            The action string returned by the source node that triggers
+            this transition. Default: ``"default"``.
+
+        Returns
+        -------
+        Flow
+            self, enabling method chaining.
+        """
         if action in src.successors:
             warnings.warn(f"Overwriting successor for action '{action}'")
         src.successors[action] = _TERMINAL if dst is None else dst
         return self
 
     def get_next_node(self, curr, action):
+        """
+        Resolve the next node given the current node and action.
+
+        Parameters
+        ----------
+        curr : Node
+            The currently executing node.
+        action : str or None
+            The action returned by the current node's lifecycle.
+
+        Returns
+        -------
+        Node or None
+            The next node to execute, or None if the flow should
+            terminate.
+        """
         nxt = curr.successors.get(action or "default")
         if nxt is _TERMINAL:
             return None
@@ -101,6 +249,27 @@ class Flow(BaseNode):
         return self.post(shared, p, o)
 
     def post(self, shared, prep_res, exec_res):
+        """
+        Post-process execution results.
+
+        Returns the result of the final node's execution unchanged.
+        Override this method when subclasses need to inspect or
+        transform the flow-level result.
+
+        Parameters
+        ----------
+        shared : dict
+            Mutable state shared across all nodes in the flow.
+        prep_res : Any
+            The value returned by prep().
+        exec_res : Any
+            The action string returned by the final node's lifecycle.
+
+        Returns
+        -------
+        Any
+            The final action from the last executed node.
+        """
         return exec_res
 
 
@@ -114,16 +283,19 @@ class BatchFlow(Flow):
 
 class AsyncNode(Node):
     async def prep_async(self, shared):
-        pass
+        """Prepare data asynchronously."""
+        return None
 
     async def exec_async(self, prep_res):
-        pass
+        """Execute logic asynchronously."""
+        return None
 
     async def exec_fallback_async(self, prep_res, exc):
         raise exc
 
     async def post_async(self, shared, prep_res, exec_res):
-        pass
+        """Post-process results asynchronously."""
+        return None
 
     async def _exec(self, prep_res):
         for self.cur_retry in range(self.max_retries):

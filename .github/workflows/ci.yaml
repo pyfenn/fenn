@@ -2,7 +2,7 @@ name: Tests and Pre-Commit Checks
 
 on:
   push:
-    branches: [main]
+    branches: [python3.14-compatibility]
   pull_request:
 
 permissions:

@@ -1,5 +1,7 @@
 """Unit tests for the /api/sessions endpoint (Pick 3)."""
 
+import re
+
 import pytest
 
 from fenn.dashboard.app import app
@@ -28,8 +30,18 @@ def _write(path, content):
     return path
 
 
+def _extract_csrf_token(html: str) -> str | None:
+    meta = re.search(r'<meta name="csrf-token" content="([^"]+)"', html)
+    if meta:
+        return meta.group(1)
+    hidden = re.search(r'name="csrf_token" value="([^"]+)"', html)
+    if hidden:
+        return hidden.group(1)
+    return None
+
+
 @pytest.fixture()
-def scanner_with_sessions(tmp_path):
+def scanner_with_sessions(tmp_path, monkeypatch):
     """Return a FennScanner loaded with a small set of known sessions."""
     sessions = [
         dict(
@@ -60,6 +72,9 @@ def scanner_with_sessions(tmp_path):
     for s in sessions:
         _write(tmp_path / f"{s['sid']}.fn", _FN_TMPL.format(**s))
 
+    monkeypatch.setenv(
+        "FENN_DASHBOARD_OVERRIDES_PATH", str(tmp_path / "dashboard_overrides.json")
+    )
     scanner = FennScanner(extra_dirs=[str(tmp_path)])
     return scanner
 
@@ -75,6 +90,19 @@ def client(scanner_with_sessions):
     with app.test_client() as c:
         with c.session_transaction() as sess:
             sess["user"] = {"email": "test@example.com"}  # любой dict
+        yield c
+    app_module.scanner = original
+
+
+@pytest.fixture()
+def client_no_auth(scanner_with_sessions):
+    """Flask test client using scanner fixture, but without logged-in user."""
+    import fenn.dashboard.app as app_module
+
+    original = app_module.scanner
+    app_module.scanner = scanner_with_sessions
+    app.config["TESTING"] = True
+    with app.test_client() as c:
         yield c
     app_module.scanner = original
 
@@ -275,6 +303,98 @@ class TestExistingEndpoints:
         data = resp.get_json()
         assert "projects" in data
         assert "total_sessions" in data
+
+
+class TestSessionMutationRoutes:
+    """Rename/delete routes should enforce validation, CSRF, and auth."""
+
+    def test_rename_session_success(self, client):
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        resp = client.post(
+            "/api/session/alpha/a1/rename",
+            json={"display_name": "Alpha baseline"},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["display_name"] == "Alpha baseline"
+
+        check = client.get("/api/session/alpha/a1")
+        assert check.status_code == 200
+        assert check.get_json()["display_name"] == "Alpha baseline"
+
+    def test_rename_empty_name_returns_400(self, client):
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        resp = client.post(
+            "/api/session/alpha/a1/rename",
+            json={"display_name": "   "},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert body["error"]["code"] == "invalid_param"
+        assert body["error"]["param"] == "display_name"
+
+    def test_delete_session_success(self, client):
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        resp = client.post(
+            "/api/session/alpha/a2/delete",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["deleted"] is True
+
+        check = client.get("/api/session/alpha/a2")
+        assert check.status_code == 404
+
+    def test_delete_unknown_session_returns_404(self, client):
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        resp = client.post(
+            "/api/session/alpha/nope/delete",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 404
+
+    def test_mutation_routes_without_auth_redirect_to_connect(self, client_no_auth):
+        token = _extract_csrf_token(
+            client_no_auth.get("/connect").get_data(as_text=True)
+        )
+        assert token
+
+        rename_resp = client_no_auth.post(
+            "/api/session/alpha/a1/rename",
+            json={"display_name": "x"},
+            headers={"X-CSRFToken": token},
+        )
+        delete_resp = client_no_auth.post(
+            "/api/session/alpha/a1/delete",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+
+        assert rename_resp.status_code == 302
+        assert "/connect" in rename_resp.headers.get("Location", "")
+        assert delete_resp.status_code == 302
+        assert "/connect" in delete_resp.headers.get("Location", "")
+
+    def test_mutation_routes_without_csrf_return_400(self, client):
+        rename_resp = client.post(
+            "/api/session/alpha/a1/rename",
+            json={"display_name": "x"},
+        )
+        delete_resp = client.post("/api/session/alpha/a1/delete", json={})
+
+        assert rename_resp.status_code == 400
+        assert delete_resp.status_code == 400
 
 
 # ---------------------------------------------------------------------------

@@ -10,6 +10,7 @@
         href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
 <div class="layout">
@@ -86,6 +87,20 @@
         <div class="confirm-actions">
           <button type="button" class="btn-ghost" id="logout-cancel">Cancel</button>
           <button type="button" class="btn-danger" id="logout-confirm">Disconnect</button>
+        </div>
+      </dialog>
+
+      <dialog id="delete-session-dialog"
+              class="confirm-dialog"
+              aria-labelledby="delete-session-dialog-title">
+        <h2 class="confirm-title" id="delete-session-dialog-title">Delete Session?</h2>
+        <p class="confirm-body">
+          This permanently removes the <span id="delete-session-label"></span> log file from disk.
+          This action cannot be undone.
+        </p>
+        <div class="confirm-actions">
+          <button type="button" class="btn-ghost" id="delete-session-cancel">Cancel</button>
+          <button type="button" class="btn-danger" id="delete-session-confirm">Delete</button>
         </div>
       </dialog>
       {% endif %}

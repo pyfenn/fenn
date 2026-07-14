@@ -51,6 +51,7 @@
       <thead>
         <tr>
           <th>Session ID</th>
+          <th>Name</th>
           <th>Started</th>
           <th>Duration</th>
           <th>Status</th>
@@ -58,15 +59,24 @@
           <th>Warnings</th>
           <th>Exceptions</th>
           <th>Size</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for s in sessions %}
-        <tr data-searchable="{{ s.session_id }} {{ s.started }}">
+        <tr data-searchable="{{ s.session_id }} {{ s.display_name or '' }} {{ s.started }}" data-project="{{ s.project }}" data-session="{{ s.session_id }}">
           <td>
             <a href="/session/{{ s.project | urlencode }}/{{ s.session_id | urlencode }}"
                class="td-mono"
                title="{{ s.session_id }}">{{ s.session_id }}</a>
+          </td>
+          <td class="td-mono" data-searchable="{{ s.display_name or '' }}" data-searchable-name>
+            <span class="session-display-name">{{ s.display_name or '—' }}</span>
+            <button type="button"
+                    class="btn btn-sm session-rename-btn"
+                    data-project="{{ s.project }}"
+                    data-session="{{ s.session_id }}"
+                    data-current-name="{{ s.display_name or '' }}">Rename</button>
           </td>
           <td class="td-mono">{{ s.started }}</td>
           <td class="td-mono">{{ s.duration_s | duration }}</td>
@@ -91,6 +101,12 @@
             {{ s.exception_count if s.exception_count else '—' }}
           </td>
           <td class="td-mono">{{ s.file_size | filesize }}</td>
+          <td>
+            <button type="button"
+                    class="btn btn-sm delete-session-btn"
+                    data-project="{{ s.project }}"
+                    data-session="{{ s.session_id }}">Delete</button>
+          </td>
         </tr>
         {% endfor %}
       </tbody>

@@ -30,6 +30,7 @@ class SessionData(TypedDict):
     """Complete parsed session data from _parse_uncached()."""
 
     session_id: str
+    display_name: str | None
     project: str
     started: str
     ended: str | None
@@ -52,6 +53,7 @@ class SessionListItem(TypedDict):
     """Lightweight session for paginated listings (entries & config stripped)."""
 
     session_id: str
+    display_name: str | None
     project: str
     started: str
     ended: str | None
@@ -107,6 +109,7 @@ class SessionPagePayload(TypedDict):
     """GET /api/project/<name>/session/<id> — session detail response."""
 
     session_id: str
+    display_name: str | None
     project: str
     started: str
     ended: str | None

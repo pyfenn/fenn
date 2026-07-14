@@ -1,5 +1,6 @@
 """FnXML file discovery and parsing for the Fenn dashboard."""
 
+import json
 import os
 import time
 from datetime import datetime
@@ -48,6 +49,9 @@ _VALID_SORT_FIELDS = (
     "exception_count",
 )
 
+_DEFAULT_OVERRIDES_PATH = "~/.fenn/dashboard_overrides.json"
+_MAX_DISPLAY_NAME_LENGTH = 200
+
 
 def _running_timeout_s() -> float:
     """Read the running-session timeout from FENN_RUNNING_TIMEOUT_S, with fallback."""
@@ -66,6 +70,10 @@ class FennScanner:
 
     def __init__(self, extra_dirs: list[str] | None = None) -> None:
         self._dirs: list[Path] = []
+        self._overrides_path = Path(
+            os.environ.get("FENN_DASHBOARD_OVERRIDES_PATH", _DEFAULT_OVERRIDES_PATH)
+        ).expanduser()
+        self._overrides: dict[str, dict[str, str]] = {}
 
         # Parse-result cache keyed by file path. Stores (mtime, parsed_dict).
         # Entries are reused only when mtime matches, so any file write
@@ -90,6 +98,105 @@ class FennScanner:
         if extra_dirs:
             for d in extra_dirs:
                 self._add_dir(d)
+
+        self._load_overrides()
+
+    def _load_overrides(self) -> None:
+        """Load persisted display-name overrides from disk."""
+        self._overrides = {}
+        try:
+            raw = self._overrides_path.read_text(encoding="utf-8")
+        except OSError:
+            return
+
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            return
+
+        if not isinstance(payload, dict):
+            return
+
+        cleaned: dict[str, dict[str, str]] = {}
+        for sid, data in payload.items():
+            if not isinstance(sid, str) or not isinstance(data, dict):
+                continue
+            display_name = data.get("display_name")
+            if isinstance(display_name, str) and display_name.strip():
+                cleaned[sid] = {"display_name": display_name.strip()}
+        self._overrides = cleaned
+
+    def _save_overrides(self) -> None:
+        """Persist display-name overrides atomically."""
+        self._overrides_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = self._overrides_path.with_suffix(
+            self._overrides_path.suffix + ".tmp"
+        )
+        tmp_path.write_text(
+            json.dumps(self._overrides, ensure_ascii=True, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        os.replace(tmp_path, self._overrides_path)
+
+    def _display_name_for(self, session_id: str) -> str | None:
+        data = self._overrides.get(session_id, {})
+        display_name = data.get("display_name")
+        return display_name if display_name else None
+
+    def _with_display_name(self, session: SessionData) -> SessionData:
+        """Return a copy of a session dict with the current display-name override."""
+        return cast(
+            SessionData,
+            {
+                **session,
+                "display_name": self._display_name_for(session["session_id"]),
+            },
+        )
+
+    @staticmethod
+    def _normalize_display_name(display_name: str) -> str:
+        name = display_name.strip()
+        if not name:
+            raise ValueError("display_name must not be empty")
+        if len(name) > _MAX_DISPLAY_NAME_LENGTH:
+            raise ValueError(
+                f"display_name must be <= {_MAX_DISPLAY_NAME_LENGTH} characters"
+            )
+        return name
+
+    def rename_session(self, project: str, session_id: str, display_name: str) -> bool:
+        """Persist a custom display name for an existing session."""
+        name = self._normalize_display_name(display_name)
+        if self.get_session(project, session_id) is None:
+            return False
+
+        self._overrides[session_id] = {"display_name": name}
+        self._save_overrides()
+        return True
+
+    def delete_session(self, project: str, session_id: str) -> bool:
+        """Delete an existing session file and remove any related overrides/cache."""
+        session = self.get_session(project, session_id)
+        if session is None:
+            return False
+
+        path = Path(session["file_path"]).resolve()
+        if not any(path.is_relative_to(base) for base in self._dirs):
+            raise ValueError("session path is outside configured scan directories")
+
+        try:
+            path.unlink()
+        except OSError:
+            return False
+
+        self._parse_cache.pop(str(path), None)
+        self._files_cache = None
+
+        if session_id in self._overrides:
+            self._overrides.pop(session_id, None)
+            self._save_overrides()
+
+        return True
 
     def add_dirs(self, dirs: list[str]) -> None:
         for d in dirs:
@@ -216,6 +323,7 @@ class FennScanner:
 
         return SessionData(
             session_id=root.get("session_id", path.stem),
+            display_name=None,
             project=root.get("project", path.parent.name),
             started=root.get("started", ""),
             ended=ended,
@@ -250,7 +358,7 @@ class FennScanner:
         for path in self.find_fn_files():
             parsed = self.parse_fn_file(path)
             if parsed:
-                sessions.append(parsed)
+                sessions.append(self._with_display_name(parsed))
         return sessions
 
     @staticmethod
@@ -334,6 +442,7 @@ class FennScanner:
                 and parsed["project"] == project_name
                 and parsed["session_id"] == session_id
             ):
+                parsed = self._with_display_name(parsed)
                 overview = self.get_overview()
                 return cast(
                     SessionPagePayload,

@@ -93,23 +93,33 @@
         <tr>
           <th>Project</th>
           <th>Session ID</th>
+          <th>Name</th>
           <th>Started</th>
           <th>Duration</th>
           <th>Status</th>
           <th>Entries</th>
           <th>Warnings</th>
           <th>Exceptions</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for s in recent_sessions %}
-        <tr data-searchable="{{ s.project }} {{ s.session_id }}" data-session="{{ s.session_id }}">
+        <tr data-searchable="{{ s.project }} {{ s.session_id }} {{ s.display_name or '' }}" data-project="{{ s.project }}" data-session="{{ s.session_id }}">
           <td data-searchable="{{ s.project }}">
             <a href="/project/{{ s.project | urlencode }}">{{ s.project }}</a>
           </td>
           <td data-searchable="{{ s.session_id }}">
             <a href="/session/{{ s.project | urlencode }}/{{ s.session_id | urlencode }}"
                class="td-mono">{{ s.session_id | short_id }}…</a>
+          </td>
+          <td class="td-mono" data-searchable="{{ s.display_name or '' }}" data-searchable-name>
+            <span class="session-display-name">{{ s.display_name or '—' }}</span>
+            <button type="button"
+                    class="btn btn-sm session-rename-btn"
+                    data-project="{{ s.project }}"
+                    data-session="{{ s.session_id }}"
+                    data-current-name="{{ s.display_name or '' }}">Rename</button>
           </td>
           <td class="td-mono" data-searchable="{{ s.started }}">{{ s.started }}</td>
           <td class="td-mono" data-searchable="{{ s.duration_s | duration }} ">{{ s.duration_s | duration }}</td>
@@ -132,6 +142,12 @@
           <td class="td-mono {% if s.exception_count > 0 %}has-error{% endif %}"
               style="{% if s.exception_count > 0 %}color:var(--error){% endif %}">
             {{ s.exception_count if s.exception_count else '—' }}
+          </td>
+          <td>
+            <button type="button"
+                    class="btn btn-sm delete-session-btn"
+                    data-project="{{ s.project }}"
+                    data-session="{{ s.session_id }}">Delete</button>
           </td>
         </tr>
         {% endfor %}

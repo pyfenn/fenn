@@ -21,6 +21,7 @@
 
 <!-- Header -->
 <div class="page-header">
+  <span class="page-tag" id="session-display-name-header">{{ display_name or '' }}</span>
   <h1 class="page-title" style="font-family:var(--font-mono); font-size:18px; letter-spacing:0;">
     {{ session_id }}
     {% if status == 'crashed' %}
@@ -35,6 +36,18 @@
     <span class="badge badge-completed" style="font-size:12px; margin-left:8px; vertical-align:middle;">completed</span>
     {% endif %}
   </h1>
+  <p class="page-subtitle" id="session-display-name-subtitle">
+    Display name: <span class="session-display-name">{{ display_name or '—' }}</span>
+    <button type="button"
+            class="btn btn-sm session-rename-btn"
+            data-project="{{ project }}"
+            data-session="{{ session_id }}"
+            data-current-name="{{ display_name or '' }}">Rename</button>
+    <button type="button"
+            class="btn btn-sm delete-session-btn"
+            data-project="{{ project }}"
+            data-session="{{ session_id }}">Delete</button>
+  </p>
 </div>
 
 <!-- Meta row -->

@@ -3,6 +3,69 @@
 (function () {
   "use strict";
 
+  function getCsrfToken() {
+    const meta = document.querySelector("meta[name='csrf-token']");
+    return meta?.getAttribute("content") || "";
+  }
+
+  function postJson(url, payload) {
+    return fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCsrfToken(),
+      },
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  function updateSearchableRow(row) {
+    if (!row) return;
+    const parts = [];
+    row.querySelectorAll("td[data-searchable]").forEach((cell) => {
+      const val = cell.getAttribute("data-searchable");
+      if (val) parts.push(val);
+    });
+    if (parts.length > 0) {
+      row.setAttribute("data-searchable", parts.join(" "));
+    }
+  }
+
+  function applyDisplayName(project, sessionId, displayName) {
+    const shown = displayName && displayName.trim() ? displayName.trim() : "—";
+    document
+      .querySelectorAll(`[data-project='${CSS.escape(project)}'][data-session='${CSS.escape(sessionId)}']`)
+      .forEach((node) => {
+        const nameEl = node.querySelector(".session-display-name");
+        if (nameEl) {
+          nameEl.textContent = shown;
+        }
+        if (node.matches("tr")) {
+          const nameCell = node.querySelector("td[data-searchable-name]");
+          if (nameCell) {
+            nameCell.setAttribute("data-searchable", displayName || "");
+          }
+          updateSearchableRow(node);
+        }
+      });
+
+    document.querySelectorAll(".session-rename-btn").forEach((btn) => {
+      if (btn.dataset.project === project && btn.dataset.session === sessionId) {
+        btn.dataset.currentName = displayName || "";
+      }
+    });
+
+    const headerTag = document.getElementById("session-display-name-header");
+    if (headerTag && headerTag.closest("[data-session]") === null) {
+      headerTag.textContent = displayName || "";
+    }
+    const subtitle = document.getElementById("session-display-name-subtitle");
+    if (subtitle && subtitle.querySelector(".session-display-name")) {
+      subtitle.querySelector(".session-display-name").textContent = shown;
+    }
+  }
+
   // ── Log viewer filters ─────────────────────────────────────────────────── //
 
   const levelState = { info: true, warning: true, exception: true };
@@ -147,6 +210,116 @@
     });
   });
   }
+
+  // ── Session rename/delete actions ────────────────────────────────────── //
+
+  document.querySelectorAll(".session-rename-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const project = btn.dataset.project;
+      const sessionId = btn.dataset.session;
+      if (!project || !sessionId) return;
+
+      const current = btn.dataset.currentName || "";
+      const next = window.prompt(
+        "Enter a custom session name (max 200 characters):",
+        current
+      );
+      if (next === null) return;
+
+      try {
+        const resp = await postJson(
+          `/api/session/${encodeURIComponent(project)}/${encodeURIComponent(sessionId)}/rename`,
+          { display_name: next }
+        );
+        const body = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          window.alert(body?.error?.message || "Rename failed");
+          return;
+        }
+        applyDisplayName(project, sessionId, body.display_name || "");
+      } catch (_err) {
+        window.alert("Rename failed");
+      }
+    });
+  });
+
+  const deleteDialog = document.getElementById("delete-session-dialog");
+  const deleteCancel = document.getElementById("delete-session-cancel");
+  const deleteConfirm = document.getElementById("delete-session-confirm");
+  const deleteLabel = document.getElementById("delete-session-label");
+  const pendingDelete = { project: "", sessionId: "" };
+
+  document.querySelectorAll(".delete-session-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      pendingDelete.project = btn.dataset.project || "";
+      pendingDelete.sessionId = btn.dataset.session || "";
+      if (!pendingDelete.project || !pendingDelete.sessionId) return;
+
+      if (deleteLabel) {
+        deleteLabel.textContent = `${pendingDelete.project}/${pendingDelete.sessionId}`;
+      }
+
+      if (deleteDialog && typeof deleteDialog.showModal === "function") {
+        deleteDialog.showModal();
+      } else {
+        const ok = window.confirm(
+          `Delete ${pendingDelete.project}/${pendingDelete.sessionId}? This permanently removes the .fn file.`
+        );
+        if (ok && deleteConfirm) {
+          deleteConfirm.click();
+        }
+      }
+    });
+  });
+
+  deleteCancel?.addEventListener("click", () => {
+    deleteDialog?.close();
+  });
+
+  deleteDialog?.addEventListener("click", (e) => {
+    if (e.target === deleteDialog) deleteDialog.close();
+  });
+
+  deleteConfirm?.addEventListener("click", async () => {
+    if (!pendingDelete.project || !pendingDelete.sessionId) {
+      deleteDialog?.close();
+      return;
+    }
+
+    try {
+      const resp = await postJson(
+        `/api/session/${encodeURIComponent(pendingDelete.project)}/${encodeURIComponent(pendingDelete.sessionId)}/delete`,
+        {}
+      );
+      const body = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        window.alert(body?.error?.message || "Delete failed");
+        return;
+      }
+
+      const rows = document.querySelectorAll(
+        `tr[data-project='${CSS.escape(pendingDelete.project)}'][data-session='${CSS.escape(pendingDelete.sessionId)}']`
+      );
+      if (rows.length > 0) {
+        rows.forEach((row) => row.remove());
+      }
+
+      const sessionStatusEl = document.getElementById("session-status");
+      if (
+        sessionStatusEl &&
+        sessionStatusEl.dataset.project === pendingDelete.project &&
+        sessionStatusEl.dataset.session === pendingDelete.sessionId
+      ) {
+        location.href = `/project/${encodeURIComponent(pendingDelete.project)}`;
+        return;
+      }
+    } catch (_err) {
+      window.alert("Delete failed");
+      return;
+    } finally {
+      deleteDialog?.close();
+    }
+  });
 
   // ── Logout confirmation dialog ─────────────────────────────────────────── //
 

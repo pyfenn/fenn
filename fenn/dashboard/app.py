@@ -204,6 +204,48 @@ def api_session(project_name: str, session_id: str) -> Response:
     return jsonify(data)
 
 
+@app.route("/api/session/<project_name>/<session_id>/rename", methods=["POST"])
+def api_session_rename(
+    project_name: str, session_id: str
+) -> tuple[Response, int] | Response:
+    payload = request.get_json(silent=True)
+    display_name: str | None = None
+    if isinstance(payload, dict):
+        raw_name = payload.get("display_name")
+        if raw_name is not None and not isinstance(raw_name, str):
+            return _api_error(
+                "invalid_param", "display_name must be a string", "display_name"
+            )
+        display_name = raw_name
+    if display_name is None:
+        display_name = request.form.get("display_name")
+    if display_name is None:
+        return _api_error("invalid_param", "display_name is required", "display_name")
+
+    try:
+        ok = scanner.rename_session(project_name, session_id, display_name)
+    except ValueError as e:
+        return _api_error("invalid_param", str(e), "display_name")
+
+    if not ok:
+        abort(404)
+    return jsonify({"display_name": display_name.strip()})
+
+
+@app.route("/api/session/<project_name>/<session_id>/delete", methods=["POST"])
+def api_session_delete(
+    project_name: str, session_id: str
+) -> tuple[Response, int] | Response:
+    try:
+        ok = scanner.delete_session(project_name, session_id)
+    except ValueError as e:
+        return _api_error("invalid_param", str(e), "session_id")
+
+    if not ok:
+        abort(404)
+    return jsonify({"deleted": True})
+
+
 # Pagination / filtering limits. 200 is large enough for any plausible UI
 # without letting a client ask for "everything" by accident.
 _MAX_LIMIT = 200

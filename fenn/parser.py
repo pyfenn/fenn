@@ -1,10 +1,11 @@
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 from colorama import init
 
-from fenn.secrets.keystore import KeyStore
+from fenn.keystore import KeyStore
+from fenn.logging import logger
 
 
 class Parser:
@@ -20,7 +21,7 @@ class Parser:
             return
 
         self._config_file: Path = Path(config_file)
-        self._args: Dict[str, Any] = {}
+        self._args: dict[str, Any] = {}
 
         self._keystore: KeyStore = KeyStore()
 
@@ -29,13 +30,7 @@ class Parser:
         self._initialized = True
 
     def _config_missing(self) -> None:
-        from fenn.logging import Logger
-
-        logger = Logger()
-
-        logger.display_exception(
-            f"Configuration file {self._config_file} was not found."
-        )
+        logger.exception(f"Configuration file {self._config_file} was not found.")
 
         raise FileNotFoundError(
             0,
@@ -58,9 +53,7 @@ class Parser:
 
     def print(self) -> None:
         """Public method to trigger the flattened print with colored paths."""
-        from fenn.logging import Logger
-
-        Logger().write_config(self._args)
+        logger.write_config(self._args, self.config_file)
 
     @property
     def config_file(self) -> str:
@@ -71,5 +64,5 @@ class Parser:
         self._config_file: Path = Path(config_file)
 
     @property
-    def args(self) -> Dict[str, Any]:
+    def args(self) -> dict[str, Any]:
         return self._args

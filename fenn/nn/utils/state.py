@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, replace
-from typing import Any, Optional, TypeAlias
+from typing import Any, TypeAlias
 
 StateDict: TypeAlias = dict[str, Any]
 
@@ -12,17 +12,17 @@ class TrainingState:
 
     epoch: int
 
-    acc: Optional[float] = None
+    acc: float | None = None
     """Accuracy on the validation set (if provided)"""
 
-    train_loss: Optional[float] = None
+    train_loss: float | None = None
     """Train mean loss over all batches"""
 
-    val_loss: Optional[float] = None
+    val_loss: float | None = None
     """Validation mean loss over all batches"""
 
-    model_state_dict: Optional[StateDict] = None
-    optimizer_state_dict: Optional[StateDict] = None
+    model_state_dict: StateDict | None = None
+    optimizer_state_dict: StateDict | None = None
 
     patience_counter: int = 0
     """Patience counter up to this epoch for early stopping."""

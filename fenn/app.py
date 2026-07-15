@@ -1,13 +1,14 @@
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from colorama import Fore, Style
 
-from fenn.args import Parser
-from fenn.export.exporter import Exporter
-from fenn.logging import Logger
-from fenn.secrets.keystore import KeyStore
-from fenn.utils import generate_session_id
+from fenn.exporter import Exporter
+from fenn.keystore import KeyStore
+from fenn.logging import logger, original_print, redirect_prints, restore_prints
+from fenn.parser import Parser
+from fenn.reproducibility import generate_session_id
 
 
 class Fenn:
@@ -32,7 +33,6 @@ class Fenn:
 
         self._parser: Parser = Parser()
         self._keystore: KeyStore = KeyStore()
-        self._logger: Logger = Logger()
         self._exporter: Exporter = Exporter()
 
         # DISCLAIMER:
@@ -41,7 +41,7 @@ class Fenn:
         # Please do not modify this class unless you know what you are doing.
         self._config_file: str = None
 
-        self._entrypoint_fn: Optional[Callable] = None
+        self._entrypoint_fn: Callable | None = None
 
         self._disable_disclaimer = False
 
@@ -88,7 +88,7 @@ class Fenn:
         """
 
         if not self._disable_disclaimer:
-            self._logger._logging_backend._original_print(
+            original_print(
                 "***********************************************************************************\n"
                 f"{Style.BRIGHT}Hi, thank you for using the {Fore.GREEN}PyFenn{Style.RESET_ALL}{Style.BRIGHT} framework.{Style.RESET_ALL}\n"
                 f"PyFenn is still in {Fore.CYAN}early access{Style.RESET_ALL}.\n"
@@ -106,17 +106,15 @@ class Fenn:
                 "to register your main function."
             )
 
-        Exporter().configure(self._args)
-
-        # Start logging
-        self._logger.start()
-
-        # Print parsed config (user logs)
-        self._parser.print()
-
+        redirect_prints()
         try:
+            Exporter().configure(self._args)
+
+            # Print parsed config (user logs)
+            self._parser.print()
+
             # System startup message
-            self._logger.display_info(
+            logger.info(
                 f"Application starting from entrypoint: {self._entrypoint_fn.__name__}"
             )
 
@@ -125,7 +123,8 @@ class Fenn:
             return result
 
         finally:
-            self._logger.stop()
+            restore_prints()
+            logger.close()
 
     def disable_disclaimer(self) -> None:
         """Suppress the startup banner printed before each run."""

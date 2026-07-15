@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Optional, Union, cast
+from typing import cast
 
 import torch
 import torch.nn
@@ -19,7 +19,7 @@ from sklearn.metrics import (  # noqa: F401
 )
 from torch.utils.data import DataLoader
 
-from fenn.logging import Logger
+from fenn.logging import logger
 from fenn.nn.utils import Checkpoint
 
 from .trainer import Trainer
@@ -67,9 +67,9 @@ class ClassificationTrainer(Trainer):
         optim: torch.optim.Optimizer,
         num_classes: int,
         multi_label: bool = False,
-        device: Union[torch.device, str] = "cpu",
-        early_stopping_patience: Optional[int] = None,
-        checkpoint_config: Optional[Checkpoint] = None,
+        device: torch.device | str = "cpu",
+        early_stopping_patience: int | None = None,
+        checkpoint_config: Checkpoint | None = None,
     ):
         """Initialize a ClassificationTrainer instance.
 
@@ -92,7 +92,6 @@ class ClassificationTrainer(Trainer):
             checkpoint_config=checkpoint_config,
         )
 
-        self._logger = Logger()
         self._num_classes = num_classes
         self.multi_label = multi_label
 
@@ -109,21 +108,17 @@ class ClassificationTrainer(Trainer):
             self._task_type = "multiclass"
 
         if multi_label:
-            self._logger.display_info(
-                f"Multi-label classification ({num_classes} labels) mode"
-            )
+            logger.info(f"Multi-label classification ({num_classes} labels) mode")
         elif num_classes == 2:
-            self._logger.display_info("Binary classification mode detected.")
+            logger.info("Binary classification mode detected.")
         else:
-            self._logger.display_info(
-                f"Multi-class classification ({num_classes} classes)"
-            )
+            logger.info(f"Multi-class classification ({num_classes} classes)")
 
     def fit(
         self,
         train_loader: DataLoader,
         epochs: int,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         val_epochs: int = 1,
     ):
         """Train the model with optional validation and early stopping.
@@ -213,9 +208,9 @@ class ClassificationTrainer(Trainer):
                 progress.console.print(
                     f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f}"
                 )
-                Logger().display_info(
+                logger.info(
                     f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f}",
-                    display_on_terminal=False,
+                    extra={"skip_console": True},
                 )
 
                 if state.train_loss < state.best_train_loss:
@@ -263,9 +258,9 @@ class ClassificationTrainer(Trainer):
                     progress.console.print(
                         f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}"
                     )
-                    Logger().display_info(
+                    logger.info(
                         f"Epoch {epoch}/{epochs} - Train Loss: {state.train_loss:.4f} | Val Loss: {val_mean_loss:.4f} | Val Acc: {val_acc:.4f}",
-                        display_on_terminal=False,
+                        extra={"skip_console": True},
                     )
 
                 state.val_loss = val_total_loss / val_n_batches
@@ -307,9 +302,9 @@ class ClassificationTrainer(Trainer):
                     _reason = "training loss"
                 else:
                     _reason = "validation loss"
-                self._logger.display_info(
+                logger.info(
                     f"Early stopping triggered.  No improvement in {_reason} for {self._early_stopping_patience} epochs.",
-                    display_on_terminal=False,
+                    extra={"skip_console": True},
                 )
 
                 break
@@ -318,7 +313,7 @@ class ClassificationTrainer(Trainer):
 
     def predict(
         self,
-        dataloader_or_batch: Union[DataLoader, torch.Tensor],
+        dataloader_or_batch: DataLoader | torch.Tensor,
         return_proba: bool = False,
     ):
         """Predicts the output of the model for a given dataloader or batch.

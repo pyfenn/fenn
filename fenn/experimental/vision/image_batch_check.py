@@ -1,11 +1,9 @@
-import logging
-from typing import Any, Dict, List, Literal, TypedDict
+from typing import Any, Literal, TypedDict
+from fenn.logging import logger
 
 import numpy as np
 
 from .vision_utils import detect_format
-
-logger = logging.getLogger(__name__)
 
 
 class BatchIssue(TypedDict):
@@ -20,8 +18,8 @@ class BatchReport(TypedDict):
     """Structured report of batch validation results."""
 
     is_valid: bool  # True if no errors found
-    issues: List[BatchIssue]  # List of detected issues -> count
-    summary: Dict[str, Any]  # Summary statistics about the batch
+    issues: list[BatchIssue]  # List of detected issues -> count
+    summary: dict[str, Any]  # Summary statistics about the batch
 
 
 def check_image_batch(array) -> BatchReport:
@@ -48,7 +46,7 @@ def check_image_batch(array) -> BatchReport:
             - issues: List of detected issues with severity, category, and message
             - summary: Summary statistics (batch_size, shape, dtype, channels, etc.)
     """
-    issues: List[BatchIssue] = []
+    issues: list[BatchIssue] = []
     outlier_threshold = 5.0
     try:
         format_info = detect_format(array)

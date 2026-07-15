@@ -1,6 +1,8 @@
 import os
 import time
 
+from fenn.logging import logger
+
 PROVIDERS = {
     "openrouter": "https://openrouter.ai/api/v1",
     "together": "https://api.together.xyz/v1",
@@ -205,7 +207,7 @@ class LLMClient:
             except RateLimitError:
                 if attempt < retries - 1:
                     wait = 5 * (attempt + 1)
-                    print(
+                    logger.warning(
                         f"[fenn] rate limit hit, retrying in {wait}s... ({attempt + 1}/{retries})"
                     )
                     time.sleep(wait)

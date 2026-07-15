@@ -1,9 +1,9 @@
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional
 
 import torch
 
-from fenn.logging import Logger
+from fenn.logging import logger
 from fenn.nn.utils.state import TrainingState
 
 
@@ -32,8 +32,8 @@ class Checkpoint:
         self,
         *,
         name: str = "checkpoint",
-        dir: Union[Path, str],
-        epochs: Optional[Union[int, List[int]]] = None,
+        dir: Path | str,
+        epochs: int | list[int] | None = None,
         save_best: bool = True,
     ):
         """Initialize the checkpoint configuration.
@@ -45,8 +45,6 @@ class Checkpoint:
             save_best: Whether to checkpoint the best model (based on validation or training loss).
         """
 
-        self._logger = Logger()
-
         self.name = name
         self.dir = Path(dir)
         self.epochs = epochs
@@ -57,19 +55,19 @@ class Checkpoint:
         self.dir.mkdir(parents=True, exist_ok=True)
 
         if self.epochs is None and not self.save_best:
-            self._logger.system_warning(
+            logger.warning(
                 "Checkpoint configuration is passed, but both `epochs` and `save_best` are unset.\n"
                 "Models will not be checkpointed."
             )
             return
 
         if self.epochs is not None:
-            self._logger.display_info(
+            logger.info(
                 f"Checkpointing enabled. Checkpoints will be saved to {self.dir} every {self.epochs} epochs."
             )
 
         if self.save_best:
-            self._logger.display_info(
+            logger.info(
                 f"Best model checkpointing enabled. Best model will be saved to {self.dir}."
             )
 
@@ -89,22 +87,22 @@ class Checkpoint:
             filename = f"{self.name}_epoch_{epoch}.pt"
             filepath = self.dir / filename
             torch.save(state.to_dict(), filepath)
-            self._logger.display_info(
+            logger.info(
                 f"Checkpoint saved at epoch {epoch} to {filepath}.",
-                display_on_terminal=False,
+                extra={"skip_console": True},
             )
 
         elif is_best and self.save_best:
             filename = f"{self.name}_best.pt"
             filepath = self.dir / filename
             torch.save(state.to_dict(), filepath)
-            self._logger.display_info(
+            logger.info(
                 f"Best model checkpoint saved to {filepath} with acc {state.acc:.4f}.",
-                display_on_terminal=False,
+                extra={"skip_console": True},
             )
 
     def load(
-        self, checkpoint_path: Union[str, Path], device: Optional[torch.device] = None
+        self, checkpoint_path: str | Path, device: torch.device | None = None
     ) -> TrainingState:
         """Load a checkpoint from the given path.
 
@@ -127,14 +125,14 @@ class Checkpoint:
         checkpoint = torch.load(filepath, map_location=device)
         state = TrainingState.from_dict(checkpoint)
 
-        self._logger.display_info(
+        logger.info(
             f"Checkpoint loaded from {checkpoint_path}. Resuming from "
             f"epoch {state.epoch} with training loss {state.train_loss:.4f}."
         )
         return state
 
     def load_at_epoch(
-        self, epoch: int, device: Optional[torch.device] = None
+        self, epoch: int, device: torch.device | None = None
     ) -> TrainingState:
         """Load the checkpoint at the given epoch.
 
@@ -154,7 +152,7 @@ class Checkpoint:
             )
         return self.load(filepath, device)
 
-    def load_best(self, device: Optional[torch.device] = None) -> TrainingState:
+    def load_best(self, device: torch.device | None = None) -> TrainingState:
         """Load the best checkpoint.
 
         Args:

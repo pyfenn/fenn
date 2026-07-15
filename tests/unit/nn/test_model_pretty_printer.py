@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-from fenn.logging import Logger
-from fenn.nn.trainers import ClassificationTrainer
 from fenn.nn.utils import ModelPrettyPrinter
 
 
@@ -54,32 +52,3 @@ def test_model_pretty_printer_compacts_large_model():
     assert "Class: _LargeModel" in rendered
     assert "Modules: 53" in rendered
     assert "... 2 more modules" in rendered
-
-
-def test_trainer_logs_model_summary_to_logger(monkeypatch):
-    logged_messages = []
-
-    def capture(self, message, display_on_terminal=True, write_on_file=True):
-        logged_messages.append((message, display_on_terminal, write_on_file))
-
-    monkeypatch.setattr(Logger, "display_info", capture)
-
-    model = nn.Sequential(nn.Linear(4, 2))
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
-    ClassificationTrainer(
-        model=model,
-        loss_fn=nn.CrossEntropyLoss(),
-        optim=optimizer,
-        num_classes=2,
-    )
-
-    model_logs = [
-        entry for entry in logged_messages if entry[0].startswith("Model Summary")
-    ]
-
-    assert model_logs
-    message, display_on_terminal, write_on_file = model_logs[0]
-    assert "Parameters: total=10, trainable=10, frozen=0" in message
-    assert display_on_terminal is False
-    assert write_on_file is True

@@ -275,3 +275,141 @@ class TestExistingEndpoints:
         data = resp.get_json()
         assert "projects" in data
         assert "total_sessions" in data
+
+
+# ---------------------------------------------------------------------------
+# Date range filtering
+# ---------------------------------------------------------------------------
+
+
+class TestApiSessionsDateRangeFilter:
+    """started_after= and started_before= query parameters must filter by
+    the session's started timestamp."""
+
+    def test_started_after_filters_out_earlier_sessions(self, client):
+        """?started_after should exclude sessions that started before it."""
+        resp = client.get("/api/sessions?started_after=2026-05-21 07:00:00")
+        data = resp.get_json()
+        sids = {s["session_id"] for s in data["items"]}
+        assert sids == {"a1", "a2"}
+        assert data["total"] == 2
+
+    def test_started_before_filters_out_later_sessions(self, client):
+        """?started_before should exclude sessions that started after it."""
+        resp = client.get("/api/sessions?started_before=2026-05-21 07:00:00")
+        data = resp.get_json()
+        sids = {s["session_id"] for s in data["items"]}
+        assert sids == {"a1", "b1"}
+        assert data["total"] == 2
+
+    def test_started_before_is_inclusive(self, client):
+        """A session started exactly at started_before must be included."""
+        resp = client.get("/api/sessions?started_before=2026-05-21 07:00:00")
+        data = resp.get_json()
+        sids = {s["session_id"] for s in data["items"]}
+        assert "a1" in sids
+
+    def test_combined_after_and_before_range(self, client):
+        """Both bounds together must return only sessions inside the range."""
+        resp = client.get(
+            "/api/sessions"
+            "?started_after=2026-05-21 06:30:00"
+            "&started_before=2026-05-21 07:30:00"
+        )
+        data = resp.get_json()
+        sids = {s["session_id"] for s in data["items"]}
+        assert sids == {"a1"}
+        assert data["total"] == 1
+
+    def test_inverted_range_returns_empty_without_error(self, client):
+        """started_after later than started_before must yield an empty
+        result set, not a 400."""
+        resp = client.get(
+            "/api/sessions"
+            "?started_after=2026-05-21 08:00:00"
+            "&started_before=2026-05-21 06:00:00"
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["items"] == []
+        assert data["total"] == 0
+
+    def test_date_filter_combined_with_project_and_status(self, client):
+        """Date range must AND together with existing project/status filters."""
+        resp = client.get(
+            "/api/sessions"
+            "?project=alpha&status=completed"
+            "&started_after=2026-05-21 00:00:00"
+        )
+        data = resp.get_json()
+        assert data["total"] == 1
+        assert data["items"][0]["session_id"] == "a1"
+
+    def test_no_date_filters_returns_all_sessions(self, client):
+        """Omitting both date params must not affect results (backward
+        compatibility)."""
+        resp = client.get("/api/sessions")
+        data = resp.get_json()
+        assert data["total"] == 3
+
+    def test_invalid_started_after_format_returns_400(self, client):
+        """Malformed started_after must return 400 with param='started_after'."""
+        resp = client.get("/api/sessions?started_after=2026-05-21")
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert body["error"]["code"] == "invalid_param"
+        assert body["error"]["param"] == "started_after"
+
+    def test_invalid_started_before_format_returns_400(self, client):
+        """Malformed started_before must return 400 with param='started_before'."""
+        resp = client.get("/api/sessions?started_before=not-a-date")
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert body["error"]["code"] == "invalid_param"
+        assert body["error"]["param"] == "started_before"
+
+    def test_session_with_unparsable_started_is_skipped(self, tmp_path):
+        """A session whose 'started' field can't be parsed must be skipped
+        when a date filter is active, not raise an error."""
+        sessions_dir = tmp_path
+        _write(
+            sessions_dir / "bad.fn",
+            _FN_TMPL.format(
+                project="alpha",
+                sid="bad1",
+                started="not-a-real-timestamp",
+                ended="2026-05-21 07:00:10",
+                dur=10,
+                status="completed",
+            ),
+        )
+        _write(
+            sessions_dir / "good.fn",
+            _FN_TMPL.format(
+                project="alpha",
+                sid="good1",
+                started="2026-05-21 07:00:00",
+                ended="2026-05-21 07:00:10",
+                dur=10,
+                status="completed",
+            ),
+        )
+        scanner = FennScanner(extra_dirs=[str(sessions_dir)])
+
+        import fenn.dashboard.app as app_module
+
+        original = app_module.scanner
+        app_module.scanner = scanner
+        app.config["TESTING"] = True
+        try:
+            with app.test_client() as c:
+                with c.session_transaction() as sess:
+                    sess["user"] = {"email": "test@example.com"}
+                resp = c.get("/api/sessions?started_after=2026-05-21 00:00:00")
+                assert resp.status_code == 200
+                data = resp.get_json()
+                sids = {s["session_id"] for s in data["items"]}
+                assert "bad1" not in sids
+                assert "good1" in sids
+        finally:
+            app_module.scanner = original

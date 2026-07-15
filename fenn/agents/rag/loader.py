@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from fenn.logging import logger
+
 SUPPORTED_EXTENSIONS = {
     ".txt",
     ".md",
@@ -76,8 +78,10 @@ def load_documents(source):
             f for f in found if f.is_file() and f.suffix in SUPPORTED_EXTENSIONS
         ]
         if not supported:
-            print(f"[cofone] warning: no supported files found in {path}")
-            print(f"[cofone] supported extensions: {', '.join(SUPPORTED_EXTENSIONS)}")
+            logger.warning(f"[cofone] warning: no supported files found in {path}")
+            logger.warning(
+                f"[cofone] supported extensions: {', '.join(SUPPORTED_EXTENSIONS)}"
+            )
         for f in supported:
             doc = _read_file(f)
             if doc:
@@ -93,7 +97,7 @@ def _read_file(path):
             return _read_pdf(path)
         return path.read_text(encoding="utf-8")
     except Exception as e:
-        print(f"[cofone] read error {path.name}: {e}")
+        logger.error(f"[cofone] read error {path.name}: {e}")
         return None
 
 
@@ -109,7 +113,7 @@ def _read_pdf(path):
         pages = [p.extract_text() or "" for p in reader.pages]
         text = "\n".join(pages).strip()
         if not text:
-            print(
+            logger.warning(
                 f"[cofone] warning: PDF '{path.name}' returned no text (may be scanned/image-based)"
             )
         return text or None

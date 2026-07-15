@@ -3,6 +3,8 @@ import os
 from collections import defaultdict
 from pathlib import Path
 
+from fenn.logging import logger
+
 from .chunker import chunk_text
 
 try:
@@ -289,7 +291,7 @@ class Retriever:
         (self.persist_path / "chunks.json").write_text(
             json.dumps(self.chunks, ensure_ascii=False), encoding="utf-8"
         )
-        print(
+        logger.info(
             f"[cofone] index saved to {self.persist_path} ({len(self.chunks)} chunks)"
         )
 
@@ -303,12 +305,12 @@ class Retriever:
 
             self._faiss_index = faiss.read_index(str(index_file))
             self.chunks = json.loads(chunks_file.read_text(encoding="utf-8"))
-            print(
+            logger.info(
                 f"[cofone] index loaded from {self.persist_path} ({len(self.chunks)} chunks)"
             )
             return True
         except Exception as e:
-            print(f"[cofone] cache load failed ({e}), rebuilding index...")
+            logger.warning(f"[cofone] cache load failed ({e}), rebuilding index...")
             return False
 
     # ── Query ──────────────────────────────────────────────────────────────────

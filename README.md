@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![GitHub stars](https://img.shields.io/github/stars/blkdmr/fenn?style=social) ![GitHub forks](https://img.shields.io/github/forks/blkdmr/fenn?style=social) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/261c40f69583462baa200aee959bcc8f)](https://app.codacy.com/gh/blkdmr/fenn/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![codecov](https://codecov.io/gh/pyfenn/fenn/graph/badge.svg?token=7RTTZ1SFMM)](https://codecov.io/gh/pyfenn/fenn) ![PyPI version](https://img.shields.io/pypi/v/fenn) ![License](https://img.shields.io/github/license/blkdmr/fenn) [![PyPI Downloads](https://img.shields.io/pypi/dm/fenn.svg?label=downloads&logo=pypi&color=blue)](https://pypi.org/project/fenn/) [![Discord Server](https://img.shields.io/badge/Discord-PyFenn-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/6v9xtJxvN7) [![Sponsor](https://img.shields.io/badge/sponsor-GitHub-pink)](https://github.com/sponsors/blkdmr)
+![GitHub stars](https://img.shields.io/github/stars/pyfenn/fenn?style=social) ![GitHub forks](https://img.shields.io/github/forks/pyfenn/fenn?style=social) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/261c40f69583462baa200aee959bcc8f)](https://app.codacy.com/gh/blkdmr/fenn/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![codecov](https://codecov.io/gh/pyfenn/fenn/graph/badge.svg?token=7RTTZ1SFMM)](https://codecov.io/gh/pyfenn/fenn) ![PyPI version](https://img.shields.io/pypi/v/fenn) ![License](https://img.shields.io/github/license/pyfenn/fenn) [![PyPI Downloads](https://img.shields.io/pypi/dm/fenn.svg?label=downloads&logo=pypi&color=blue)](https://pypi.org/project/fenn/) [![Discord Server](https://img.shields.io/badge/Discord-PyFenn-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/6v9xtJxvN7) [![Sponsor](https://img.shields.io/badge/sponsor-GitHub-pink)](https://github.com/sponsors/blkdmr)
 
 </div>
 
@@ -220,7 +220,6 @@ A quick reference for all available fenn CLI commands.
 
 | Command | Description |
 |---|---|
-| `fenn auth` | Manage credentials for the Fenn remote service |
 | `fenn dashboard` | Launch the local log-browser web UI |
 | `fenn grid <path>` | By setting grid/train section in template, you can run a Fenn project several times, with all possible grid hyperparams. Also, it is possible to specify path to main.py file (e.g. my_temp/main.py) |
 | `fenn list` | List all available templates from [`pyfenn/templates`](https://github.com/pyfenn/templates) |
@@ -246,6 +245,7 @@ The development and long-term direction of **fenn** is guided by the following m
 |------------|------|
 | [@blkdmr](https://github.com/blkdmr) | Creator & Project Administrator |
 | [@giuliaOddi](https://github.com/giuliaOddi) | Project Administrator |
+| [@ApusBerliozi](https://github.com/ApusBerliozi) | Project Administrator |
 
 Maintainers oversee the project roadmap, review pull requests, coordinate releases, and ensure the long-term stability and quality of the framework.
 

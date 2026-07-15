@@ -1,4 +1,5 @@
 from fenn.agents.llm import LLMClient
+from fenn.logging import logger
 
 from .loader import load_documents
 from .retriever import Retriever
@@ -162,7 +163,7 @@ class RAG:
         """
         docs = load_documents(source)
         if self._debug:
-            print(f"[cofone] loaded {len(docs)} doc(s) from: {source}")
+            logger.info(f"[cofone] loaded {len(docs)} doc(s) from: {source}")
         self._retriever.index(docs)
         return self
 
@@ -252,13 +253,13 @@ class RAG:
         chunks = self._retriever.query(query)
 
         if self._debug:
-            print(
+            logger.info(
                 f"\n[cofone] model_provider: {self.model_provider} | model: {self.model}"
             )
-            print(f"[cofone] query: {query}")
-            print(f"[cofone] chunks found: {len(chunks)}")
+            logger.info(f"[cofone] query: {query}")
+            logger.info(f"[cofone] chunks found: {len(chunks)}")
             for i, c in enumerate(chunks):
-                print(f"  [{i}] {c[:80]}...")
+                logger.info(f"  [{i}] {c[:80]}...")
 
         context = "\n\n".join(chunks)
         prompt = self._build_prompt(query, context)
@@ -319,13 +320,13 @@ class RAG:
         prompt = self._build_prompt(query, context)
 
         if self._debug:
-            print(
+            logger.info(
                 f"\n[cofone] model_provider: {self.model_provider} | model: {self.model}"
             )
-            print(f"[cofone] query: {query}")
-            print(f"[cofone] chunks found: {len(chunks)}")
+            logger.info(f"[cofone] query: {query}")
+            logger.info(f"[cofone] chunks found: {len(chunks)}")
             for i, c in enumerate(chunks):
-                print(f"  [{i + 1}] {c[:80]}...")
+                logger.info(f"  [{i + 1}] {c[:80]}...")
 
         yield from self._llm.stream(prompt)
 

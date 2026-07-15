@@ -18,7 +18,8 @@ If you are new to Git and GitHub, the steps below describe a simple way to contr
   `git clone https://github.com/<your-username>/fenn.git`
 - Create a new branch for your work:
   `git checkout -b feature`
-- Make and test your changes.
+- Make and test your changes. We use nox for testing:
+  `nox`
 - Stage your changes:
   `git add <files>`
 - Commit with a clear message:

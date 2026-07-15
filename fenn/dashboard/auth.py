@@ -3,20 +3,20 @@
 The dashboard is a localhost-only Flask app. To authenticate, the user
 generates a "dashboard token" on pyfenn.com, pastes it into the
 ``/connect`` page, and the server validates it once against
-``https://pyfenn.com/api/dashboard/me``. On success we store
+``https://pyfenn.com/api/dashboard/me``. On success, we store
 ``{user_id, email}`` in a signed Flask session cookie and discard the
 token — it is never written to disk or kept in memory.
 """
 
 from __future__ import annotations
 
-import logging
 import re
 from functools import wraps
-from typing import Optional
 
 import requests
 from flask import g, redirect, session, url_for
+
+from fenn.logging import logger
 
 AUTH_URL = "https://pyfenn.com"
 ME_PATH = "/api/dashboard/me"
@@ -28,8 +28,6 @@ _MAX_TOKEN_LEN = 64
 _MAX_RESPONSE_BYTES = 4096
 _TIMEOUT = (5, 10)  # (connect, read) seconds
 
-logger = logging.getLogger(__name__)
-
 
 class InvalidTokenError(Exception):
     """Token was rejected by pyfenn.com (401 or malformed)."""
@@ -39,7 +37,7 @@ class AuthUnreachableError(Exception):
     """pyfenn.com could not be reached or returned an unexpected response."""
 
 
-def current_user() -> Optional[dict]:
+def current_user() -> dict | None:
     """Return the logged-in user dict, or ``None``. Cached on ``g``."""
     if "current_user" in g:
         return g.current_user

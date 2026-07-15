@@ -12,7 +12,7 @@ from fenn.exceptions import AuthError, NetworkError, RemoteError
 from fenn.logging import logger
 from fenn.remote.client import DEFAULT_REMOTE_HOST, RemoteClient
 from fenn.remote.credentials import (
-    delete_profile,
+    delete_credentials,
     load_credentials,
     mask_key,
     write_credentials,
@@ -36,7 +36,6 @@ def execute(args: argparse.Namespace) -> None:
 
 
 def _login(args: argparse.Namespace) -> None:
-    profile = args.profile or "default"
     api_key = args.api_key
     if not api_key:
         if sys.stdin.isatty():
@@ -58,24 +57,20 @@ def _login(args: argparse.Namespace) -> None:
         logger.info(f"{Fore.RED}Could not verify key: {exc}{Style.RESET_ALL}")
         sys.exit(1)
 
-    path = write_credentials(api_key, profile=profile)
-    logger.info(
-        f"{Fore.GREEN}Saved key {mask_key(api_key)} to profile "
-        f"'{profile}' ({path}).{Style.RESET_ALL}"
-    )
+    path = write_credentials(api_key)
+    logger.info(f"{Fore.GREEN}Saved key {mask_key(api_key)} ({path}).{Style.RESET_ALL}")
 
 
 def _status(args: argparse.Namespace) -> None:
-    profile = args.profile or "default"
-    creds = load_credentials(profile)
+    creds = load_credentials()
     if creds is None:
         logger.info(
-            f"{Fore.YELLOW}No credentials for profile '{profile}'. "
-            f"Run `fenn auth login --profile {profile}`.{Style.RESET_ALL}"
+            f"{Fore.YELLOW}No stored credentials. "
+            f"Run `fenn auth login`.{Style.RESET_ALL}"
         )
         sys.exit(1)
 
-    logger.info(f"Profile: {profile}  Key: {mask_key(creds.api_key)}")
+    logger.info(f"Key: {mask_key(creds.api_key)}")
 
     host = creds.host or DEFAULT_REMOTE_HOST
     try:
@@ -90,6 +85,8 @@ def _status(args: argparse.Namespace) -> None:
 
     plan = info.get("plan", "?")
     credits = info.get("credits", "?")
+    if isinstance(credits, (int, float)):
+        credits = f"{credits:,.2f}"
     machine_classes = ", ".join(info.get("machine_classes", []) or [])
     logger.info(f"Plan: {plan}  Credits: {credits}")
     if machine_classes:
@@ -97,8 +94,7 @@ def _status(args: argparse.Namespace) -> None:
 
 
 def _logout(args: argparse.Namespace) -> None:
-    profile = args.profile or "default"
-    if delete_profile(profile):
-        logger.info(f"{Fore.GREEN}Removed profile '{profile}'.{Style.RESET_ALL}")
+    if delete_credentials():
+        logger.info(f"{Fore.GREEN}Removed stored credentials.{Style.RESET_ALL}")
     else:
-        logger.info(f"{Fore.YELLOW}No profile named '{profile}'.{Style.RESET_ALL}")
+        logger.info(f"{Fore.YELLOW}No stored credentials.{Style.RESET_ALL}")

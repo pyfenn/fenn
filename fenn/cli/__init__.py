@@ -90,16 +90,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to the entrypoint script (default: main.py)",
     )
     p_run.add_argument(
-        "--api-key",
-        default=None,
-        help="API key (overrides env, credentials file, and .env)",
-    )
-    p_run.add_argument(
-        "--profile",
-        default=None,
-        help="Credentials profile name (default: 'default' or $FENN_PROFILE)",
-    )
-    p_run.add_argument(
         "--max-runtime",
         type=int,
         default=10,
@@ -109,19 +99,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--tier",
         default=None,
         help=(
-            "Machine tier to run on (e.g. 'cpu.small'). "
-            "See `fenn auth status` for available tiers; default: server's choice"
+            "Machine tier to run on. Only 'cpu.small' is available right now "
+            "(the default); other tiers are not supported yet."
         ),
     )
     p_run.add_argument(
         "--detach",
         action="store_true",
         help="Submit the job and exit without streaming logs",
-    )
-    p_run.add_argument(
-        "--no-download",
-        action="store_true",
-        help="Do not download artifacts on completion",
     )
     p_run.add_argument(
         "--include",
@@ -143,10 +128,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     auth_subparsers = p_auth.add_subparsers(dest="auth_command", required=True)
 
-    p_login = auth_subparsers.add_parser("login", help="Save an API key for a profile")
-    p_login.add_argument(
-        "--profile", default=None, help="Profile name (default: 'default')"
-    )
+    p_login = auth_subparsers.add_parser("login", help="Save an API key")
     p_login.add_argument(
         "--api-key",
         default=None,
@@ -155,19 +137,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_login.set_defaults(func=auth.execute)
 
     p_status = auth_subparsers.add_parser(
-        "status", help="Show the currently configured profile and credit balance"
-    )
-    p_status.add_argument(
-        "--profile", default=None, help="Profile name (default: 'default')"
+        "status", help="Show the stored credential and credit balance"
     )
     p_status.set_defaults(func=auth.execute)
 
-    p_logout = auth_subparsers.add_parser(
-        "logout", help="Remove a profile from the credentials file"
-    )
-    p_logout.add_argument(
-        "--profile", default=None, help="Profile name (default: 'default')"
-    )
+    p_logout = auth_subparsers.add_parser("logout", help="Remove the stored credential")
     p_logout.set_defaults(func=auth.execute)
 
     # ========= GRID =========

@@ -45,8 +45,6 @@ class Fenn:
 
         self._disable_disclaimer = False
 
-        self._load_configuration()
-
     def _load_configuration(self):
         # Load config
         self._parser.config_file = (
@@ -86,6 +84,8 @@ class Fenn:
             RuntimeError: If no entrypoint has been registered via
                 :meth:`entrypoint`.
         """
+
+        self._load_configuration()
 
         if not self._disable_disclaimer:
             original_print(
@@ -138,7 +138,6 @@ class Fenn:
                 Defaults to ``"fenn.yaml"`` in the working directory.
         """
         self._config_file = config_file
-        self._load_configuration()
 
     def get_environ(self, key: str) -> str:
         return self._keystore.get_key(key)

@@ -27,21 +27,17 @@ def execute(args: argparse.Namespace) -> None:
     """Entrypoint wired from :func:`fenn.cli.build_parser`.
 
     Args:
-        args: Parsed arguments with attributes ``script``, ``api_key``,
-            ``profile``, ``max_runtime``, ``tier``, ``detach``,
-            ``no_download``, ``include``, ``exclude``.
+        args: Parsed arguments with attributes ``script``, ``max_runtime``,
+            ``tier``, ``detach``, ``include``, ``exclude``.
     """
     script_path = _resolve_script(args.script)
 
     try:
         _run_remote(
             script_path=script_path,
-            explicit_key=args.api_key,
-            profile=args.profile,
             max_runtime=args.max_runtime * 60,
             tier=getattr(args, "tier", None),
             detach=args.detach,
-            download=not args.no_download,
             includes=args.include or (),
             excludes=args.exclude or (),
         )
@@ -93,11 +89,8 @@ def _run_local(script_path: Path) -> None:
 def _run_remote(
     *,
     script_path: Path,
-    explicit_key: Optional[str],
-    profile: Optional[str],
     max_runtime: int,
     detach: bool,
-    download: bool,
     includes: Iterable[str],
     excludes: Sequence[str],
     tier: Optional[str] = None,
@@ -107,7 +100,7 @@ def _run_remote(
     from fenn.remote.credentials import resolve_api_key
     from fenn.remote.workspace import detect_venv_spec, pack_workspace
 
-    creds = resolve_api_key(explicit=explicit_key, profile=profile)
+    creds = resolve_api_key()
 
     root = Path.cwd().resolve()
     include_paths = [Path(p) for p in includes]
@@ -162,21 +155,20 @@ def _run_remote(
 
             final_status, billing = _stream_to_completion(client, job_id)
 
-            if download:
-                tmp = tempfile.NamedTemporaryFile(
-                    prefix=f"fenn-artifacts-{job_id}-", suffix=".tar.gz", delete=False
+            tmp = tempfile.NamedTemporaryFile(
+                prefix=f"fenn-artifacts-{job_id}-", suffix=".tar.gz", delete=False
+            )
+            tmp.close()
+            tar_path = Path(tmp.name)
+            try:
+                client.download_artifacts(job_id, tar_path)
+                written = extract_artifacts(tar_path, root)
+                logger.info(
+                    f"{Fore.GREEN}Downloaded {len(written)} files into "
+                    f"{Fore.LIGHTYELLOW_EX}{root}{Style.RESET_ALL}"
                 )
-                tmp.close()
-                tar_path = Path(tmp.name)
-                try:
-                    client.download_artifacts(job_id, tar_path)
-                    written = extract_artifacts(tar_path, root)
-                    logger.info(
-                        f"{Fore.GREEN}Downloaded {len(written)} files into "
-                        f"{Fore.LIGHTYELLOW_EX}{root}{Style.RESET_ALL}"
-                    )
-                finally:
-                    tar_path.unlink(missing_ok=True)
+            finally:
+                tar_path.unlink(missing_ok=True)
 
             _print_summary(final_status, billing)
 

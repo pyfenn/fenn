@@ -1,20 +1,13 @@
 """Local credential storage for the Fenn remote service.
 
-Credentials live in ``~/.fenn/credentials`` as JSON, one entry per named
-profile::
+A single credential lives in ``~/.fenn/credentials`` as JSON::
 
-    {
-      "profiles": {
-        "default": {"api_key": "fk_live_...", "host": null}
-      }
-    }
+    {"api_key": "fk_live_...", "host": null}
 
 Resolution order for :func:`resolve_api_key`:
 
-1. explicit ``--api-key`` flag
-2. ``FENN_API_KEY`` environment variable
-3. profile from the credentials file (name from argument, else
-   ``FENN_PROFILE`` env var, else ``default``)
+1. ``FENN_API_KEY`` environment variable
+2. the stored credential
 """
 
 from __future__ import annotations
@@ -27,10 +20,7 @@ from typing import Optional
 
 from fenn.exceptions import CredentialsError
 
-DEFAULT_PROFILE = "default"
-
 ENV_API_KEY = "FENN_API_KEY"
-ENV_PROFILE = "FENN_PROFILE"
 
 
 def _home() -> Path:
@@ -44,14 +34,13 @@ CREDENTIALS_PATH = CREDENTIALS_DIR / "credentials"
 
 @dataclass(frozen=True)
 class Credentials:
-    profile: str
     api_key: str
     host: Optional[str] = None
 
 
 def _read_store() -> dict:
     if not CREDENTIALS_PATH.is_file():
-        return {"profiles": {}}
+        return {}
     try:
         with open(CREDENTIALS_PATH, "r", encoding="utf-8") as fh:
             data = json.load(fh)
@@ -59,7 +48,7 @@ def _read_store() -> dict:
         raise CredentialsError(
             f"Could not read credentials file {CREDENTIALS_PATH}: {exc}"
         ) from exc
-    if not isinstance(data, dict) or not isinstance(data.get("profiles"), dict):
+    if not isinstance(data, dict):
         raise CredentialsError(
             f"Malformed credentials file {CREDENTIALS_PATH}; "
             "delete it and run `fenn auth login` again."
@@ -79,65 +68,47 @@ def _write_store(data: dict) -> None:
         pass
 
 
-def write_credentials(
-    api_key: str,
-    *,
-    profile: str = DEFAULT_PROFILE,
-    host: Optional[str] = None,
-) -> Path:
-    """Persist ``api_key`` under ``profile`` and return the file path."""
-    store = _read_store()
-    store["profiles"][profile] = {"api_key": api_key, "host": host}
-    _write_store(store)
+def write_credentials(api_key: str, *, host: Optional[str] = None) -> Path:
+    """Persist ``api_key`` and return the credentials file path."""
+    _write_store({"api_key": api_key, "host": host})
     return CREDENTIALS_PATH
 
 
-def load_credentials(profile: str = DEFAULT_PROFILE) -> Optional[Credentials]:
-    """Return the stored :class:`Credentials` for ``profile``, or ``None``."""
+def load_credentials() -> Optional[Credentials]:
+    """Return the stored :class:`Credentials`, or ``None`` if unset."""
     store = _read_store()
-    entry = store["profiles"].get(profile)
-    if not isinstance(entry, dict) or not entry.get("api_key"):
+    if not isinstance(store, dict) or not store.get("api_key"):
         return None
     return Credentials(
-        profile=profile,
-        api_key=str(entry["api_key"]),
-        host=entry.get("host") or None,
+        api_key=str(store["api_key"]),
+        host=store.get("host") or None,
     )
 
 
-def delete_profile(profile: str = DEFAULT_PROFILE) -> bool:
-    """Remove ``profile`` from the store. Returns True if it existed."""
-    store = _read_store()
-    if profile not in store["profiles"]:
+def delete_credentials() -> bool:
+    """Remove the stored credential. Returns True if one existed."""
+    if not CREDENTIALS_PATH.is_file():
         return False
-    del store["profiles"][profile]
-    _write_store(store)
+    if load_credentials() is None:
+        return False
+    _write_store({})
     return True
 
 
-def resolve_api_key(
-    *,
-    explicit: Optional[str] = None,
-    profile: Optional[str] = None,
-) -> Credentials:
-    """Resolve an API key from flag > env > credentials file.
+def resolve_api_key() -> Credentials:
+    """Resolve an API key from env > credentials file.
 
     Raises:
         CredentialsError: when no key can be found anywhere.
     """
-    if explicit:
-        return Credentials(profile=profile or DEFAULT_PROFILE, api_key=explicit)
-
     env_key = os.environ.get(ENV_API_KEY)
     if env_key:
-        return Credentials(profile=profile or DEFAULT_PROFILE, api_key=env_key)
+        return Credentials(api_key=env_key)
 
-    profile_name = profile or os.environ.get(ENV_PROFILE) or DEFAULT_PROFILE
-    creds = load_credentials(profile_name)
+    creds = load_credentials()
     if creds is None:
         raise CredentialsError(
-            f"No API key found. Pass --api-key, set {ENV_API_KEY}, or run "
-            f"`fenn auth login` (profile: {profile_name})."
+            f"No API key found. Set {ENV_API_KEY} or run `fenn auth login`."
         )
     return creds
 

@@ -1,6 +1,8 @@
 """Unit tests for the /api/sessions endpoint (Pick 3)."""
 
 import re
+import zipfile
+from io import BytesIO
 
 import pytest
 import requests
@@ -537,9 +539,13 @@ class TestApiSessionsDateRangeFilter:
 
 
 class TestApiTemplates:
-    """Tests for the template-listing dashboard endpoint."""
+    """Tests for the template-listing and template-pull endpoints."""
 
-    def test_returns_sorted_public_templates(self, client, requests_mock):
+    def test_returns_sorted_public_templates(
+        self,
+        client,
+        requests_mock,
+    ):
         requests_mock.get(
             "https://api.github.com/repos/pyfenn/templates/contents",
             status_code=200,
@@ -572,13 +578,192 @@ class TestApiTemplates:
         response = client.get("/api/templates")
 
         assert response.status_code == 502
+
         body = response.get_json()
 
         assert body["error"]["code"] == "template_list_unavailable"
         assert "Failed to fetch template list" in body["error"]["message"]
 
-    def test_requires_authentication(self, client_no_auth):
+    def test_requires_authentication(
+        self,
+        client_no_auth,
+    ):
         response = client_no_auth.get("/api/templates")
 
         assert response.status_code == 302
         assert "/connect" in response.headers["Location"]
+
+    def test_pull_template_success(
+        self,
+        client,
+        requests_mock,
+        tmp_path,
+    ):
+        target_dir = tmp_path / "downloaded-template"
+        archive = BytesIO()
+
+        with zipfile.ZipFile(archive, "w") as zip_file:
+            zip_file.writestr(
+                "templates-main/base/main.py",
+                "print('hello')",
+            )
+            zip_file.writestr(
+                "templates-main/base/fenn.yaml",
+                "project: test",
+            )
+
+        requests_mock.get(
+            "https://api.github.com/repos/pyfenn/templates/contents/base",
+            status_code=200,
+            json={
+                "name": "base",
+                "type": "dir",
+            },
+        )
+
+        requests_mock.get(
+            "https://github.com/pyfenn/templates/archive/refs/heads/main.zip",
+            status_code=200,
+            content=archive.getvalue(),
+        )
+
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        response = client.post(
+            "/api/templates/pull",
+            json={
+                "template": "base",
+                "path": str(target_dir),
+                "force": False,
+            },
+            headers={
+                "X-CSRFToken": token,
+            },
+        )
+
+        assert response.status_code == 200
+
+        body = response.get_json()
+
+        assert body["template"] == "base"
+        assert body["downloaded"] is True
+        assert body["path"] == str(target_dir.resolve())
+
+        assert (target_dir / "main.py").read_text(encoding="utf-8") == "print('hello')"
+
+        assert (target_dir / "fenn.yaml").exists()
+
+    def test_pull_rejects_non_empty_directory(
+        self,
+        client,
+        tmp_path,
+    ):
+        target_dir = tmp_path / "non-empty"
+        target_dir.mkdir()
+
+        (target_dir / "existing.txt").write_text(
+            "existing",
+            encoding="utf-8",
+        )
+
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        response = client.post(
+            "/api/templates/pull",
+            json={
+                "template": "base",
+                "path": str(target_dir),
+                "force": False,
+            },
+            headers={
+                "X-CSRFToken": token,
+            },
+        )
+
+        assert response.status_code == 409
+
+        body = response.get_json()
+
+        assert body["error"]["code"] == "target_not_empty"
+        assert body["error"]["param"] == "path"
+
+    def test_pull_rejects_invalid_payload(
+        self,
+        client,
+    ):
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        response = client.post(
+            "/api/templates/pull",
+            json={
+                "template": "",
+                "path": "",
+                "force": "false",
+            },
+            headers={
+                "X-CSRFToken": token,
+            },
+        )
+
+        assert response.status_code == 400
+
+        body = response.get_json()
+
+        assert body["error"]["code"] == "invalid_param"
+        assert body["error"]["param"] == "template"
+
+    def test_pull_template_not_found(
+        self,
+        client,
+        requests_mock,
+        tmp_path,
+    ):
+        target_dir = tmp_path / "missing-template"
+
+        requests_mock.get(
+            "https://api.github.com/repos/pyfenn/templates/contents/missing",
+            status_code=404,
+        )
+
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        response = client.post(
+            "/api/templates/pull",
+            json={
+                "template": "missing",
+                "path": str(target_dir),
+                "force": False,
+            },
+            headers={
+                "X-CSRFToken": token,
+            },
+        )
+
+        assert response.status_code == 404
+
+        body = response.get_json()
+
+        assert body["error"]["code"] == "template_not_found"
+        assert body["error"]["param"] == "template"
+
+    def test_pull_requires_csrf(
+        self,
+        client,
+        tmp_path,
+    ):
+        target_dir = tmp_path / "csrf-target"
+
+        response = client.post(
+            "/api/templates/pull",
+            json={
+                "template": "base",
+                "path": str(target_dir),
+                "force": False,
+            },
+        )
+
+        assert response.status_code == 400

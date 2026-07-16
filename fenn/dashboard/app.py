@@ -27,7 +27,12 @@ from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.exceptions import HTTPException
 
 from fenn.cli.list import get_available_templates
-from fenn.exceptions import NetworkError
+from fenn.cli.pull import pull_template
+from fenn.exceptions import (
+    NetworkError,
+    TemplateError,
+    TemplateNotFoundError,
+)
 from fenn.logging import logger
 
 try:
@@ -228,6 +233,149 @@ def api_templates() -> tuple[Response, int] | Response:
         {
             "templates": templates,
             "total": len(templates),
+        }
+    )
+
+
+@app.route("/api/templates/pull", methods=["POST"])
+def api_template_pull() -> tuple[Response, int] | Response:
+    """Download a selected template into a local directory."""
+    payload = request.get_json(silent=True)
+
+    if not isinstance(payload, dict):
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "invalid_request",
+                        "message": "A JSON request body is required",
+                    }
+                }
+            ),
+            400,
+        )
+
+    template_name = payload.get("template")
+    target_path = payload.get("path")
+    force = payload.get("force", False)
+
+    if not isinstance(template_name, str) or not template_name.strip():
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "invalid_param",
+                        "message": "template must be a non-empty string",
+                        "param": "template",
+                    }
+                }
+            ),
+            400,
+        )
+
+    if not isinstance(target_path, str) or not target_path.strip():
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "invalid_param",
+                        "message": "path must be a non-empty string",
+                        "param": "path",
+                    }
+                }
+            ),
+            400,
+        )
+
+    if not isinstance(force, bool):
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "invalid_param",
+                        "message": "force must be a boolean",
+                        "param": "force",
+                    }
+                }
+            ),
+            400,
+        )
+
+    try:
+        resolved_path = pull_template(
+            template_name=template_name,
+            target_dir=Path(target_path),
+            force=force,
+        )
+    except FileExistsError as exc:
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "target_not_empty",
+                        "message": str(exc),
+                        "param": "path",
+                    }
+                }
+            ),
+            409,
+        )
+    except TemplateNotFoundError as exc:
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "template_not_found",
+                        "message": str(exc),
+                        "param": "template",
+                    }
+                }
+            ),
+            404,
+        )
+    except NetworkError as exc:
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "template_download_unavailable",
+                        "message": str(exc),
+                    }
+                }
+            ),
+            502,
+        )
+    except TemplateError as exc:
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "invalid_template",
+                        "message": str(exc),
+                    }
+                }
+            ),
+            400,
+        )
+    except OSError as exc:
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "filesystem_error",
+                        "message": str(exc),
+                        "param": "path",
+                    }
+                }
+            ),
+            500,
+        )
+
+    return jsonify(
+        {
+            "template": template_name.strip(),
+            "path": str(resolved_path),
+            "downloaded": True,
         }
     )
 

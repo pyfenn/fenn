@@ -38,8 +38,8 @@ def execute(args: argparse.Namespace) -> None:
 
     Args:
         args: Parsed command-line arguments containing:
-            - template: Name of the template to download (optional if --list is used)
-            - path: Target directory (default: current directory)
+            - template: Name of the template to download
+            - path: Target directory
             - force: Whether to overwrite existing files
     """
     template_name = args.template
@@ -48,53 +48,43 @@ def execute(args: argparse.Namespace) -> None:
 
     if not template_name:
         logger.error(
-            f"{Fore.RED}Template name is required (example: {Fore.LIGHTYELLOW_EX}fenn pull base{Fore.RED}){Style.RESET_ALL}"
+            f"{Fore.RED}Template name is required "
+            f"(example: {Fore.LIGHTYELLOW_EX}fenn pull base"
+            f"{Fore.RED}){Style.RESET_ALL}"
         )
         logger.info(
-            f"{Fore.CYAN}Use {Fore.LIGHTYELLOW_EX}fenn list{Fore.CYAN} to see available templates.{Style.RESET_ALL}"
+            f"{Fore.CYAN}Use {Fore.LIGHTYELLOW_EX}fenn list"
+            f"{Fore.CYAN} to see available templates."
+            f"{Style.RESET_ALL}"
         )
-        sys.exit(1)
-
-    has_visible_files = target_dir.exists() and any(
-        not item.name.startswith(".") for item in target_dir.iterdir()
-    )
-
-    if has_visible_files and not force:
-        if HAS_RICH:
-            Console().print(
-                f"[red]Refusing to pull into non-empty directory [yellow]{target_dir}[/yellow].\nUse [yellow]--force[/yellow] to override existing files.[/red]"
-            )
-        else:
-            logger.error(
-                f"{Fore.RED}Refusing to pull into non-empty directory "
-                f"{Fore.LIGHTYELLOW_EX}{target_dir}{Fore.RED}. \n"
-                f"Use {Fore.LIGHTYELLOW_EX}--force{Fore.RED} to override existing files.{Style.RESET_ALL}"
-            )
         sys.exit(1)
 
     try:
-        # Download and extract template
-        _download_template(template_name, target_dir, force)
+        target_dir = pull_template(template_name, target_dir, force)
+
         logger.info(
             f"{Fore.GREEN}Successfully pulled template "
             f"{Fore.LIGHTYELLOW_EX}{template_name}{Fore.GREEN} into "
-            f"{Fore.LIGHTYELLOW_EX}{target_dir}{Fore.GREEN}.{Style.RESET_ALL}"
+            f"{Fore.LIGHTYELLOW_EX}{target_dir}{Fore.GREEN}."
+            f"{Style.RESET_ALL}"
         )
 
-        # AUTO-INSTALL REQUIREMENTS
         requirements_file = target_dir / "requirements.txt"
 
         if requirements_file.exists():
             if HAS_RICH:
                 Console().print(
-                    "\n[bold green]📦 Found template dependencies at requirements.txt[/bold green]"
+                    "\n[bold green]"
+                    "📦 Found template dependencies at requirements.txt"
+                    "[/bold green]"
                 )
             else:
                 logger.info(
-                    f"\n{Fore.GREEN}📦 Found template dependencies at requirements.txt{Style.RESET_ALL}"
+                    f"\n{Fore.GREEN}"
+                    "📦 Found template dependencies at requirements.txt"
+                    f"{Style.RESET_ALL}"
                 )
 
-            # Interactive prompt - safely handles Ctrl+C or EOF interruptions
             try:
                 response = (
                     input(
@@ -110,11 +100,15 @@ def execute(args: argparse.Namespace) -> None:
             if response in ("y", "yes"):
                 if HAS_RICH:
                     Console().print(
-                        "[cyan]Installing requirements automatically... (this may take a moment)[/cyan]\n"
+                        "[cyan]Installing requirements automatically... "
+                        "(this may take a moment)[/cyan]\n"
                     )
                 else:
                     logger.info(
-                        f"{Fore.CYAN}Installing requirements automatically... (this may take a moment){Style.RESET_ALL}\n"
+                        f"{Fore.CYAN}"
+                        "Installing requirements automatically... "
+                        "(this may take a moment)"
+                        f"{Style.RESET_ALL}\n"
                     )
 
                 try:
@@ -130,28 +124,46 @@ def execute(args: argparse.Namespace) -> None:
                         check=True,
                         capture_output=False,
                     )
+
                     if HAS_RICH:
                         Console().print(
-                            "\n[bold green]✅ All dependencies installed successfully![/bold green]"
+                            "\n[bold green]"
+                            "✅ All dependencies installed successfully!"
+                            "[/bold green]"
                         )
                     else:
                         logger.info(
-                            f"\n{Fore.GREEN}✅ All dependencies installed successfully!{Style.RESET_ALL}"
+                            f"\n{Fore.GREEN}"
+                            "✅ All dependencies installed successfully!"
+                            f"{Style.RESET_ALL}"
                         )
-                except subprocess.CalledProcessError as e:
+
+                except subprocess.CalledProcessError as exc:
                     if HAS_RICH:
                         Console().print(
-                            f"\n[bold red]⚠️ Automatic installation failed with exit code {e.returncode}.[/bold red]"
+                            "\n[bold red]"
+                            "⚠️ Automatic installation failed with exit "
+                            f"code {exc.returncode}."
+                            "[/bold red]"
                         )
                         Console().print(
-                            "[yellow]Please run 'pip install -r requirements.txt' manually.[/yellow]"
+                            "[yellow]"
+                            "Please run 'pip install -r requirements.txt' "
+                            "manually."
+                            "[/yellow]"
                         )
                     else:
                         logger.error(
-                            f"\n{Fore.RED}⚠️ Automatic installation failed with exit code {e.returncode}.{Style.RESET_ALL}"
+                            f"\n{Fore.RED}"
+                            "⚠️ Automatic installation failed with exit "
+                            f"code {exc.returncode}."
+                            f"{Style.RESET_ALL}"
                         )
                         logger.info(
-                            f"{Fore.YELLOW}Please run 'pip install -r requirements.txt' manually.{Style.RESET_ALL}"
+                            f"{Fore.YELLOW}"
+                            "Please run 'pip install -r requirements.txt' "
+                            "manually."
+                            f"{Style.RESET_ALL}"
                         )
             else:
                 if HAS_RICH:
@@ -160,18 +172,64 @@ def execute(args: argparse.Namespace) -> None:
                     )
                 else:
                     logger.info(
-                        f"{Fore.YELLOW}Skipping dependency installation.{Style.RESET_ALL}\n"
+                        f"{Fore.YELLOW}Skipping dependency installation."
+                        f"{Style.RESET_ALL}\n"
                     )
 
-    except TemplateNotFoundError as e:
-        logger.error(f"{Fore.RED}{e}{Style.RESET_ALL}")
+    except FileExistsError as exc:
+        logger.error(f"{Fore.RED}{exc}{Style.RESET_ALL}")
         sys.exit(1)
-    except NetworkError as e:
-        logger.error(f"{Fore.RED}Network error: {e}{Style.RESET_ALL}")
+    except TemplateNotFoundError as exc:
+        logger.error(f"{Fore.RED}{exc}{Style.RESET_ALL}")
         sys.exit(1)
-    except TemplateError as e:
-        logger.error(f"{Fore.RED}Template error: {e}{Style.RESET_ALL}")
+    except NetworkError as exc:
+        logger.error(f"{Fore.RED}Network error: {exc}{Style.RESET_ALL}")
         sys.exit(1)
+    except TemplateError as exc:
+        logger.error(f"{Fore.RED}Template error: {exc}{Style.RESET_ALL}")
+        sys.exit(1)
+
+
+def pull_template(
+    template_name: str,
+    target_dir: Path,
+    force: bool = False,
+) -> Path:
+    """Download a template into a validated target directory.
+
+    Args:
+        template_name: Name of the template to download.
+        target_dir: Directory where the template will be extracted.
+        force: Whether existing visible files may be overwritten.
+
+    Returns:
+        The resolved target directory.
+
+    Raises:
+        TemplateError: If the template name is empty.
+        FileExistsError: If the target directory is non-empty without force.
+        TemplateNotFoundError: If the requested template does not exist.
+        NetworkError: If the template repository cannot be reached.
+    """
+    template_name = template_name.strip()
+
+    if not template_name:
+        raise TemplateError("Template name is required")
+
+    target_dir = target_dir.expanduser().resolve()
+
+    has_visible_files = target_dir.exists() and any(
+        not item.name.startswith(".") for item in target_dir.iterdir()
+    )
+
+    if has_visible_files and not force:
+        raise FileExistsError(
+            f"Refusing to pull into non-empty directory {target_dir}. "
+            "Use --force to override existing files."
+        )
+
+    _download_template(template_name, target_dir, force)
+    return target_dir
 
 
 def _download_template(template_name: str, target_dir: Path, force: bool) -> None:

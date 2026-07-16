@@ -178,3 +178,108 @@ class TestSessionMutations:
         scanner = FennScanner(extra_dirs=[str(tmp_path)])
 
         assert scanner.delete_session("proj", "missing") is False
+
+    def test_archive_session_sets_flag_and_persists(self, tmp_path, monkeypatch):
+        overrides_path = tmp_path / "dashboard_overrides.json"
+        monkeypatch.setenv("FENN_DASHBOARD_OVERRIDES_PATH", str(overrides_path))
+        _write(tmp_path / "s1.fn", _SAMPLE_FN.format(project="proj", sid="s1"))
+
+        scanner = FennScanner(extra_dirs=[str(tmp_path)])
+        assert scanner.archive_session("proj", "s1") is True
+
+        s1 = scanner.get_session("proj", "s1")
+        assert s1 is not None
+        assert s1["archived"] is True
+
+        scanner_reloaded = FennScanner(extra_dirs=[str(tmp_path)])
+        s1_reloaded = scanner_reloaded.get_session("proj", "s1")
+        assert s1_reloaded is not None
+        assert s1_reloaded["archived"] is True
+
+    def test_restore_session_clears_archived_flag(self, tmp_path, monkeypatch):
+        overrides_path = tmp_path / "dashboard_overrides.json"
+        monkeypatch.setenv("FENN_DASHBOARD_OVERRIDES_PATH", str(overrides_path))
+        _write(tmp_path / "s1.fn", _SAMPLE_FN.format(project="proj", sid="s1"))
+        scanner = FennScanner(extra_dirs=[str(tmp_path)])
+
+        assert scanner.archive_session("proj", "s1") is True
+        assert scanner.restore_session("proj", "s1") is True
+
+        s1 = scanner.get_session("proj", "s1")
+        assert s1 is not None
+        assert s1["archived"] is False
+
+    def test_archive_restore_unknown_session_returns_false(self, tmp_path, monkeypatch):
+        monkeypatch.setenv(
+            "FENN_DASHBOARD_OVERRIDES_PATH", str(tmp_path / "dashboard_overrides.json")
+        )
+        scanner = FennScanner(extra_dirs=[str(tmp_path)])
+
+        assert scanner.archive_session("proj", "missing") is False
+        assert scanner.restore_session("proj", "missing") is False
+
+    def test_archived_session_filtered_from_defaults(self, tmp_path, monkeypatch):
+        monkeypatch.setenv(
+            "FENN_DASHBOARD_OVERRIDES_PATH", str(tmp_path / "dashboard_overrides.json")
+        )
+        _write(tmp_path / "s1.fn", _SAMPLE_FN.format(project="proj", sid="s1"))
+        _write(tmp_path / "s2.fn", _SAMPLE_FN.format(project="proj", sid="s2"))
+        scanner = FennScanner(extra_dirs=[str(tmp_path)])
+
+        assert scanner.archive_session("proj", "s1") is True
+
+        default_ids = {s["session_id"] for s in scanner.get_all_sessions()}
+        all_ids = {
+            s["session_id"] for s in scanner.get_all_sessions(include_archived=True)
+        }
+        assert default_ids == {"s2"}
+        assert all_ids == {"s1", "s2"}
+
+    def test_list_sessions_include_archived_flag(self, tmp_path, monkeypatch):
+        monkeypatch.setenv(
+            "FENN_DASHBOARD_OVERRIDES_PATH", str(tmp_path / "dashboard_overrides.json")
+        )
+        _write(tmp_path / "s1.fn", _SAMPLE_FN.format(project="proj", sid="s1"))
+        _write(tmp_path / "s2.fn", _SAMPLE_FN.format(project="proj", sid="s2"))
+        scanner = FennScanner(extra_dirs=[str(tmp_path)])
+        assert scanner.archive_session("proj", "s1") is True
+
+        default_list = scanner.list_sessions()
+        full_list = scanner.list_sessions(include_archived=True)
+
+        assert {s["session_id"] for s in default_list["items"]} == {"s2"}
+        assert {s["session_id"] for s in full_list["items"]} == {"s1", "s2"}
+
+    def test_archiving_preserves_display_name(self, tmp_path, monkeypatch):
+        overrides_path = tmp_path / "dashboard_overrides.json"
+        monkeypatch.setenv("FENN_DASHBOARD_OVERRIDES_PATH", str(overrides_path))
+        _write(tmp_path / "s1.fn", _SAMPLE_FN.format(project="proj", sid="s1"))
+        scanner = FennScanner(extra_dirs=[str(tmp_path)])
+
+        assert scanner.rename_session("proj", "s1", "Friendly") is True
+        assert scanner.archive_session("proj", "s1") is True
+
+        payload = json.loads(overrides_path.read_text(encoding="utf-8"))
+        assert payload["s1"]["display_name"] == "Friendly"
+        assert payload["s1"]["archived"] is True
+
+    def test_overview_project_counts_exclude_archived_by_default(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setenv(
+            "FENN_DASHBOARD_OVERRIDES_PATH", str(tmp_path / "dashboard_overrides.json")
+        )
+        _write(tmp_path / "s1.fn", _SAMPLE_FN.format(project="proj", sid="s1"))
+        _write(tmp_path / "s2.fn", _SAMPLE_FN.format(project="proj", sid="s2"))
+        scanner = FennScanner(extra_dirs=[str(tmp_path)])
+        assert scanner.archive_session("proj", "s1") is True
+
+        overview_default = scanner.get_overview()
+        overview_all = scanner.get_overview(include_archived=True)
+        project_default = scanner.get_project("proj")
+        project_all = scanner.get_project("proj", include_archived=True)
+
+        assert overview_default["total_sessions"] == 1
+        assert overview_all["total_sessions"] == 2
+        assert project_default["total_sessions"] == 1
+        assert project_all["total_sessions"] == 2

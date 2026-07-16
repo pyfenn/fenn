@@ -95,10 +95,11 @@ def client(scanner_with_sessions):
 
 
 @pytest.fixture()
-def client_no_auth(scanner_with_sessions):
+def client_no_auth(scanner_with_sessions, monkeypatch):
     """Flask test client using scanner fixture, but without logged-in user."""
     import fenn.dashboard.app as app_module
 
+    monkeypatch.setattr(app_module.token_store, "load", lambda: None)
     original = app_module.scanner
     app_module.scanner = scanner_with_sessions
     app.config["TESTING"] = True
@@ -364,6 +365,45 @@ class TestSessionMutationRoutes:
         )
         assert resp.status_code == 404
 
+    def test_archive_and_restore_session_success(self, client):
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        archive_resp = client.post(
+            "/api/session/alpha/a1/archive",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+        assert archive_resp.status_code == 200
+        assert archive_resp.get_json()["archived"] is True
+
+        detail = client.get("/api/session/alpha/a1")
+        assert detail.status_code == 200
+        assert detail.get_json()["archived"] is True
+
+        restore_resp = client.post(
+            "/api/session/alpha/a1/restore",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+        assert restore_resp.status_code == 200
+        assert restore_resp.get_json()["archived"] is False
+
+        detail_after = client.get("/api/session/alpha/a1")
+        assert detail_after.status_code == 200
+        assert detail_after.get_json()["archived"] is False
+
+    def test_archive_unknown_session_returns_404(self, client):
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        resp = client.post(
+            "/api/session/alpha/nope/archive",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 404
+
     def test_mutation_routes_without_auth_redirect_to_connect(self, client_no_auth):
         token = _extract_csrf_token(
             client_no_auth.get("/connect").get_data(as_text=True)
@@ -392,9 +432,31 @@ class TestSessionMutationRoutes:
             json={"display_name": "x"},
         )
         delete_resp = client.post("/api/session/alpha/a1/delete", json={})
+        archive_resp = client.post("/api/session/alpha/a1/archive", json={})
+        restore_resp = client.post("/api/session/alpha/a1/restore", json={})
 
         assert rename_resp.status_code == 400
         assert delete_resp.status_code == 400
+        assert archive_resp.status_code == 400
+        assert restore_resp.status_code == 400
+
+    def test_api_sessions_include_archived_query_param(self, client):
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+        archive_resp = client.post(
+            "/api/session/alpha/a1/archive",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+        assert archive_resp.status_code == 200
+
+        default_resp = client.get("/api/sessions")
+        default_ids = {item["session_id"] for item in default_resp.get_json()["items"]}
+        assert "a1" not in default_ids
+
+        include_resp = client.get("/api/sessions?include_archived=true")
+        include_ids = {item["session_id"] for item in include_resp.get_json()["items"]}
+        assert "a1" in include_ids
 
 
 # ---------------------------------------------------------------------------

@@ -26,24 +26,45 @@ def execute(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
-def _list_templates() -> None:
+def get_available_templates() -> list[str]:
     """
-    List all available template directories in the templates repository.
+    Fetch and return the available public templates.
+
+    Returns:
+        Sorted template directory names.
 
     Raises:
-        NetworkError: If network request fails
+        NetworkError: If GitHub cannot be reached or returns an invalid response.
     """
     api_url = f"{GITHUB_API_BASE}/repos/{TEMPLATES_REPO}/contents"
 
     try:
         response = requests.get(api_url, timeout=10)
         response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        raise NetworkError(f"Failed to fetch template list: {e}")
+        contents = response.json()
+    except requests.exceptions.RequestException as exc:
+        raise NetworkError(f"Failed to fetch template list: {exc}") from exc
+    except ValueError as exc:
+        raise NetworkError("GitHub returned an invalid template response") from exc
 
-    contents = response.json()
+    if not isinstance(contents, list):
+        raise NetworkError("GitHub returned an invalid template response")
 
-    templates = [item["name"] for item in contents if item.get("type") == "dir"]
+    templates = [
+        item["name"]
+        for item in contents
+        if isinstance(item, dict)
+        and item.get("type") == "dir"
+        and isinstance(item.get("name"), str)
+        and not item["name"].endswith("dev-only")
+    ]
+
+    return sorted(templates)
+
+
+def _list_templates() -> None:
+    """Display all available templates."""
+    templates = get_available_templates()
 
     if not templates:
         logger.info(
@@ -51,14 +72,13 @@ def _list_templates() -> None:
         )
         return
 
-    templates.sort()
-
     console = Console()
     table = Table(title="")
     table.add_column("Available templates", style="", width=50)
+
     for template in templates:
-        if not template.endswith("dev-only"):
-            table.add_row(f"- {template}")
+        table.add_row(f"- {template}")
+
     console.print(table)
     console.print(
         "[cyan]Use [yellow]fenn pull <template>[/yellow] to download a template.[/cyan]"

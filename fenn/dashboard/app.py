@@ -26,6 +26,8 @@ from flask import (
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.exceptions import HTTPException
 
+from fenn.cli.list import get_available_templates
+from fenn.exceptions import NetworkError
 from fenn.logging import logger
 
 try:
@@ -202,6 +204,32 @@ def api_session(project_name: str, session_id: str) -> Response:
         abort(404)
     data.pop("projects", None)  # ty: ignore[call-non-callable]
     return jsonify(data)
+
+
+@app.route("/api/templates")
+def api_templates() -> tuple[Response, int] | Response:
+    """Return the templates available from the official template repository."""
+    try:
+        templates = get_available_templates()
+    except NetworkError as exc:
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "template_list_unavailable",
+                        "message": str(exc),
+                    }
+                }
+            ),
+            502,
+        )
+
+    return jsonify(
+        {
+            "templates": templates,
+            "total": len(templates),
+        }
+    )
 
 
 @app.route("/api/session/<project_name>/<session_id>/rename", methods=["POST"])

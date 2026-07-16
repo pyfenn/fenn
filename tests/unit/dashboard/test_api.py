@@ -3,6 +3,7 @@
 import re
 
 import pytest
+import requests
 
 from fenn.dashboard.app import app
 from fenn.dashboard.scanner import FennScanner
@@ -533,3 +534,51 @@ class TestApiSessionsDateRangeFilter:
                 assert "good1" in sids
         finally:
             app_module.scanner = original
+
+
+class TestApiTemplates:
+    """Tests for the template-listing dashboard endpoint."""
+
+    def test_returns_sorted_public_templates(self, client, requests_mock):
+        requests_mock.get(
+            "https://api.github.com/repos/pyfenn/templates/contents",
+            status_code=200,
+            json=[
+                {"name": "chatbot", "type": "dir"},
+                {"name": "base", "type": "dir"},
+                {"name": "internal-dev-only", "type": "dir"},
+                {"name": "README.md", "type": "file"},
+            ],
+        )
+
+        response = client.get("/api/templates")
+
+        assert response.status_code == 200
+        assert response.get_json() == {
+            "templates": ["base", "chatbot"],
+            "total": 2,
+        }
+
+    def test_returns_502_when_github_is_unavailable(
+        self,
+        client,
+        requests_mock,
+    ):
+        requests_mock.get(
+            "https://api.github.com/repos/pyfenn/templates/contents",
+            exc=requests.exceptions.ConnectionError("offline"),
+        )
+
+        response = client.get("/api/templates")
+
+        assert response.status_code == 502
+        body = response.get_json()
+
+        assert body["error"]["code"] == "template_list_unavailable"
+        assert "Failed to fetch template list" in body["error"]["message"]
+
+    def test_requires_authentication(self, client_no_auth):
+        response = client_no_auth.get("/api/templates")
+
+        assert response.status_code == 302
+        assert "/connect" in response.headers["Location"]

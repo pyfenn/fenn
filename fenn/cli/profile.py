@@ -14,8 +14,6 @@ from pathlib import Path
 
 from fenn.logging import logger, original_print
 
-ROOT = Path(__file__).resolve().parents[1]
-
 
 def execute(args: argparse.Namespace) -> None:
     """Run the fenn template under cProfile and write profiling output.
@@ -25,14 +23,14 @@ def execute(args: argparse.Namespace) -> None:
             - template: name of the template folder to profile
             - limit: number of lines to include in the report
     """
-    template = ROOT / args.template
+    template = (Path.cwd() / args.template).resolve()
     entrypoint = template / "main.py"
 
-    if not entrypoint.is_file() or template.parent != ROOT:
+    if not entrypoint.is_file():
         logger.error(f"Unknown template: {args.template}")
         sys.exit(1)
 
-    output_dir = ROOT / "profiling_results" / args.template
+    output_dir = (Path.cwd() / "profiling_results" / args.template).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
     profile_path = output_dir / "cprofile.prof"

@@ -85,6 +85,12 @@ csrf = CSRFProtect(app)
 scanner = FennScanner()
 
 
+class _ApiBadRequest(Exception):
+    def __init__(self, message: str, param: str | None = None) -> None:
+        self.message = message
+        self.param = param
+
+
 @app.context_processor
 def _inject_current_user() -> dict[str, Any]:
     return {"current_user": dashboard_auth.current_user()}
@@ -102,6 +108,18 @@ _STORED_TOKEN_OFFLINE_MESSAGE = (
     "Could not reach https://pyfenn.com to verify your saved token. "
     "Using cached identity — the dashboard will revalidate next launch."
 )
+
+_MAX_LIMIT = 200
+_DEFAULT_LIMIT = 20
+
+
+def _api_error(
+    code: str,
+    message: str,
+    param: str | None = None,
+) -> tuple[Response, int]:
+    """Return a standard 400 dashboard API error."""
+    return error_response(code, message, param), 400
 
 
 def _try_stored_session() -> werkzeug.wrappers.response.Response | None:
@@ -139,6 +157,20 @@ def _try_stored_session() -> werkzeug.wrappers.response.Response | None:
     # sees the freshly-loaded identity instead of the prior None.
     g.pop("current_user", None)
     return None
+
+
+def _parse_int_arg(
+    name: str, raw: str | None, default: int, min_v: int, max_v: int
+) -> int:
+    if raw is None or raw == "":
+        return default
+    try:
+        v = int(raw)
+    except ValueError:
+        raise _ApiBadRequest(f"{name} must be an integer", name)
+    if v < min_v or v > max_v:
+        raise _ApiBadRequest(f"{name} must be between {min_v} and {max_v}", name)
+    return v
 
 
 @app.before_request
@@ -195,12 +227,22 @@ def short_id_filter(session_id: str) -> str:
 
 @app.route("/")
 def index() -> str:
-    return render_template("index.html", **scanner.get_overview())
+    include_archived = (request.args.get("include_archived") or "").lower() == "true"
+    return render_template(
+        "index.html",
+        **scanner.get_overview(include_archived=include_archived),
+        include_archived=include_archived,
+    )
 
 
 @app.route("/project/<project_name>")
 def project(project_name: str) -> str:
-    return render_template("project.html", **scanner.get_project(project_name))
+    include_archived = (request.args.get("include_archived") or "").lower() == "true"
+    return render_template(
+        "project.html",
+        **scanner.get_project(project_name, include_archived=include_archived),
+        include_archived=include_archived,
+    )
 
 
 @app.route("/session/<project_name>/<session_id>", endpoint="session")
@@ -213,7 +255,8 @@ def session_view(project_name: str, session_id: str) -> str:
 
 @app.route("/api/overview")
 def api_overview() -> Response:
-    return jsonify(scanner.get_overview())
+    include_archived = (request.args.get("include_archived") or "").lower() == "true"
+    return jsonify(scanner.get_overview(include_archived=include_archived))
 
 
 @app.route("/api/session/<project_name>/<session_id>")
@@ -353,39 +396,24 @@ def api_session_delete(
     return jsonify({"deleted": True})
 
 
-# Pagination / filtering limits. 200 is large enough for any plausible UI
-# without letting a client ask for "everything" by accident.
-_MAX_LIMIT = 200
-_DEFAULT_LIMIT = 20
+@app.route("/api/session/<project_name>/<session_id>/archive", methods=["POST"])
+def api_session_archive(
+    project_name: str, session_id: str
+) -> tuple[Response, int] | Response:
+    ok = scanner.archive_session(project_name, session_id)
+    if not ok:
+        abort(404)
+    return jsonify({"archived": True})
 
 
-def _api_error(
-    code: str,
-    message: str,
-    param: str | None = None,
-) -> tuple[Response, int]:
-    """Return a standard 400 dashboard API error."""
-    return error_response(code, message, param), 400
-
-
-class _ApiBadRequest(Exception):
-    def __init__(self, message: str, param: str | None = None) -> None:
-        self.message = message
-        self.param = param
-
-
-def _parse_int_arg(
-    name: str, raw: str | None, default: int, min_v: int, max_v: int
-) -> int:
-    if raw is None or raw == "":
-        return default
-    try:
-        v = int(raw)
-    except ValueError:
-        raise _ApiBadRequest(f"{name} must be an integer", name)
-    if v < min_v or v > max_v:
-        raise _ApiBadRequest(f"{name} must be between {min_v} and {max_v}", name)
-    return v
+@app.route("/api/session/<project_name>/<session_id>/restore", methods=["POST"])
+def api_session_restore(
+    project_name: str, session_id: str
+) -> tuple[Response, int] | Response:
+    ok = scanner.restore_session(project_name, session_id)
+    if not ok:
+        abort(404)
+    return jsonify({"archived": False})
 
 
 @app.route("/api/sessions")
@@ -398,11 +426,15 @@ def api_sessions() -> tuple[Response, int] | Response:
         limit (1..200, default 20),
         offset (>=0, default 0),
         sort (field, optionally ``-`` prefixed for descending),
-        started_after, started_before (timestamps formatted as ``YYYY-MM-DD HH:MM:SS``).
+        started_after, started_before (timestamps formatted as ``YYYY-MM-DD HH:MM:SS``),
+        include_archived (true/false, default false)
     """
     try:
         project_name = request.args.get("project") or None
         status = request.args.get("status") or None
+        include_archived = (
+            request.args.get("include_archived") or ""
+        ).lower() == "true"
         sort = request.args.get("sort") or "-started"
         limit = _parse_int_arg(
             "limit", request.args.get("limit"), _DEFAULT_LIMIT, 1, _MAX_LIMIT
@@ -439,6 +471,7 @@ def api_sessions() -> tuple[Response, int] | Response:
             result = scanner.list_sessions(
                 project=project_name,
                 status=status,
+                include_archived=include_archived,
                 started_after=started_after,
                 started_before=started_before,
                 limit=limit,

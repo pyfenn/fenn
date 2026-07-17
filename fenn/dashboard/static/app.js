@@ -20,6 +20,12 @@
     });
   }
 
+  const includeArchivedVisible = (() => {
+    const value = new URLSearchParams(window.location.search).get("include_archived");
+    if (!value) return false;
+    return value.toLowerCase() === "true";
+  })();
+
   function updateSearchableRow(row) {
     if (!row) return;
     const parts = [];
@@ -63,6 +69,75 @@
     const subtitle = document.getElementById("session-display-name-subtitle");
     if (subtitle && subtitle.querySelector(".session-display-name")) {
       subtitle.querySelector(".session-display-name").textContent = shown;
+    }
+  }
+
+  function applyArchivedState(project, sessionId, archived) {
+    const nodes = document.querySelectorAll(
+      `[data-project='${CSS.escape(project)}'][data-session='${CSS.escape(sessionId)}']`
+    );
+    nodes.forEach((node) => {
+      if (node.matches("tr")) {
+        if (archived && !includeArchivedVisible) {
+          node.remove();
+          return;
+        }
+
+        node.dataset.archived = archived ? "true" : "false";
+        const searchable = node.getAttribute("data-searchable") || "";
+        if (archived && !searchable.includes("archived")) {
+          node.setAttribute("data-searchable", `${searchable} archived`.trim());
+        }
+        if (!archived && searchable.includes("archived")) {
+          node.setAttribute(
+            "data-searchable",
+            searchable.replace(/\barchived\b/g, "").replace(/\s+/g, " ").trim()
+          );
+        }
+
+        const statusCell = node.querySelector(".session-status-cell");
+        if (statusCell) {
+          const existing = statusCell.querySelector(".badge-archived");
+          if (archived && !existing) {
+            const badge = document.createElement("span");
+            badge.className = "badge badge-archived";
+            badge.textContent = "archived";
+            statusCell.insertBefore(badge, statusCell.firstChild);
+          }
+          if (!archived && existing) {
+            existing.remove();
+          }
+        }
+
+        const actionsCell = node.querySelector(".session-actions-cell");
+        const toggleBtn = actionsCell?.querySelector(
+          ".archive-session-btn, .restore-session-btn"
+        );
+        if (toggleBtn) {
+          toggleBtn.classList.toggle("archive-session-btn", !archived);
+          toggleBtn.classList.toggle("restore-session-btn", archived);
+          toggleBtn.textContent = archived ? "Restore" : "Archive";
+        }
+      }
+    });
+
+    const sessionStatusEl = document.getElementById("session-status");
+    if (
+      sessionStatusEl &&
+      sessionStatusEl.dataset.project === project &&
+      sessionStatusEl.dataset.session === sessionId
+    ) {
+      sessionStatusEl.dataset.archived = archived ? "true" : "false";
+      const badge = document.getElementById("session-archived-badge");
+      if (badge) {
+        badge.style.display = archived ? "inline-flex" : "none";
+      }
+      const toggleBtn = document.getElementById("session-archive-toggle");
+      if (toggleBtn) {
+        toggleBtn.textContent = archived ? "Restore" : "Archive";
+        toggleBtn.classList.toggle("archive-session-btn", !archived);
+        toggleBtn.classList.toggle("restore-session-btn", archived);
+      }
     }
   }
 
@@ -318,6 +393,32 @@
       return;
     } finally {
       deleteDialog?.close();
+    }
+  });
+
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".archive-session-btn, .restore-session-btn");
+    if (!btn) return;
+
+    const project = btn.dataset.project;
+    const sessionId = btn.dataset.session;
+    if (!project || !sessionId) return;
+
+    const archived = btn.classList.contains("archive-session-btn");
+    const endpoint = archived ? "archive" : "restore";
+    try {
+      const resp = await postJson(
+        `/api/session/${encodeURIComponent(project)}/${encodeURIComponent(sessionId)}/${endpoint}`,
+        {}
+      );
+      const body = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        window.alert(body?.error?.message || `${endpoint} failed`);
+        return;
+      }
+      applyArchivedState(project, sessionId, Boolean(body.archived));
+    } catch (_err) {
+      window.alert(`${endpoint} failed`);
     }
   });
 

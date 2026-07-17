@@ -73,7 +73,7 @@ class FennScanner:
         self._overrides_path = Path(
             os.environ.get("FENN_DASHBOARD_OVERRIDES_PATH", _DEFAULT_OVERRIDES_PATH)
         ).expanduser()
-        self._overrides: dict[str, dict[str, str]] = {}
+        self._overrides: dict[str, dict[str, Any]] = {}
 
         # Parse-result cache keyed by file path. Stores (mtime, parsed_dict).
         # Entries are reused only when mtime matches, so any file write
@@ -102,7 +102,7 @@ class FennScanner:
         self._load_overrides()
 
     def _load_overrides(self) -> None:
-        """Load persisted display-name overrides from disk."""
+        """Load persisted session overrides from disk."""
         self._overrides = {}
         try:
             raw = self._overrides_path.read_text(encoding="utf-8")
@@ -117,13 +117,19 @@ class FennScanner:
         if not isinstance(payload, dict):
             return
 
-        cleaned: dict[str, dict[str, str]] = {}
+        cleaned: dict[str, dict[str, Any]] = {}
         for sid, data in payload.items():
             if not isinstance(sid, str) or not isinstance(data, dict):
                 continue
+            cleaned_data: dict[str, Any] = {}
             display_name = data.get("display_name")
             if isinstance(display_name, str) and display_name.strip():
-                cleaned[sid] = {"display_name": display_name.strip()}
+                cleaned_data["display_name"] = display_name.strip()
+            archived = data.get("archived")
+            if isinstance(archived, bool):
+                cleaned_data["archived"] = archived
+            if cleaned_data:
+                cleaned[sid] = cleaned_data
         self._overrides = cleaned
 
     def _save_overrides(self) -> None:
@@ -138,20 +144,50 @@ class FennScanner:
         )
         os.replace(tmp_path, self._overrides_path)
 
-    def _display_name_for(self, session_id: str) -> str | None:
+    def _overrides_for(self, session_id: str) -> tuple[str | None, bool]:
         data = self._overrides.get(session_id, {})
         display_name = data.get("display_name")
-        return display_name if display_name else None
+        archived = data.get("archived")
+        return (
+            display_name if isinstance(display_name, str) and display_name else None,
+            bool(archived),
+        )
 
-    def _with_display_name(self, session: SessionData) -> SessionData:
-        """Return a copy of a session dict with the current display-name override."""
+    def _with_overrides(self, session: SessionData) -> SessionData:
+        """Return a copy of a session dict with persisted overrides merged in."""
+        display_name, archived = self._overrides_for(session["session_id"])
         return cast(
             SessionData,
             {
                 **session,
-                "display_name": self._display_name_for(session["session_id"]),
+                "display_name": display_name,
+                "archived": archived,
             },
         )
+
+    def _upsert_override(
+        self,
+        session_id: str,
+        *,
+        display_name: str | None = None,
+        archived: bool | None = None,
+    ) -> None:
+        data = dict(self._overrides.get(session_id, {}))
+        if display_name is not None:
+            data["display_name"] = display_name
+        if archived is not None:
+            data["archived"] = archived
+
+        # Keep the file compact: omit false/default archived and empty names.
+        if not data.get("display_name"):
+            data.pop("display_name", None)
+        if data.get("archived") is not True:
+            data.pop("archived", None)
+
+        if data:
+            self._overrides[session_id] = data
+        else:
+            self._overrides.pop(session_id, None)
 
     @staticmethod
     def _normalize_display_name(display_name: str) -> str:
@@ -170,7 +206,23 @@ class FennScanner:
         if self.get_session(project, session_id) is None:
             return False
 
-        self._overrides[session_id] = {"display_name": name}
+        self._upsert_override(session_id, display_name=name)
+        self._save_overrides()
+        return True
+
+    def archive_session(self, project: str, session_id: str) -> bool:
+        """Soft delete a session by marking it archived in overrides."""
+        if self.get_session(project, session_id) is None:
+            return False
+        self._upsert_override(session_id, archived=True)
+        self._save_overrides()
+        return True
+
+    def restore_session(self, project: str, session_id: str) -> bool:
+        """Restore an archived session by clearing its archived override flag."""
+        if self.get_session(project, session_id) is None:
+            return False
+        self._upsert_override(session_id, archived=False)
         self._save_overrides()
         return True
 
@@ -324,6 +376,7 @@ class FennScanner:
         return SessionData(
             session_id=root.get("session_id", path.stem),
             display_name=None,
+            archived=False,
             project=root.get("project", path.parent.name),
             started=root.get("started", ""),
             ended=ended,
@@ -352,13 +405,16 @@ class FennScanner:
                 return cast(SessionData, {**parsed, "status": "crashed"})
         return parsed
 
-    def get_all_sessions(self) -> list[SessionData]:
+    def get_all_sessions(self, include_archived: bool = False) -> list[SessionData]:
         """Return all parsed sessions, newest first."""
         sessions: list[SessionData] = []
         for path in self.find_fn_files():
             parsed = self.parse_fn_file(path)
             if parsed:
-                sessions.append(self._with_display_name(parsed))
+                session = self._with_overrides(parsed)
+                if not include_archived and session["archived"]:
+                    continue
+                sessions.append(session)
         return sessions
 
     @staticmethod
@@ -389,9 +445,9 @@ class FennScanner:
             projects.values(), key=lambda project: project["last_active"], reverse=True
         )
 
-    def get_overview(self) -> OverviewPayload:
+    def get_overview(self, include_archived: bool = False) -> OverviewPayload:
         """Aggregate stats for the dashboard home page."""
-        sessions = self.get_all_sessions()
+        sessions = self.get_all_sessions(include_archived=include_archived)
         project_list = self._build_projects_list(sessions)
 
         return OverviewPayload(
@@ -406,9 +462,11 @@ class FennScanner:
             active_page="home",
         )
 
-    def get_project(self, project_name: str) -> ProjectPayload:
+    def get_project(
+        self, project_name: str, include_archived: bool = False
+    ) -> ProjectPayload:
         """Return all sessions for a specific project."""
-        all_sessions = self.get_all_sessions()
+        all_sessions = self.get_all_sessions(include_archived=include_archived)
         sessions = [s for s in all_sessions if s["project"] == project_name]
 
         return ProjectPayload(
@@ -442,7 +500,7 @@ class FennScanner:
                 and parsed["project"] == project_name
                 and parsed["session_id"] == session_id
             ):
-                parsed = self._with_display_name(parsed)
+                parsed = self._with_overrides(parsed)
                 overview = self.get_overview()
                 return cast(
                     SessionPagePayload,
@@ -463,6 +521,7 @@ class FennScanner:
         self,
         project: str | None = None,
         status: str | None = None,
+        include_archived: bool = False,
         started_after: datetime | None = None,
         started_before: datetime | None = None,
         limit: int = 20,
@@ -491,7 +550,7 @@ class FennScanner:
         if field not in _VALID_SORT_FIELDS:
             raise ValueError(f"sort field must be one of {list(_VALID_SORT_FIELDS)}")
 
-        sessions = self.get_all_sessions()
+        sessions = self.get_all_sessions(include_archived=include_archived)
         if project:
             sessions = [s for s in sessions if s["project"] == project]
         if status:

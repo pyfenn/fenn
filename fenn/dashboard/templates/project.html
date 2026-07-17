@@ -43,6 +43,11 @@
 {% if sessions %}
 <div class="section-header">
   <span class="section-title">Sessions</span>
+  {% if include_archived %}
+  <a class="btn btn-sm" href="/project/{{ project_name | urlencode }}">Hide archived</a>
+  {% else %}
+  <a class="btn btn-sm" href="/project/{{ project_name | urlencode }}?include_archived=true">Show archived</a>
+  {% endif %}
 </div>
 
 <div class="card">
@@ -64,8 +69,8 @@
       </thead>
       <tbody>
         {% for s in sessions %}
-        <tr data-searchable="{{ s.session_id }} {{ s.display_name or '' }} {{ s.started }}" data-project="{{ s.project }}" data-session="{{ s.session_id }}">
-          <td>
+        <tr data-searchable="{{ s.session_id }} {{ s.display_name or '' }} {{ s.started }} {{ 'archived' if s.archived else '' }}" data-project="{{ s.project }}" data-session="{{ s.session_id }}" data-archived="{{ 'true' if s.archived else 'false' }}">
+          <td class="session-status-cell">
             <a href="/session/{{ s.project | urlencode }}/{{ s.session_id | urlencode }}"
                class="td-mono"
                title="{{ s.session_id }}">{{ s.session_id }}</a>
@@ -80,7 +85,10 @@
           </td>
           <td class="td-mono">{{ s.started }}</td>
           <td class="td-mono">{{ s.duration_s | duration }}</td>
-          <td>
+          <td class="session-actions-cell">
+            {% if s.archived %}
+            <span class="badge badge-archived">archived</span>
+            {% endif %}
             {% if s.status == 'running' %}
             <span class="badge badge-running">
               <span class="pulse-dot"></span>running
@@ -102,6 +110,17 @@
           </td>
           <td class="td-mono">{{ s.file_size | filesize }}</td>
           <td>
+              {% if s.archived %}
+              <button type="button"
+                class="btn btn-sm restore-session-btn"
+                data-project="{{ s.project }}"
+                data-session="{{ s.session_id }}">Restore</button>
+              {% else %}
+              <button type="button"
+                class="btn btn-sm archive-session-btn"
+                data-project="{{ s.project }}"
+                data-session="{{ s.session_id }}">Archive</button>
+              {% endif %}
             <button type="button"
                     class="btn btn-sm delete-session-btn"
                     data-project="{{ s.project }}"

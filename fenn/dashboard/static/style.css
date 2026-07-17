@@ -411,6 +411,7 @@ tbody tr:hover { background: var(--bg-elevated); }
 .badge-running   { color: var(--accent);  border-color: var(--border-glow); }
 .badge-crashed   { color: var(--warning); border-color: rgba(234,179,8,.35); }
 .badge-failed    { color: var(--error);   border-color: rgba(248,81,73,.35); }
+.badge-archived  { color: var(--text-mute); border-color: var(--border); }
 .badge-info      { color: #79c0ff;        border-color: rgba(121,192,255,.35); }
 .badge-warning   { color: var(--warning); border-color: rgba(234,179,8,.35); }
 .badge-exception { color: var(--error);   border-color: rgba(248,81,73,.35); }

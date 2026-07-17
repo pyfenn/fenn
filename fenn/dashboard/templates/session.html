@@ -17,6 +17,7 @@
       data-status="{{ status }}"
       data-project="{{ project }}"
       data-session="{{ session_id }}"
+  data-archived="{{ 'true' if archived else 'false' }}"
       style="display:none;"></span>
 
 <!-- Header -->
@@ -35,6 +36,11 @@
     {% else %}
     <span class="badge badge-completed" style="font-size:12px; margin-left:8px; vertical-align:middle;">completed</span>
     {% endif %}
+    {% if archived %}
+    <span class="badge badge-archived" id="session-archived-badge" style="font-size:12px; margin-left:8px; vertical-align:middle;">archived</span>
+    {% else %}
+    <span class="badge badge-archived" id="session-archived-badge" style="font-size:12px; margin-left:8px; vertical-align:middle; display:none;">archived</span>
+    {% endif %}
   </h1>
   <p class="page-subtitle" id="session-display-name-subtitle">
     Display name: <span class="session-display-name">{{ display_name or '—' }}</span>
@@ -44,6 +50,11 @@
             data-session="{{ session_id }}"
             data-current-name="{{ display_name or '' }}">Rename</button>
     <button type="button"
+          class="btn btn-sm {% if archived %}restore-session-btn{% else %}archive-session-btn{% endif %}"
+          id="session-archive-toggle"
+          data-project="{{ project }}"
+          data-session="{{ session_id }}">{% if archived %}Restore{% else %}Archive{% endif %}</button>
+        <button type="button"
             class="btn btn-sm delete-session-btn"
             data-project="{{ project }}"
             data-session="{{ session_id }}">Delete</button>

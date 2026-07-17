@@ -31,6 +31,7 @@ class SessionData(TypedDict):
 
     session_id: str
     display_name: str | None
+    archived: bool
     project: str
     started: str
     ended: str | None
@@ -54,6 +55,7 @@ class SessionListItem(TypedDict):
 
     session_id: str
     display_name: str | None
+    archived: bool
     project: str
     started: str
     ended: str | None
@@ -110,6 +112,7 @@ class SessionPagePayload(TypedDict):
 
     session_id: str
     display_name: str | None
+    archived: bool
     project: str
     started: str
     ended: str | None

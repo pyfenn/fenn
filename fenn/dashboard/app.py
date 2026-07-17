@@ -28,6 +28,20 @@ from werkzeug.exceptions import HTTPException
 
 from fenn.cli.list import get_available_templates
 from fenn.cli.pull import pull_template
+from fenn.dashboard.responses import (
+    error_response,
+    filesystem_error,
+    invalid_template,
+    target_not_empty,
+    template_download_unavailable,
+    template_list_unavailable,
+    template_not_found,
+)
+from fenn.dashboard.validation import (
+    check_body,
+    check_non_empty_string,
+    check_type,
+)
 from fenn.exceptions import (
     NetworkError,
     TemplateError,
@@ -217,17 +231,7 @@ def api_templates() -> tuple[Response, int] | Response:
     try:
         templates = get_available_templates()
     except NetworkError as exc:
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "template_list_unavailable",
-                        "message": str(exc),
-                    }
-                }
-            ),
-            502,
-        )
+        return template_list_unavailable(exc), 502
 
     return jsonify(
         {
@@ -242,64 +246,44 @@ def api_template_pull() -> tuple[Response, int] | Response:
     """Download a selected template into a local directory."""
     payload = request.get_json(silent=True)
 
-    if not isinstance(payload, dict):
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "invalid_request",
-                        "message": "A JSON request body is required",
-                    }
-                }
-            ),
-            400,
-        )
+    if (error := check_body(payload, dict)) is not None:
+        return error
+
+    assert isinstance(payload, dict)
 
     template_name = payload.get("template")
     target_path = payload.get("path")
     force = payload.get("force", False)
 
-    if not isinstance(template_name, str) or not template_name.strip():
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "invalid_param",
-                        "message": "template must be a non-empty string",
-                        "param": "template",
-                    }
-                }
-            ),
-            400,
+    if (
+        error := check_non_empty_string(
+            template_name,
+            "template",
         )
+    ) is not None:
+        return error
 
-    if not isinstance(target_path, str) or not target_path.strip():
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "invalid_param",
-                        "message": "path must be a non-empty string",
-                        "param": "path",
-                    }
-                }
-            ),
-            400,
+    if (
+        error := check_non_empty_string(
+            target_path,
+            "path",
         )
+    ) is not None:
+        return error
 
-    if not isinstance(force, bool):
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "invalid_param",
-                        "message": "force must be a boolean",
-                        "param": "force",
-                    }
-                }
-            ),
-            400,
+    if (
+        error := check_type(
+            force,
+            bool,
+            "force",
+            expected_name="boolean",
         )
+    ) is not None:
+        return error
+
+    assert isinstance(template_name, str)
+    assert isinstance(target_path, str)
+    assert isinstance(force, bool)
 
     try:
         resolved_path = pull_template(
@@ -308,68 +292,15 @@ def api_template_pull() -> tuple[Response, int] | Response:
             force=force,
         )
     except FileExistsError as exc:
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "target_not_empty",
-                        "message": str(exc),
-                        "param": "path",
-                    }
-                }
-            ),
-            409,
-        )
+        return target_not_empty(exc), 409
     except TemplateNotFoundError as exc:
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "template_not_found",
-                        "message": str(exc),
-                        "param": "template",
-                    }
-                }
-            ),
-            404,
-        )
+        return template_not_found(exc), 404
     except NetworkError as exc:
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "template_download_unavailable",
-                        "message": str(exc),
-                    }
-                }
-            ),
-            502,
-        )
+        return template_download_unavailable(exc), 502
     except TemplateError as exc:
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "invalid_template",
-                        "message": str(exc),
-                    }
-                }
-            ),
-            400,
-        )
+        return invalid_template(exc), 400
     except OSError as exc:
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "filesystem_error",
-                        "message": str(exc),
-                        "param": "path",
-                    }
-                }
-            ),
-            500,
-        )
+        return filesystem_error(exc), 500
 
     return jsonify(
         {
@@ -429,13 +360,12 @@ _DEFAULT_LIMIT = 20
 
 
 def _api_error(
-    code: str, message: str, param: str | None = None
+    code: str,
+    message: str,
+    param: str | None = None,
 ) -> tuple[Response, int]:
-    """Standard 400 envelope so clients can branch on `error.code`."""
-    body = {"error": {"code": code, "message": message}}
-    if param is not None:
-        body["error"]["param"] = param
-    return jsonify(body), 400
+    """Return a standard 400 dashboard API error."""
+    return error_response(code, message, param), 400
 
 
 class _ApiBadRequest(Exception):

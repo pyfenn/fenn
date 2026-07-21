@@ -242,9 +242,7 @@ class LSTMClassifier(BaseLSTM):
         y_arr = np.asarray(y)
 
         if len(X_t) != len(y_arr):
-            raise ValueError(
-                "X and y must contain the same number of samples."
-            )
+            raise ValueError("X and y must contain the same number of samples.")
 
         self.classes_ = np.unique(y_arr)
         num_classes = len(self.classes_)
@@ -254,9 +252,7 @@ class LSTMClassifier(BaseLSTM):
                 "LSTMClassifier requires at least 2 distinct classes in y."
             )
 
-        label_to_index = {
-            label: index for index, label in enumerate(self.classes_)
-        }
+        label_to_index = {label: index for index, label in enumerate(self.classes_)}
         y_t = torch.as_tensor(
             [label_to_index[label] for label in y_arr],
             dtype=torch.long,
@@ -271,11 +267,7 @@ class LSTMClassifier(BaseLSTM):
             dropout=self.dropout,
             bidirectional=self.bidirectional,
         )
-        loss_fn = (
-            nn.BCEWithLogitsLoss()
-            if num_classes == 2
-            else nn.CrossEntropyLoss()
-        )
+        loss_fn = nn.BCEWithLogitsLoss() if num_classes == 2 else nn.CrossEntropyLoss()
 
         self._fit(model, loss_fn, num_classes, X_t, y_t)
         return self
@@ -416,8 +408,7 @@ class LSTMGenerator(BaseLSTM):
         for array, name in ((X, "X"), (y, "y")):
             if array.min() < 0 or array.max() >= self.vocab_size:
                 raise ValueError(
-                    f"{name} contains token IDs outside "
-                    "the configured vocabulary."
+                    f"{name} contains token IDs outside the configured vocabulary."
                 )
 
     def generate(self, seed, length: int) -> np.ndarray:
@@ -425,9 +416,7 @@ class LSTMGenerator(BaseLSTM):
         self._check_is_fitted()
 
         if length < 0:
-            raise ValueError(
-                "length must be greater than or equal to 0."
-            )
+            raise ValueError("length must be greater than or equal to 0.")
 
         seed_t = torch.as_tensor(
             np.asarray(seed),
@@ -435,9 +424,7 @@ class LSTMGenerator(BaseLSTM):
         )
 
         if seed_t.ndim != 1 or seed_t.numel() == 0:
-            raise ValueError(
-                "seed must be a non-empty 1D sequence of token IDs."
-            )
+            raise ValueError("seed must be a non-empty 1D sequence of token IDs.")
 
         if seed_t.min() < 0 or seed_t.max() >= self.vocab_size:
             raise ValueError(

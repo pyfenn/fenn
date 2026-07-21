@@ -16,6 +16,7 @@ from fenn.nn.models.lstm import (
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture(autouse=True)
 def _mock_rich_progress():
     """Avoid real rich progress displays during tests."""
@@ -61,7 +62,9 @@ def _make_clf(**kwargs):
 
 
 def _make_gen(**kwargs):
-    defaults = dict(vocab_size=8, embedding_dim=4, hidden_size=8, max_iter=2, batch_size=4)
+    defaults = dict(
+        vocab_size=8, embedding_dim=4, hidden_size=8, max_iter=2, batch_size=4
+    )
     return LSTMGenerator(**{**defaults, **kwargs})
 
 
@@ -71,7 +74,11 @@ def _make_gen(**kwargs):
 class TestLSTMClassificationModel:
     def test_output_shape(self):
         model = _LSTMClassificationModel(
-            input_size=3, hidden_size=8, output_size=4, num_layers=1, dropout=0.0,
+            input_size=3,
+            hidden_size=8,
+            output_size=4,
+            num_layers=1,
+            dropout=0.0,
             bidirectional=False,
         )
         X = torch.randn(10, 5, 3)
@@ -80,12 +87,17 @@ class TestLSTMClassificationModel:
 
     def test_bidirectional_output_shape(self):
         model = _LSTMClassificationModel(
-            input_size=3, hidden_size=8, output_size=4, num_layers=1, dropout=0.0,
+            input_size=3,
+            hidden_size=8,
+            output_size=4,
+            num_layers=1,
+            dropout=0.0,
             bidirectional=True,
         )
         X = torch.randn(10, 5, 3)
         output = model(X)
         assert output.shape == (10, 4)
+
 
 # ── BaseLSTM validation ────────────────────────────────────────────────────────
 
@@ -152,6 +164,7 @@ class TestLSTMClassifierBinary:
         clf = _make_clf().fit(X, y_string)
         assert set(clf.predict(X)).issubset({"negative", "positive"})
 
+
 # ── LSTMClassifier (multiclass) ────────────────────────────────────────────────
 
 
@@ -176,12 +189,15 @@ class TestLSTMClassifierMulticlass:
         with pytest.raises(ValueError, match="at least 2 distinct classes"):
             _make_clf(max_iter=1).fit(X, y)
 
+
 # ── _LSTMGenerationModel ───────────────────────────────────────────────────────
 
 
 class TestLSTMGenerationModel:
     def test_output_shape(self):
-        model = _LSTMGenerationModel(vocab_size=10, embedding_dim=4, hidden_size=8, num_layers=1, dropout=0.0)
+        model = _LSTMGenerationModel(
+            vocab_size=10, embedding_dim=4, hidden_size=8, num_layers=1, dropout=0.0
+        )
         X = torch.randint(0, 10, (3, 5))
         output = model(X)
         assert output.shape == (15, 10)

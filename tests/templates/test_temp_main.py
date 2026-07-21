@@ -26,10 +26,12 @@ TEMPLATES_LIST = [
 def get_template_directories():
     if not os.path.exists(TEMPLATE_DIR):
         return []
+
     return [
         d
         for d in os.listdir(TEMPLATE_DIR)
-        if d not in [".git", ".gitignore", "__init__.py", "LICENSE"]
+        if os.path.isdir(os.path.join(TEMPLATE_DIR, d))
+        and d not in [".git", "__pycache__"]
     ]
 
 

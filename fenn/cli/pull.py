@@ -4,11 +4,13 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
 from colorama import Fore, Style
 
+from fenn.dashboard.templates_registry import TemplateEntry, TemplatesRegistry
 from fenn.exceptions import NetworkError, TemplateError, TemplateNotFoundError
 from fenn.logging import logger
 
@@ -229,7 +231,31 @@ def pull_template(
         )
 
     _download_template(template_name, target_dir, force)
+    _register_pulled_template(template_name, target_dir)
     return target_dir
+
+
+def _register_pulled_template(template_name: str, target_dir: Path) -> None:
+    """Record a successful pull in the local templates registry.
+
+    Args:
+        template_name: Name of the template that was pulled.
+        target_dir: Directory where the template was extracted.
+    """
+    try:
+        TemplatesRegistry().add_or_update(
+            TemplateEntry(
+                name=target_dir.name,
+                path=str(target_dir),
+                source_template=template_name,
+                pulled_at=datetime.now(timezone.utc).isoformat(),
+            )
+        )
+    except Exception as exc:
+        logger.warning(
+            f"{Fore.YELLOW}Pulled template but failed to update the local "
+            f"templates registry: {exc}{Style.RESET_ALL}"
+        )
 
 
 def _download_template(template_name: str, target_dir: Path, force: bool) -> None:

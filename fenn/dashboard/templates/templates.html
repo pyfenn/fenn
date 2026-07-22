@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Templates — Fenn Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-current">Templates</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <span class="page-tag">// templates</span>
+  <h1 class="page-title">Templates</h1>
+  <p class="page-subtitle">Templates you've downloaded locally with <code>fenn pull</code>.</p>
+</div>
+
+{% if templates %}
+<div class="section-header">
+  <span class="section-title">Downloaded Templates</span>
+</div>
+<div class="search-bar">
+  <input class="search-input form-control" type="text" placeholder="Search templates..." id="template-search" />
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Source</th>
+          <th>Path</th>
+          <th>Pulled</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in templates %}
+        <tr data-searchable="{{ t.name }} {{ t.source_template }} {{ t.path }}">
+          <td data-searchable="{{ t.name }}">{{ t.name }}</td>
+          <td class="td-mono" data-searchable="{{ t.source_template }}">{{ t.source_template }}</td>
+          <td class="td-mono" data-searchable="{{ t.path }}" title="{{ t.path }}">{{ t.path }}</td>
+          <td class="td-mono" data-searchable="{{ t.pulled_at }}">{{ t.pulled_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="empty">
+  <div class="empty-icon">▣</div>
+  <div class="empty-title">No templates downloaded yet</div>
+  <div class="empty-desc">
+    Run <code>fenn pull &lt;template&gt;</code> to download a template — it will
+    show up here once pulled.
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

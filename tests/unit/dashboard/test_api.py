@@ -1,6 +1,7 @@
 """Unit tests for the /api/sessions endpoint (Pick 3)."""
 
 import re
+import shutil
 import zipfile
 from io import BytesIO
 
@@ -9,6 +10,7 @@ import requests
 
 from fenn.dashboard.app import app
 from fenn.dashboard.scanner import FennScanner
+from fenn.dashboard.templates_registry import TemplateEntry, TemplatesRegistry
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -829,3 +831,200 @@ class TestApiTemplates:
         )
 
         assert response.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Templates page and local templates API
+# ---------------------------------------------------------------------------
+
+
+def _add_template(
+    base_dir,
+    registry,
+    name,
+    source="base",
+    pulled_at="2026-07-21T10:00:00+00:00",
+):
+    template_dir = base_dir / name
+    template_dir.mkdir()
+    registry.add_or_update(
+        TemplateEntry(
+            name=name,
+            path=str(template_dir),
+            source_template=source,
+            pulled_at=pulled_at,
+        )
+    )
+    return template_dir
+
+
+@pytest.fixture()
+def templates_registry_with_entries(tmp_path):
+    """A TemplatesRegistry pre-populated with two locally pulled templates."""
+    registry = TemplatesRegistry(registry_path=tmp_path / "templates_registry.json")
+    _add_template(
+        tmp_path,
+        registry,
+        "tmpl_a",
+        source="base",
+        pulled_at="2026-07-20T10:00:00+00:00",
+    )
+    _add_template(
+        tmp_path,
+        registry,
+        "tmpl_b",
+        source="vision",
+        pulled_at="2026-07-21T10:00:00+00:00",
+    )
+    return registry
+
+
+@pytest.fixture()
+def empty_templates_registry(tmp_path):
+    return TemplatesRegistry(registry_path=tmp_path / "templates_registry.json")
+
+
+@pytest.fixture()
+def templates_client(templates_registry_with_entries):
+    """Flask test client, logged in, wired to a registry with known templates."""
+    import fenn.dashboard.app as app_module
+
+    original = app_module.templates_registry
+    app_module.templates_registry = templates_registry_with_entries
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        with c.session_transaction() as sess:
+            sess["user"] = {"email": "test@example.com"}
+        yield c
+    app_module.templates_registry = original
+
+
+@pytest.fixture()
+def empty_templates_client(empty_templates_registry):
+    """Flask test client, logged in, wired to an empty registry."""
+    import fenn.dashboard.app as app_module
+
+    original = app_module.templates_registry
+    app_module.templates_registry = empty_templates_registry
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        with c.session_transaction() as sess:
+            sess["user"] = {"email": "test@example.com"}
+        yield c
+    app_module.templates_registry = original
+
+
+@pytest.fixture()
+def templates_client_no_auth(templates_registry_with_entries, monkeypatch):
+    """Flask test client wired to a populated registry, but not logged in."""
+    import fenn.dashboard.app as app_module
+
+    monkeypatch.setattr(app_module.token_store, "load", lambda: None)
+    original = app_module.templates_registry
+    app_module.templates_registry = templates_registry_with_entries
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        yield c
+    app_module.templates_registry = original
+
+
+class TestApiLocalTemplates:
+    def test_returns_registered_templates(self, templates_client):
+        resp = templates_client.get("/api/templates/local")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["total"] == 2
+        names = {t["name"] for t in data["templates"]}
+        assert names == {"tmpl_a", "tmpl_b"}
+
+    def test_response_entry_shape(self, templates_client):
+        resp = templates_client.get("/api/templates/local")
+        entries = resp.get_json()["templates"]
+        [entry] = [e for e in entries if e["name"] == "tmpl_a"]
+        assert set(entry.keys()) == {"name", "path", "source_template", "pulled_at"}
+        assert entry["source_template"] == "base"
+
+    def test_returns_empty_list_when_no_templates_pulled(self, empty_templates_client):
+        resp = empty_templates_client.get("/api/templates/local")
+        assert resp.status_code == 200
+        assert resp.get_json() == {"templates": [], "total": 0}
+
+    def test_deleted_template_directory_is_not_returned(self, templates_client):
+        initial = templates_client.get("/api/templates/local").get_json()
+        tmpl_a_path = next(
+            entry["path"] for entry in initial["templates"] if entry["name"] == "tmpl_a"
+        )
+        shutil.rmtree(tmpl_a_path)
+
+        resp = templates_client.get("/api/templates/local")
+        data = resp.get_json()
+        names = {t["name"] for t in data["templates"]}
+        assert names == {"tmpl_b"}
+        assert data["total"] == 1
+
+    def test_requires_authentication(self, templates_client_no_auth):
+        resp = templates_client_no_auth.get("/api/templates/local")
+        assert resp.status_code == 302
+        assert "/connect" in resp.headers["Location"]
+
+    def test_does_not_collide_with_remote_templates_endpoint(
+        self, templates_client, requests_mock
+    ):
+        """`/api/templates` (remote-available) and `/api/templates/local`
+        (locally downloaded) must stay distinct routes with distinct data."""
+        requests_mock.get(
+            "https://api.github.com/repos/pyfenn/templates/contents",
+            status_code=200,
+            json=[{"name": "base", "type": "dir"}],
+        )
+
+        remote_resp = templates_client.get("/api/templates")
+        local_resp = templates_client.get("/api/templates/local")
+
+        assert remote_resp.status_code == 200
+        assert local_resp.status_code == 200
+        assert remote_resp.get_json()["templates"] == ["base"]
+        assert {t["name"] for t in local_resp.get_json()["templates"]} == {
+            "tmpl_a",
+            "tmpl_b",
+        }
+
+
+class TestTemplatesPage:
+    def test_requires_authentication(self, templates_client_no_auth):
+        resp = templates_client_no_auth.get("/templates")
+        assert resp.status_code == 302
+        assert "/connect" in resp.headers["Location"]
+
+    def test_renders_downloaded_templates(self, templates_client):
+        resp = templates_client.get("/templates")
+        assert resp.status_code == 200
+        assert b"tmpl_a" in resp.data
+        assert b"tmpl_b" in resp.data
+
+    def test_renders_empty_state_when_no_templates(self, empty_templates_client):
+        resp = empty_templates_client.get("/templates")
+        assert resp.status_code == 200
+        assert b"No templates downloaded yet" in resp.data
+
+    def test_does_not_render_deleted_template(self, templates_client):
+        initial = templates_client.get("/api/templates/local").get_json()
+        tmpl_a_path = next(
+            entry["path"] for entry in initial["templates"] if entry["name"] == "tmpl_a"
+        )
+        shutil.rmtree(tmpl_a_path)
+
+        resp = templates_client.get("/templates")
+        assert b"tmpl_a" not in resp.data
+        assert b"tmpl_b" in resp.data
+
+    def test_active_page_marks_nav_item_active(self, templates_client):
+        resp = templates_client.get("/templates")
+        assert b'href="/templates" class="nav-item active"' in resp.data
+
+
+class TestTemplatesNavigation:
+    def test_templates_link_present_on_home_page(self, templates_client):
+        resp = templates_client.get("/")
+        assert resp.status_code == 200
+        assert b'href="/templates"' in resp.data

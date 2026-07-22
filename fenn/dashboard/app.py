@@ -37,6 +37,7 @@ from fenn.dashboard.responses import (
     template_list_unavailable,
     template_not_found,
 )
+from fenn.dashboard.templates_registry import TemplatesRegistry
 from fenn.dashboard.validation import (
     check_body,
     check_non_empty_string,
@@ -83,6 +84,7 @@ app.config.update(
 csrf = CSRFProtect(app)
 
 scanner = FennScanner()
+templates_registry = TemplatesRegistry()
 
 
 class _ApiBadRequest(Exception):
@@ -253,6 +255,19 @@ def session_view(project_name: str, session_id: str) -> str:
     return render_template("session.html", **data)
 
 
+@app.route("/templates")
+def templates_page() -> str:
+    """Return the local templates registry page, listing all templates that have been pulled into a local directory."""
+    entries = templates_registry.list_templates()
+    return render_template(
+        "templates.html",
+        projects=scanner.get_overview()["projects"],
+        templates=entries,
+        total_templates=len(entries),
+        active_page="templates",
+    )
+
+
 @app.route("/api/overview")
 def api_overview() -> Response:
     include_archived = (request.args.get("include_archived") or "").lower() == "true"
@@ -280,6 +295,18 @@ def api_templates() -> tuple[Response, int] | Response:
         {
             "templates": templates,
             "total": len(templates),
+        }
+    )
+
+
+@app.route("/api/templates/local")
+def api_local_templates() -> Response:
+    """Return the templates that have been pulled into a local directory."""
+    entries = templates_registry.list_templates()
+    return jsonify(
+        {
+            "templates": entries,
+            "total": len(entries),
         }
     )
 

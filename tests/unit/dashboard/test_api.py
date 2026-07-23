@@ -9,6 +9,7 @@ import pytest
 import requests
 
 from fenn.dashboard.app import app
+from fenn.dashboard.runner import RunningTemplate, TemplateLaunchError
 from fenn.dashboard.scanner import FennScanner
 from fenn.dashboard.templates_registry import TemplateEntry, TemplatesRegistry
 
@@ -1028,3 +1029,106 @@ class TestTemplatesNavigation:
         resp = templates_client.get("/")
         assert resp.status_code == 200
         assert b'href="/templates"' in resp.data
+
+
+class TestApiTemplateRun:
+    """Tests for POST /api/templates/run."""
+
+    def test_run_rejects_unregistered_path(self, templates_client, tmp_path):
+        token = _extract_csrf_token(templates_client.get("/").get_data(as_text=True))
+        resp = templates_client.post(
+            "/api/templates/run",
+            json={"path": str(tmp_path / "not-registered")},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 404
+        body = resp.get_json()
+        assert body["error"]["code"] == "template_not_registered"
+        assert body["error"]["param"] == "path"
+
+    def test_run_rejects_invalid_payload(self, templates_client):
+        token = _extract_csrf_token(templates_client.get("/").get_data(as_text=True))
+        resp = templates_client.post(
+            "/api/templates/run",
+            json={"path": ""},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 400
+        assert resp.get_json()["error"]["param"] == "path"
+
+    def test_run_requires_csrf(self, templates_client, tmp_path):
+        resp = templates_client.post(
+            "/api/templates/run",
+            json={"path": str(tmp_path)},
+        )
+        assert resp.status_code == 400
+
+    def test_run_requires_authentication(self, templates_client_no_auth, tmp_path):
+        token = _extract_csrf_token(
+            templates_client_no_auth.get("/connect").get_data(as_text=True)
+        )
+        resp = templates_client_no_auth.post(
+            "/api/templates/run",
+            json={"path": str(tmp_path)},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 302
+        assert "/connect" in resp.headers["Location"]
+
+    def test_run_success_launches_and_returns_payload(
+        self, templates_client, templates_registry_with_entries, monkeypatch
+    ):
+        import fenn.dashboard.app as app_module
+
+        entries = templates_registry_with_entries.list_templates()
+        target = entries[0]["path"]
+
+        fake_process = type(
+            "FakeProcess", (), {"pid": 4242, "poll": lambda self: None}
+        )()
+        fake_running = RunningTemplate(
+            run_id="abc123",
+            template_path=app_module.Path(target),
+            log_dir=app_module.Path(target) / "logger",
+            process=fake_process,
+            started_at=0.0,
+        )
+        monkeypatch.setattr(
+            app_module.template_runner, "launch", lambda *a, **k: fake_running
+        )
+
+        token = _extract_csrf_token(templates_client.get("/").get_data(as_text=True))
+        resp = templates_client.post(
+            "/api/templates/run",
+            json={"path": target},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["run_id"] == "abc123"
+        assert body["pid"] == 4242
+        assert body["launched"] is True
+
+    def test_run_launch_failure_returns_502(
+        self, templates_client, templates_registry_with_entries, monkeypatch
+    ):
+        import fenn.dashboard.app as app_module
+
+        entries = templates_registry_with_entries.list_templates()
+        target = entries[0]["path"]
+
+        def _raise(*a, **k):
+            raise TemplateLaunchError("boom: crashed on startup")
+
+        monkeypatch.setattr(app_module.template_runner, "launch", _raise)
+
+        token = _extract_csrf_token(templates_client.get("/").get_data(as_text=True))
+        resp = templates_client.post(
+            "/api/templates/run",
+            json={"path": target},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 502
+        body = resp.get_json()
+        assert body["error"]["code"] == "template_launch_failed"
+        assert "boom: crashed on startup" in body["error"]["message"]

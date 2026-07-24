@@ -934,7 +934,7 @@ class TestApiLocalTemplates:
         resp = templates_client.get("/api/templates/local")
         assert resp.status_code == 200
         data = resp.get_json()
-        assert data["total"] == 2
+        assert data["total_templates"] == 2
         names = {t["name"] for t in data["templates"]}
         assert names == {"tmpl_a", "tmpl_b"}
 
@@ -948,7 +948,9 @@ class TestApiLocalTemplates:
     def test_returns_empty_list_when_no_templates_pulled(self, empty_templates_client):
         resp = empty_templates_client.get("/api/templates/local")
         assert resp.status_code == 200
-        assert resp.get_json() == {"templates": [], "total": 0}
+        data = resp.get_json()
+        assert data["templates"] == []
+        assert data["total_templates"] == 0
 
     def test_deleted_template_directory_is_not_returned(self, templates_client):
         initial = templates_client.get("/api/templates/local").get_json()
@@ -961,7 +963,7 @@ class TestApiLocalTemplates:
         data = resp.get_json()
         names = {t["name"] for t in data["templates"]}
         assert names == {"tmpl_b"}
-        assert data["total"] == 1
+        assert data["total_templates"] == 1
 
     def test_requires_authentication(self, templates_client_no_auth):
         resp = templates_client_no_auth.get("/api/templates/local")

@@ -41,7 +41,7 @@ from fenn.dashboard.responses import (
 )
 from fenn.dashboard.runner import TemplateLaunchError, TemplateRunner
 from fenn.dashboard.templates_registry import TemplatesRegistry
-from fenn.dashboard.types import SessionData
+from fenn.dashboard.types import SessionData, TemplateRunResponse, TemplatesPayload
 from fenn.dashboard.validation import (
     check_body,
     check_non_empty_string,
@@ -308,12 +308,13 @@ def api_templates() -> tuple[Response, int] | Response:
 def api_local_templates() -> Response:
     """Return the templates that have been pulled into a local directory."""
     entries = templates_registry.list_templates()
-    return jsonify(
-        {
-            "templates": entries,
-            "total": len(entries),
-        }
-    )
+    payload: TemplatesPayload = {
+        "projects": scanner.get_overview()["projects"],
+        "templates": entries,
+        "total_templates": len(entries),
+        "active_page": "templates",
+    }
+    return jsonify(payload)
 
 
 @app.route("/api/templates/pull", methods=["POST"])
@@ -418,15 +419,14 @@ def api_template_run() -> tuple[Response, int] | Response:
     except TemplateLaunchError as exc:
         return template_launch_failed(exc), 502
 
-    return jsonify(
-        {
-            "run_id": running.run_id,
-            "template_path": str(running.template_path),
-            "log_dir": str(running.log_dir),
-            "pid": running.process.pid,
-            "launched": True,
-        }
-    )
+    response: TemplateRunResponse = {
+        "run_id": running.run_id,
+        "template_path": str(running.template_path),
+        "log_dir": str(running.log_dir),
+        "pid": running.process.pid,
+        "launched": True,
+    }
+    return jsonify(response)
 
 
 @app.route("/api/templates/run/<run_id>/status")

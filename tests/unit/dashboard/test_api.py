@@ -1132,3 +1132,171 @@ class TestApiTemplateRun:
         body = resp.get_json()
         assert body["error"]["code"] == "template_launch_failed"
         assert "boom: crashed on startup" in body["error"]["message"]
+
+
+class TestApiTemplateRunStatus:
+    """Tests for GET /api/templates/run/<run_id>/status."""
+
+    def test_unknown_run_id_returns_404(self, templates_client):
+        resp = templates_client.get("/api/templates/run/nope/status")
+        assert resp.status_code == 404
+        assert resp.get_json()["error"]["code"] == "run_not_found"
+
+    def test_pending_when_no_matching_session_yet(
+        self, templates_client, templates_registry_with_entries, monkeypatch, tmp_path
+    ):
+        import fenn.dashboard.app as app_module
+
+        target = templates_registry_with_entries.list_templates()[0]["path"]
+        fake_process = type("FakeProcess", (), {"pid": 1, "poll": lambda self: None})()
+        fake_running = RunningTemplate(
+            run_id="run1",
+            template_path=app_module.Path(target),
+            log_dir=tmp_path / "logger",
+            process=fake_process,
+            started_at=0.0,
+        )
+        monkeypatch.setattr(app_module.template_runner, "get", lambda rid: fake_running)
+        monkeypatch.setattr(
+            app_module.scanner, "get_all_sessions", lambda include_archived=True: []
+        )
+
+        resp = templates_client.get("/api/templates/run/run1/status")
+        assert resp.status_code == 200
+        assert resp.get_json()["status"] == "pending"
+
+    def test_found_when_session_appears_in_log_dir(
+        self, templates_client, templates_registry_with_entries, monkeypatch, tmp_path
+    ):
+        import fenn.dashboard.app as app_module
+
+        log_dir = tmp_path / "logger"
+        log_dir.mkdir()
+        target = templates_registry_with_entries.list_templates()[0]["path"]
+        fake_process = type("FakeProcess", (), {"pid": 1, "poll": lambda self: None})()
+        fake_running = RunningTemplate(
+            run_id="run2",
+            template_path=app_module.Path(target),
+            log_dir=log_dir,
+            process=fake_process,
+            started_at=100.0,
+        )
+        monkeypatch.setattr(app_module.template_runner, "get", lambda rid: fake_running)
+        session = {
+            "project": "newproj",
+            "session_id": "s1",
+            "file_path": str(log_dir / "s1.fn"),
+            "file_mtime": 200.0,
+        }
+        monkeypatch.setattr(
+            app_module.scanner,
+            "get_all_sessions",
+            lambda include_archived=True: [session],
+        )
+
+        resp = templates_client.get("/api/templates/run/run2/status")
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body == {"status": "found", "project": "newproj", "session_id": "s1"}
+
+    def test_ignores_sessions_older_than_launch(
+        self, templates_client, templates_registry_with_entries, monkeypatch, tmp_path
+    ):
+        import fenn.dashboard.app as app_module
+
+        log_dir = tmp_path / "logger"
+        log_dir.mkdir()
+        target = templates_registry_with_entries.list_templates()[0]["path"]
+        fake_process = type("FakeProcess", (), {"pid": 1, "poll": lambda self: None})()
+        fake_running = RunningTemplate(
+            run_id="run3",
+            template_path=app_module.Path(target),
+            log_dir=log_dir,
+            process=fake_process,
+            started_at=500.0,
+        )
+        monkeypatch.setattr(app_module.template_runner, "get", lambda rid: fake_running)
+        stale_session = {
+            "project": "oldproj",
+            "session_id": "old1",
+            "file_path": str(log_dir / "old1.fn"),
+            "file_mtime": 100.0,  # before started_at
+        }
+        monkeypatch.setattr(
+            app_module.scanner,
+            "get_all_sessions",
+            lambda include_archived=True: [stale_session],
+        )
+
+        resp = templates_client.get("/api/templates/run/run3/status")
+        assert resp.get_json()["status"] == "pending"
+
+    def test_ignores_sessions_outside_log_dir(
+        self, templates_client, templates_registry_with_entries, monkeypatch, tmp_path
+    ):
+        import fenn.dashboard.app as app_module
+
+        log_dir = tmp_path / "logger"
+        log_dir.mkdir()
+        other_dir = tmp_path / "unrelated"
+        other_dir.mkdir()
+        target = templates_registry_with_entries.list_templates()[0]["path"]
+        fake_process = type("FakeProcess", (), {"pid": 1, "poll": lambda self: None})()
+        fake_running = RunningTemplate(
+            run_id="run4",
+            template_path=app_module.Path(target),
+            log_dir=log_dir,
+            process=fake_process,
+            started_at=0.0,
+        )
+        monkeypatch.setattr(app_module.template_runner, "get", lambda rid: fake_running)
+        unrelated_session = {
+            "project": "other",
+            "session_id": "o1",
+            "file_path": str(other_dir / "o1.fn"),
+            "file_mtime": 999.0,
+        }
+        monkeypatch.setattr(
+            app_module.scanner,
+            "get_all_sessions",
+            lambda include_archived=True: [unrelated_session],
+        )
+
+        resp = templates_client.get("/api/templates/run/run4/status")
+        assert resp.get_json()["status"] == "pending"
+
+    def test_failed_when_process_exited_nonzero(
+        self, templates_client, templates_registry_with_entries, monkeypatch
+    ):
+        import fenn.dashboard.app as app_module
+
+        target = templates_registry_with_entries.list_templates()[0]["path"]
+        fake_process = type(
+            "FakeProcess",
+            (),
+            {
+                "pid": 1,
+                "poll": lambda self: 1,
+                "communicate": lambda self, timeout=None: ("", "boom traceback"),
+            },
+        )()
+        fake_running = RunningTemplate(
+            run_id="run5",
+            template_path=app_module.Path(target),
+            log_dir=app_module.Path(target) / "logger",
+            process=fake_process,
+            started_at=0.0,
+        )
+        monkeypatch.setattr(app_module.template_runner, "get", lambda rid: fake_running)
+
+        resp = templates_client.get("/api/templates/run/run5/status")
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["status"] == "failed"
+        assert body["exit_code"] == 1
+        assert "boom traceback" in body["error"]
+
+    def test_requires_authentication(self, templates_client_no_auth):
+        resp = templates_client_no_auth.get("/api/templates/run/anything/status")
+        assert resp.status_code == 302
+        assert "/connect" in resp.headers["Location"]

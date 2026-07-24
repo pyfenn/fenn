@@ -262,6 +262,69 @@
     });
   }
 
+  // ── Template run actions (templates page) ──────────────────────────────── //
+
+  const RUN_POLL_INTERVAL_MS = 1000;
+  const RUN_POLL_TIMEOUT_MS  = 30000;
+
+  function setRunFeedback(btn, message, isError) {
+    const feedback = btn.parentElement?.querySelector(".template-run-feedback");
+    if (!feedback) return;
+    feedback.textContent = message || "";
+    feedback.style.color = isError ? "#c0392b" : "";
+  }
+
+  function pollRunStatus(runId, btn, deadline) {
+    if (Date.now() > deadline) {
+      setRunFeedback(btn, "Still starting — check back shortly.", true);
+      btn.disabled = false;
+      return;
+    }
+
+    fetch(`/api/templates/run/${encodeURIComponent(runId)}/status`)
+      .then((r) => r.json())
+      .then((body) => {
+        if (body.status === "found") {
+          window.location.href = `/session/${encodeURIComponent(body.project)}/${encodeURIComponent(body.session_id)}`;
+          return;
+        }
+        if (body.status === "failed") {
+          setRunFeedback(btn, body.error || "Template failed to start.", true);
+          btn.disabled = false;
+          return;
+        }
+        setTimeout(() => pollRunStatus(runId, btn, deadline), RUN_POLL_INTERVAL_MS);
+      })
+      .catch(() => {
+        setTimeout(() => pollRunStatus(runId, btn, deadline), RUN_POLL_INTERVAL_MS);
+      });
+  }
+
+  document.querySelectorAll(".template-run-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const path = btn.dataset.path;
+      if (!path) return;
+
+      btn.disabled = true;
+      setRunFeedback(btn, "Launching…", false);
+
+      try {
+        const resp = await postJson("/api/templates/run", { path });
+        const body = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          setRunFeedback(btn, body?.error?.message || "Failed to launch template.", true);
+          btn.disabled = false;
+          return;
+        }
+        setRunFeedback(btn, "Starting…", false);
+        pollRunStatus(body.run_id, btn, Date.now() + RUN_POLL_TIMEOUT_MS);
+      } catch (_err) {
+        setRunFeedback(btn, "Failed to launch template.", true);
+        btn.disabled = false;
+      }
+    });
+  });
+
   // ── Session search (index page) ────────────────────────────────────────── //
 
   const sessionSearch = document.getElementById("session-search");

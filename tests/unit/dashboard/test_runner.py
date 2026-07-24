@@ -29,8 +29,9 @@ def scanner(tmp_path, monkeypatch):
 
 @pytest.fixture()
 def runner():
-    # Tiny grace period keeps unit tests fast.
-    return TemplateRunner(startup_grace_s=0.1)
+    # Windows process spawn is slower than fork()-based platforms; keep
+    # enough headroom to reliably catch immediate crashes there.
+    return TemplateRunner(startup_grace_s=0.4)
 
 
 class TestReadLoggerDir:

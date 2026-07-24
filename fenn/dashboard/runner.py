@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 import threading
 import time
 import uuid
@@ -124,7 +125,7 @@ class TemplateRunner:
 
         try:
             process = subprocess.Popen(
-                ["python", str(entry_path)],
+                [sys.executable, str(entry_path)],
                 cwd=str(template_path),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -134,8 +135,10 @@ class TemplateRunner:
             raise TemplateLaunchError(f"Failed to start process: {exc}") from exc
 
         # Watch for a fast crash before any .fn log would exist.
-        if self._startup_grace_s > 0:
-            time.sleep(self._startup_grace_s)
+        try:
+            process.wait(timeout=self._startup_grace_s)
+        except subprocess.TimeoutExpired:
+            pass
         exit_code = process.poll()
         if exit_code is not None and exit_code != 0:
             _, stderr = process.communicate()

@@ -11,7 +11,7 @@
 <div class="page-header">
   <span class="page-tag">// templates</span>
   <h1 class="page-title">Templates</h1>
-  <p class="page-subtitle">Templates you've downloaded locally with <code>fenn pull</code>.</p>
+  <p class="page-subtitle">Templates you've downloaded locally with <code>fenn pull</code> — click Run to launch one and jump straight to its live session.</p>
 </div>
 
 {% if templates %}
@@ -31,6 +31,7 @@
           <th>Source</th>
           <th>Path</th>
           <th>Pulled</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -40,6 +41,10 @@
           <td class="td-mono" data-searchable="{{ t.source_template }}">{{ t.source_template }}</td>
           <td class="td-mono" data-searchable="{{ t.path }}" title="{{ t.path }}">{{ t.path }}</td>
           <td class="td-mono" data-searchable="{{ t.pulled_at }}">{{ t.pulled_at }}</td>
+          <td class="td-actions">
+            <button type="button" class="btn template-run-btn" data-path="{{ t.path }}" data-name="{{ t.name }}">Run</button>
+            <div class="template-run-feedback" aria-live="polite"></div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>

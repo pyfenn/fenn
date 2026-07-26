@@ -165,6 +165,13 @@ class TestLoadDocuments:
         docs = load_documents(str(tmp_path))
         assert len(docs) == 2
 
+    def test_loads_uppercase_extension(self, tmp_path):
+        (tmp_path / "UPPER.TXT").write_text("upper", encoding="utf-8")
+
+        docs = load_documents(str(tmp_path))
+
+        assert docs == ["upper"]
+
     def test_skips_unsupported_extensions(self, tmp_path):
         (tmp_path / "image.png").write_bytes(b"\x89PNG")
         (tmp_path / "doc.txt").write_text("valid", encoding="utf-8")

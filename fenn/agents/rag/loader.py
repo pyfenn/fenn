@@ -75,7 +75,7 @@ def load_documents(source):
     elif path.is_dir():
         found = list(path.rglob("*"))
         supported = [
-            f for f in found if f.is_file() and f.suffix in SUPPORTED_EXTENSIONS
+            f for f in found if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
         ]
         if not supported:
             logger.warning(f"[cofone] warning: no supported files found in {path}")

@@ -1,5 +1,3 @@
-"""Fenn Dashboard — Flask application for browsing fnxml log files."""
-
 from __future__ import annotations
 
 import argparse
@@ -25,6 +23,7 @@ from flask import (
 )
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.exceptions import HTTPException
+from werkzeug.utils import secure_filename
 
 from fenn.cli.list import get_available_templates
 from fenn.cli.pull import pull_template
@@ -64,6 +63,8 @@ except ImportError:  # standalone: python app.py
     from scanner import FennScanner  # ty: ignore[unresolved-import]
 
 _HERE = Path(__file__).parent
+_DEFAULT_UPLOAD_DIR = Path.home() / ".fenn" / "uploads"
+_DEFAULT_MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100 MB
 
 app = Flask(
     __name__,
@@ -81,6 +82,8 @@ app.config.update(
     SESSION_COOKIE_SECURE=False,  # localhost-only — HTTPS not in scope
     PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
     WTF_CSRF_TIME_LIMIT=None,
+    UPLOAD_FOLDER=_DEFAULT_UPLOAD_DIR,
+    MAX_CONTENT_LENGTH=_DEFAULT_MAX_UPLOAD_SIZE,
 )
 
 # CSRF on /connect/start and /logout. Even though we listen on 127.0.0.1, any
@@ -230,6 +233,115 @@ def short_id_filter(session_id: str) -> str:
 # --------------------------------------------------------------------------- #
 # Routes
 # --------------------------------------------------------------------------- #
+@app.route("/uploads")
+def uploads_page() -> str:
+    """Render the dashboard file upload page."""
+    return render_template(
+        "uploads.html",
+        projects=scanner.get_overview()["projects"],
+        active_page="uploads",
+    )
+
+
+@app.route("/api/uploads", methods=["GET", "POST"])
+@app.route("/api/uploads", methods=["GET", "POST"])
+def api_upload_file() -> tuple[Response, int] | Response:
+    """List uploaded files or upload a new file."""
+
+    upload_directory = Path(app.config["UPLOAD_FOLDER"])
+
+    if request.method == "GET":
+        try:
+            upload_directory.mkdir(parents=True, exist_ok=True)
+
+            files = []
+
+            for path in upload_directory.iterdir():
+                if not path.is_file():
+                    continue
+
+                stat = path.stat()
+
+                files.append(
+                    {
+                        "filename": path.name,
+                        "size": stat.st_size,
+                        "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(
+                            timespec="seconds"
+                        ),
+                    }
+                )
+
+            files.sort(
+                key=lambda file: file["modified_at"],
+                reverse=True,
+            )
+
+        except OSError as exc:
+            return filesystem_error(exc), 500
+
+        return jsonify(
+            {
+                "files": files,
+                "total": len(files),
+            }
+        )
+
+    if "file" not in request.files:
+        return _api_error(
+            "missing_file",
+            "No file was provided",
+            "file",
+        )
+
+    uploaded_file = request.files["file"]
+
+    if uploaded_file.filename is None or uploaded_file.filename.strip() == "":
+        return _api_error(
+            "invalid_file",
+            "A filename is required",
+            "file",
+        )
+
+    filename = secure_filename(uploaded_file.filename)
+
+    if not filename:
+        return _api_error(
+            "invalid_filename",
+            "The filename is not valid",
+            "file",
+        )
+
+    try:
+        upload_directory.mkdir(parents=True, exist_ok=True)
+
+        destination = upload_directory / filename
+
+        if destination.exists():
+            return (
+                error_response(
+                    "file_exists",
+                    f"A file named '{filename}' already exists",
+                    "file",
+                ),
+                409,
+            )
+
+        uploaded_file.save(destination)
+
+    except OSError as exc:
+        return filesystem_error(exc), 500
+
+    return (
+        jsonify(
+            {
+                "uploaded": True,
+                "filename": filename,
+                "size": destination.stat().st_size,
+            }
+        ),
+        201,
+    )
 
 
 @app.route("/")

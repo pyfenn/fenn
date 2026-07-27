@@ -668,3 +668,127 @@
   updateCount();
 
 })();
+
+const uploadForm = document.getElementById("upload-form");
+
+if (uploadForm) {
+  const fileInput = document.getElementById("upload-file");
+  const submitButton = document.getElementById("upload-submit");
+  const statusElement = document.getElementById("upload-status");
+  const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    ?.getAttribute("content");
+
+  uploadForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (!fileInput.files.length) {
+      statusElement.hidden = false;
+      statusElement.textContent = "Please select a file.";
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    submitButton.disabled = true;
+    submitButton.textContent = "Uploading...";
+
+    statusElement.hidden = false;
+    statusElement.textContent = "Uploading file...";
+
+    try {
+      const response = await fetch("/api/uploads", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message =
+          data?.error?.message || "The file could not be uploaded.";
+
+        throw new Error(message);
+      }
+
+      const sizeKb = (data.size / 1024).toFixed(1);
+
+      statusElement.textContent =
+        `Upload successful: ${data.filename} (${sizeKb} KB)`;
+
+
+      uploadForm.reset();
+      loadUploadedFiles();
+    } catch (error) {
+      statusElement.textContent =
+        error instanceof Error
+          ? error.message
+          : "The file could not be uploaded.";
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = "Upload File";
+    }
+  });
+}
+async function loadUploadedFiles() {
+  const uploadsList = document.getElementById("uploads-list");
+
+  if (!uploadsList) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/uploads");
+    const data = await response.json();
+
+    if (!response.ok) {
+      uploadsList.innerHTML =
+        "<p>Could not load uploaded files.</p>";
+      return;
+    }
+
+    if (data.total === 0) {
+      uploadsList.innerHTML =
+        "<p>No uploaded files yet.</p>";
+      return;
+    }
+
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Filename</th>
+            <th>Size</th>
+            <th>Modified</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    data.files.forEach(file => {
+      html += `
+        <tr>
+          <td>${file.filename}</td>
+          <td>${(file.size / 1024).toFixed(1)} KB</td>
+          <td>${file.modified_at}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+        </tbody>
+      </table>
+    `;
+
+    uploadsList.innerHTML = html;
+
+  } catch {
+    uploadsList.innerHTML =
+      "<p>Could not load uploaded files.</p>";
+  }
+}
+loadUploadedFiles();

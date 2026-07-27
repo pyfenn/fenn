@@ -39,7 +39,11 @@
         <span class="nav-icon">▣</span>
         <span class="nav-label">Templates</span>
       </a>
-
+      <a href="{{ url_for('uploads_page') }}"
+           class="nav-item {% if active_page == 'uploads' %}active{% endif %}">
+            <span class="nav-icon">⇧</span>
+            <span class="nav-label">Uploads</span>
+      </a>
       {% if projects %}
       <div class="sidebar-section-label" style="margin-top:16px;">Projects</div>
       {% for p in projects %}

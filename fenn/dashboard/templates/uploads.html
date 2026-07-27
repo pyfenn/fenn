@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Files — Fenn Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-current">Uploads</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <span class="page-tag">// uploads</span>
+  <h1 class="page-title">Upload Files</h1>
+  <p class="page-subtitle">
+    Upload data files that can be used by templates running on this dashboard.
+  </p>
+</div>
+
+<div class="section-header">
+  <span class="section-title">Select a File</span>
+</div>
+
+<div class="card">
+  <form
+    id="upload-form"
+    class="upload-form"
+    action="{{ url_for('api_upload_file') }}"
+    method="POST"
+    enctype="multipart/form-data"
+  >
+    <input
+      type="hidden"
+      name="csrf_token"
+      value="{{ csrf_token() }}"
+    >
+
+    <div class="form-group">
+      <label for="upload-file" class="form-label">
+        File
+      </label>
+
+      <input
+        id="upload-file"
+        name="file"
+        class="form-control"
+        type="file"
+        required
+      >
+
+      <p class="form-help">
+        Maximum upload size: 100 MB.
+      </p>
+    </div>
+
+    <div class="upload-actions">
+      <button
+        id="upload-submit"
+        class="btn-primary"
+        type="submit"
+      >
+        Upload File
+      </button>
+    </div>
+  </form>
+  <hr class="section-divider">
+
+<div class="section-header">
+  <span class="section-title">Uploaded Files</span>
+</div>
+
+<div class="card">
+  <div id="uploads-list">
+    <p>Loading uploaded files...</p>
+  </div>
+</div>
+
+  <div
+    id="upload-status"
+    class="upload-status"
+    role="status"
+    aria-live="polite"
+    hidden
+  ></div>
+</div>
+
+{% endblock %}

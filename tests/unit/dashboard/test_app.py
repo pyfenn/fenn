@@ -1,5 +1,5 @@
 """Tests for fenn/dashboard/app.py"""
-
+from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -287,6 +287,164 @@ class TestTryStoredSession:
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+class TestUploadFile:
+    def test_upload_file_success(self, app, authed_client, tmp_path):
+        app.config["UPLOAD_FOLDER"] = tmp_path
+
+        response = authed_client.post(
+            "/api/uploads",
+            data={
+                "file": (BytesIO(b"sample data"), "train.csv"),
+            },
+            content_type="multipart/form-data",
+        )
+
+        assert response.status_code == 201
+        assert response.get_json() == {
+            "uploaded": True,
+            "filename": "train.csv",
+            "size": 11,
+        }
+
+        uploaded_file = tmp_path / "train.csv"
+        assert uploaded_file.exists()
+        assert uploaded_file.read_bytes() == b"sample data"
+
+    def test_upload_without_file_returns_400(
+        self,
+        app,
+        authed_client,
+        tmp_path,
+    ):
+        app.config["UPLOAD_FOLDER"] = tmp_path
+
+        response = authed_client.post(
+            "/api/uploads",
+            data={},
+            content_type="multipart/form-data",
+        )
+
+        assert response.status_code == 400
+
+        body = response.get_json()
+        assert body["error"]["code"] == "missing_file"
+        assert body["error"]["param"] == "file"
+
+    def test_upload_with_empty_filename_returns_400(
+        self,
+        app,
+        authed_client,
+        tmp_path,
+    ):
+        app.config["UPLOAD_FOLDER"] = tmp_path
+
+        response = authed_client.post(
+            "/api/uploads",
+            data={
+                "file": (BytesIO(b"sample data"), ""),
+            },
+            content_type="multipart/form-data",
+        )
+
+        assert response.status_code == 400
+
+        body = response.get_json()
+        assert body["error"]["code"] == "invalid_file"
+        assert body["error"]["param"] == "file"
+
+    def test_upload_duplicate_file_returns_409(
+        self,
+        app,
+        authed_client,
+        tmp_path,
+    ):
+        app.config["UPLOAD_FOLDER"] = tmp_path
+        (tmp_path / "train.csv").write_bytes(b"existing data")
+
+        response = authed_client.post(
+            "/api/uploads",
+            data={
+                "file": (BytesIO(b"new data"), "train.csv"),
+            },
+            content_type="multipart/form-data",
+        )
+
+        assert response.status_code == 409
+
+        body = response.get_json()
+        assert body["error"]["code"] == "file_exists"
+
+        assert (tmp_path / "train.csv").read_bytes() == b"existing data"
+
+    def test_upload_sanitizes_filename(self, app, authed_client, tmp_path):
+        app.config["UPLOAD_FOLDER"] = tmp_path
+
+        response = authed_client.post(
+            "/api/uploads",
+            data={
+                "file": (BytesIO(b"sample data"), "../../train.csv"),
+            },
+            content_type="multipart/form-data",
+        )
+
+        assert response.status_code == 201
+        assert response.get_json()["filename"] == "train.csv"
+        assert (tmp_path / "train.csv").exists()
+
+    def test_upload_invalid_filename_returns_400(
+            self,
+            app,
+            authed_client,
+            tmp_path,
+    ):
+        app.config["UPLOAD_FOLDER"] = tmp_path
+
+        response = authed_client.post(
+            "/api/uploads",
+            data={
+                "file": (BytesIO(b"sample data"), "../../../"),
+            },
+            content_type="multipart/form-data",
+        )
+
+        assert response.status_code == 400
+
+        body = response.get_json()
+        assert body["error"]["code"] == "invalid_filename"
+
+    def test_list_uploaded_files(self, app, authed_client, tmp_path):
+        app.config["UPLOAD_FOLDER"] = tmp_path
+
+        (tmp_path / "first.csv").write_bytes(b"abc")
+        (tmp_path / "second.txt").write_bytes(b"hello")
+
+        response = authed_client.get("/api/uploads")
+
+        assert response.status_code == 200
+
+        body = response.get_json()
+        assert body["total"] == 2
+
+        filenames = {file["filename"] for file in body["files"]}
+        assert filenames == {"first.csv", "second.txt"}
+
+        for file in body["files"]:
+            assert "size" in file
+            assert "modified_at" in file
+
+    def test_list_uploaded_files_empty(self, app, authed_client, tmp_path):
+        app.config["UPLOAD_FOLDER"] = tmp_path
+
+        response = authed_client.get("/api/uploads")
+
+        assert response.status_code == 200
+        assert response.get_json() == {
+            "files": [],
+            "total": 0,
+        }
+
+
+
 class TestApiSessions:
     def test_returns_200_with_default_params(self, authed_client):
         from fenn.dashboard import app as app_mod
@@ -387,3 +545,14 @@ class TestRequireLogin:
         )
         resp = authed_client.get("/api/sessions")
         assert resp.status_code == 200
+
+class TestUploadsPage:
+    def test_uploads_page_renders(self, authed_client):
+        response = authed_client.get("/uploads")
+
+        assert response.status_code == 200
+        assert b"Upload Files" in response.data
+        assert b'id="upload-form"' in response.data
+        assert b'action="/api/uploads"' in response.data
+        assert b'method="POST"' in response.data
+        assert b'name="csrf_token"' in response.data

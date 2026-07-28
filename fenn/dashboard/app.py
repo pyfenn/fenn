@@ -22,6 +22,7 @@ from flask import (
     url_for,
 )
 from flask_wtf.csrf import CSRFError, CSRFProtect
+from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 
@@ -183,6 +184,146 @@ def _parse_int_arg(
     return v
 
 
+# --------------------------------------------------------------------------- #
+# Helper Functions
+# --------------------------------------------------------------------------- #
+
+
+def _list_uploaded_files(
+    upload_directory: Path,
+) -> list[dict[str, str | int]]:
+    upload_directory.mkdir(parents=True, exist_ok=True)
+
+    files: list[dict[str, str | int]] = []
+
+    for path in upload_directory.iterdir():
+        if not path.is_file():
+            continue
+
+        stat = path.stat()
+
+        files.append(
+            {
+                "filename": path.name,
+                "size": stat.st_size,
+                "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(
+                    timespec="seconds"
+                ),
+            }
+        )
+
+    files.sort(
+        key=lambda file: str(file["modified_at"]),
+        reverse=True,
+    )
+
+    return files
+
+
+def _save_uploaded_file(
+    upload_directory: Path,
+    uploaded_file: FileStorage,
+    filename: str,
+) -> Path:
+    upload_directory.mkdir(parents=True, exist_ok=True)
+
+    destination = upload_directory / filename
+
+    if destination.exists():
+        raise FileExistsError(filename)
+
+    uploaded_file.save(destination)
+
+    return destination
+
+
+def _validate_upload_filename(
+    uploaded_file: FileStorage,
+) -> str | tuple[Response, int]:
+    raw_filename = uploaded_file.filename
+
+    if raw_filename is None or raw_filename.strip() == "":
+        return _api_error(
+            "invalid_file",
+            "A filename is required",
+            "file",
+        )
+
+    filename = secure_filename(raw_filename)
+
+    if not filename:
+        return _api_error(
+            "invalid_filename",
+            "The filename is not valid",
+            "file",
+        )
+
+    return filename
+
+
+def _handle_list_uploads(
+    upload_directory: Path,
+) -> tuple[Response, int] | Response:
+    try:
+        files = _list_uploaded_files(upload_directory)
+    except OSError as exc:
+        return filesystem_error(exc), 500
+
+    return jsonify(
+        {
+            "files": files,
+            "total": len(files),
+        }
+    )
+
+
+def _handle_file_upload(
+    upload_directory: Path,
+) -> tuple[Response, int] | Response:
+    uploaded_file = request.files.get("file")
+
+    if uploaded_file is None:
+        return _api_error(
+            "missing_file",
+            "No file was provided",
+            "file",
+        )
+
+    filename = _validate_upload_filename(uploaded_file)
+
+    if not isinstance(filename, str):
+        return filename
+
+    try:
+        destination = _save_uploaded_file(
+            upload_directory,
+            uploaded_file,
+            filename,
+        )
+    except FileExistsError:
+        return (
+            error_response(
+                "file_exists",
+                f"A file named '{filename}' already exists",
+                "file",
+            ),
+            409,
+        )
+    except OSError as exc:
+        return filesystem_error(exc), 500
+
+    return (
+        jsonify(
+            {
+                "uploaded": True,
+                "filename": filename,
+                "size": destination.stat().st_size,
+            }
+        ),
+        201,
+    )
+
+
 @app.before_request
 def _require_login() -> werkzeug.wrappers.response.Response | None:
     endpoint = request.endpoint
@@ -244,104 +385,15 @@ def uploads_page() -> str:
 
 
 @app.route("/api/uploads", methods=["GET", "POST"])
-@app.route("/api/uploads", methods=["GET", "POST"])
 def api_upload_file() -> tuple[Response, int] | Response:
     """List uploaded files or upload a new file."""
 
     upload_directory = Path(app.config["UPLOAD_FOLDER"])
 
     if request.method == "GET":
-        try:
-            upload_directory.mkdir(parents=True, exist_ok=True)
+        return _handle_list_uploads(upload_directory)
 
-            files = []
-
-            for path in upload_directory.iterdir():
-                if not path.is_file():
-                    continue
-
-                stat = path.stat()
-
-                files.append(
-                    {
-                        "filename": path.name,
-                        "size": stat.st_size,
-                        "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(
-                            timespec="seconds"
-                        ),
-                    }
-                )
-
-            files.sort(
-                key=lambda file: file["modified_at"],
-                reverse=True,
-            )
-
-        except OSError as exc:
-            return filesystem_error(exc), 500
-
-        return jsonify(
-            {
-                "files": files,
-                "total": len(files),
-            }
-        )
-
-    if "file" not in request.files:
-        return _api_error(
-            "missing_file",
-            "No file was provided",
-            "file",
-        )
-
-    uploaded_file = request.files["file"]
-
-    if uploaded_file.filename is None or uploaded_file.filename.strip() == "":
-        return _api_error(
-            "invalid_file",
-            "A filename is required",
-            "file",
-        )
-
-    filename = secure_filename(uploaded_file.filename)
-
-    if not filename:
-        return _api_error(
-            "invalid_filename",
-            "The filename is not valid",
-            "file",
-        )
-
-    try:
-        upload_directory.mkdir(parents=True, exist_ok=True)
-
-        destination = upload_directory / filename
-
-        if destination.exists():
-            return (
-                error_response(
-                    "file_exists",
-                    f"A file named '{filename}' already exists",
-                    "file",
-                ),
-                409,
-            )
-
-        uploaded_file.save(destination)
-
-    except OSError as exc:
-        return filesystem_error(exc), 500
-
-    return (
-        jsonify(
-            {
-                "uploaded": True,
-                "filename": filename,
-                "size": destination.stat().st_size,
-            }
-        ),
-        201,
-    )
+    return _handle_file_upload(upload_directory)
 
 
 @app.route("/")

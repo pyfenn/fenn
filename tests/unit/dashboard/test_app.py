@@ -1,4 +1,5 @@
 """Tests for fenn/dashboard/app.py"""
+
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
@@ -392,10 +393,10 @@ class TestUploadFile:
         assert (tmp_path / "train.csv").exists()
 
     def test_upload_invalid_filename_returns_400(
-            self,
-            app,
-            authed_client,
-            tmp_path,
+        self,
+        app,
+        authed_client,
+        tmp_path,
     ):
         app.config["UPLOAD_FOLDER"] = tmp_path
 
@@ -442,7 +443,6 @@ class TestUploadFile:
             "files": [],
             "total": 0,
         }
-
 
 
 class TestApiSessions:
@@ -545,6 +545,7 @@ class TestRequireLogin:
         )
         resp = authed_client.get("/api/sessions")
         assert resp.status_code == 200
+
 
 class TestUploadsPage:
     def test_uploads_page_renders(self, authed_client):

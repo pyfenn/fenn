@@ -2,21 +2,27 @@ import builtins
 import logging
 import re
 from collections.abc import MutableMapping
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from colorama import Fore, Style
 from rich.console import Console
 from rich.table import Table
+from whenever import Instant, PlainDateTime
 
 console: Console = Console()
 
 _ansi_escape: re.Pattern[str] = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+_SPACE_SEP_PATTERN = "YYYY-MM-DD hh:mm:ss"
+
+
+def _now_local() -> PlainDateTime:
+    """Returns the current local time as a PlainDateTime object, with nanoseconds set to zero using `whenever`."""
+    return Instant.now().to_system_tz().to_plain().replace(nanosecond=0)
 
 
 class XmlMixin:
-    _started_at: datetime
+    _started_at: PlainDateTime
     fn_file: Path
 
     def _write_config_xml(
@@ -57,22 +63,30 @@ class XmlMixin:
             f.write(
                 f'<fenn-log project="{self._escape(args["project"])}" '
                 f'session_id="{self._escape(args["session_id"])}" '
-                f'started="{self._started_at}">\n'
+                f'started="{self._started_at.format(_SPACE_SEP_PATTERN)}">\n'
             )
 
     def _write_entry(self, record: logging.LogRecord, file_path: Path) -> None:
-        ts = datetime.fromtimestamp(record.created, tz=timezone.utc)
+        ts = Instant.from_timestamp(record.created)
         clean_message = self._escape(_ansi_escape.sub("", record.getMessage()))
         with open(file_path, "a", encoding="utf-8") as f:
             f.write(
-                f'  <entry ts="{ts.strftime("%Y-%m-%d %H:%M:%S")}" kind="user" '
+                f'  <entry ts="{ts.format(_SPACE_SEP_PATTERN)}" kind="user" '
                 f'level="{self._escape(record.levelname)}">{clean_message}</entry>\n'
             )
 
-    def _write_stop_info(self, started_at: datetime) -> None:
-        ended_at = datetime.now().replace(microsecond=0)
-        ended = ended_at.isoformat(" ")
-        duration_s = int((ended_at - started_at).total_seconds()) if started_at else 0
+    def _write_stop_info(self, started_at: PlainDateTime) -> None:
+        ended_at = _now_local()
+        ended = ended_at.format(_SPACE_SEP_PATTERN)
+        duration_s = (
+            int(
+                ended_at.difference(started_at, naive_arithmetic_ok=True).total(
+                    "seconds"
+                )
+            )
+            if started_at
+            else 0
+        )
 
         with open(self.fn_file, "a", encoding="utf-8") as f:
             f.write(
@@ -88,12 +102,12 @@ class FennHandler(XmlMixin, logging.Handler):
     _fn_xml: Path | None
 
     def __init__(self, level: int = 0) -> None:
-        self._started_at = datetime.now().replace(microsecond=0)
+        self._started_at = _now_local()
         self._log_file = None
         self._fn_xml = None
         super().__init__(level)
 
-    def configure(self, args: dict[str, Any], started_at: datetime) -> None:
+    def configure(self, args: dict[str, Any], started_at: PlainDateTime) -> None:
         log_root = Path(args["logger"]["dir"])
         log_dir = log_root / Path(args["project"])
         log_filename = f"{args['session_id']}.log"
@@ -108,11 +122,11 @@ class FennHandler(XmlMixin, logging.Handler):
     ) -> None:
         if self._log_file is None:
             return
-        ts = datetime.fromtimestamp(record.created, tz=timezone.utc)
+        ts = Instant.from_timestamp(record.created)
         clean_message = _ansi_escape.sub("", record.getMessage())
         with open(self._log_file, "a", encoding="utf-8") as f:
             f.write(
-                f"[{ts.strftime('%Y-%m-%d %H:%M:%S')}] {record.levelname} | {clean_message}\n"
+                f"[{ts.format(_SPACE_SEP_PATTERN)}] {record.levelname} | {clean_message}\n"
             )
 
     def _write_to_console(
@@ -144,14 +158,14 @@ class FennHandler(XmlMixin, logging.Handler):
 
 
 class FennLogger(XmlMixin, logging.LoggerAdapter):
-    _started_at: datetime
+    _started_at: PlainDateTime
     handler: "FennHandler"
     fn_file: Path
     txt_file: Path
 
     def __init__(self, logger: logging.Logger, handler: "FennHandler") -> None:
         super().__init__(logger, {})
-        self._started_at = datetime.now().replace(microsecond=0)
+        self._started_at = _now_local()
         self.handler = handler
 
     def write_config(self, args: dict[str, Any], config_file: Path) -> None:
@@ -229,8 +243,8 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
     ) -> None:
         table = Table(title="")
         table.add_column(f"Configuration file {config_file} loaded", style="", width=80)
-        timestamp_dt = datetime.now().replace(microsecond=0)
-        timestamp = timestamp_dt.isoformat(" ")
+        timestamp_dt = _now_local()
+        timestamp = timestamp_dt.format(_SPACE_SEP_PATTERN)
         for k, v in flat_config.items():
             colored_parts = self._get_colored_parts(key=k)
             table.add_row(f"{'/'.join(colored_parts)}: {v}")

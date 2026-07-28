@@ -1,8 +1,8 @@
 import random
 import secrets
-from datetime import datetime
 
 import numpy as np
+from whenever import Instant
 
 
 def set_seed(seed: int) -> None:
@@ -29,7 +29,7 @@ def set_seed(seed: int) -> None:
 
 def generate_session_id() -> str:
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    timestamp = Instant.now().to_system_tz().to_plain().format("YYYYMMDD_hhmm")
 
     # A curated list of "beautiful" words
     # adjectives = [

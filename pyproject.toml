@@ -46,6 +46,7 @@ dependencies = [
   "python-dotenv>=1.2.2",
   "faker>=40.8.0",
   "torchvision>=0.25.0",
+  "whenever>=0.10.3",
 ]
 
 requires-python = ">=3.11"

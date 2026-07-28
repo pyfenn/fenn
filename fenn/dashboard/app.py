@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -25,6 +25,7 @@ from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
+from whenever import PlainDateTime
 
 from fenn.cli.list import get_available_templates
 from fenn.cli.pull import pull_template
@@ -736,8 +737,8 @@ def api_sessions() -> tuple[Response, int] | Response:
         started_after_raw = request.args.get("started_after") or None
         if started_after_raw is not None:
             try:
-                started_after = datetime.strptime(
-                    started_after_raw, "%Y-%m-%d %H:%M:%S"
+                started_after = PlainDateTime.parse(
+                    started_after_raw, format="YYYY-MM-DD hh:mm:ss"
                 )
             except ValueError:
                 raise _ApiBadRequest(
@@ -749,8 +750,8 @@ def api_sessions() -> tuple[Response, int] | Response:
         started_before_raw = request.args.get("started_before") or None
         if started_before_raw is not None:
             try:
-                started_before = datetime.strptime(
-                    started_before_raw, "%Y-%m-%d %H:%M:%S"
+                started_before = PlainDateTime.parse(
+                    started_before_raw, format="YYYY-MM-DD hh:mm:ss"
                 )
             except ValueError:
                 raise _ApiBadRequest(

@@ -3,10 +3,11 @@
 import json
 import os
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 from xml.etree import ElementTree
+
+from whenever import PlainDateTime
 
 from fenn.dashboard.types import (
     LogEntry,
@@ -540,8 +541,8 @@ class FennScanner:
         project: str | None = None,
         status: str | None = None,
         include_archived: bool = False,
-        started_after: datetime | None = None,
-        started_before: datetime | None = None,
+        started_after: PlainDateTime | None = None,
+        started_before: PlainDateTime | None = None,
         limit: int = 20,
         offset: int = 0,
         sort: str = "-started",
@@ -587,7 +588,7 @@ class FennScanner:
                     if not raw:
                         continue
                     try:
-                        started = datetime.strptime(raw, "%Y-%m-%d %H:%M:%S")
+                        started = PlainDateTime.parse(raw, format="YYYY-MM-DD hh:mm:ss")
                     except (ValueError, TypeError):
                         continue
                     if started_after is not None and started < started_after:

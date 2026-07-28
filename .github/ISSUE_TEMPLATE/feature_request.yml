@@ -1,0 +1,47 @@
+name: "✨ Feature Request"
+description: Propose an idea, scope, and acceptance criteria for a new feature.
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A high-level overview of the feature or task.
+      placeholder: Complete the end-to-end user experience for...
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: List the specific tasks, additions, or changes included in this issue.
+      placeholder: |
+        * Add a Run button for each template
+        * Invoke POST /api/templates/run
+        * Poll for the newly created running session
+        * Automatically redirect users to the existing session page
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What conditions must be met for this issue to be considered done?
+      placeholder: |
+        * Users can launch templates directly from the dashboard
+        * Users are automatically redirected to the live session view
+        * Startup failures are clearly displayed
+    validations:
+      required: true
+
+  - type: input
+    id: parent-issue
+    attributes:
+      label: Parent Issue
+      description: Link a related epic or parent issue (e.g., #247).
+      placeholder: "#247"
+    validations:
+      required: false

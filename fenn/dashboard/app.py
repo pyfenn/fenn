@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import logging
 import secrets
+from datetime import datetime as DateTime
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -207,7 +208,7 @@ def _list_uploaded_files(
             {
                 "filename": path.name,
                 "size": stat.st_size,
-                "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(
+                "modified_at": DateTime.fromtimestamp(stat.st_mtime).isoformat(
                     timespec="seconds"
                 ),
             }

@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import logging
 import secrets
-from datetime import datetime as DateTime
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -26,7 +25,7 @@ from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
-from whenever import PlainDateTime
+from whenever import Instant, PlainDateTime
 
 from fenn.cli.list import get_available_templates
 from fenn.cli.pull import pull_template
@@ -203,14 +202,17 @@ def _list_uploaded_files(
             continue
 
         stat = path.stat()
+        modified_at = (
+            Instant.from_timestamp(stat.st_mtime)
+            .round("second")
+            .format_iso(unit="second")
+        )
 
         files.append(
             {
                 "filename": path.name,
                 "size": stat.st_size,
-                "modified_at": DateTime.fromtimestamp(stat.st_mtime).isoformat(
-                    timespec="seconds"
-                ),
+                "modified_at": modified_at,
             }
         )
 

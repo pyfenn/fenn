@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import secrets
 from datetime import timedelta
@@ -18,9 +19,11 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     session,
     url_for,
 )
+from flask_sock import Sock
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import HTTPException
@@ -29,18 +32,25 @@ from whenever import Instant, PlainDateTime
 
 from fenn.cli.list import get_available_templates
 from fenn.cli.pull import pull_template
+from fenn.dashboard.log_stream import iter_new_lines
 from fenn.dashboard.responses import (
     error_response,
     filesystem_error,
     invalid_template,
+    run_not_managed,
     target_not_empty,
     template_download_unavailable,
     template_launch_failed,
     template_list_unavailable,
     template_not_found,
     template_not_registered,
+    unsupported_platform,
 )
-from fenn.dashboard.runner import TemplateLaunchError, TemplateRunner
+from fenn.dashboard.runner import (
+    PauseUnsupportedError,
+    TemplateLaunchError,
+    TemplateRunner,
+)
 from fenn.dashboard.templates_registry import TemplatesRegistry
 from fenn.dashboard.types import TemplateRunResponse, TemplatesPayload
 from fenn.dashboard.validation import (
@@ -92,9 +102,13 @@ app.config.update(
 # tab in the user's browser could POST cross-origin without it.
 csrf = CSRFProtect(app)
 
+sock = Sock(app)
+
 scanner = FennScanner()
 templates_registry = TemplatesRegistry()
 template_runner = TemplateRunner()
+
+_WS_POLL_INTERVAL_S = 0.4
 
 
 class _ApiBadRequest(Exception):
@@ -456,6 +470,107 @@ def api_session(project_name: str, session_id: str) -> Response:
     return jsonify(data)
 
 
+def _log_file_for(data: Any) -> Path:
+    """The raw plain-text ``.log`` file that sits alongside a session's ``.fn`` file.
+
+    Both are written by ``fenn.logging.FennLogger`` under the same stem —
+    see ``FennLogger._form_log_paths``.
+    """
+    return Path(data["file_path"]).with_suffix(".log")
+
+
+@app.route("/api/session/<project_name>/<session_id>/download")
+def api_session_download(
+    project_name: str, session_id: str
+) -> tuple[Response, int] | Response:
+    """Download a session's log file — raw ``.log`` by default, or the ``.fn`` XML via ``?format=fn``."""
+    data = scanner.get_session(project_name, session_id)
+    if data is None:
+        abort(404)
+
+    fmt = (request.args.get("format") or "log").lower()
+    if fmt == "fn":
+        path = Path(data["file_path"])
+    elif fmt == "log":
+        path = _log_file_for(data)
+    else:
+        return _api_error("invalid_param", "format must be 'log' or 'fn'", "format")
+
+    if not path.is_file():
+        abort(404)
+
+    return send_file(
+        path,
+        as_attachment=True,
+        download_name=f"{session_id}.{fmt}",
+        mimetype="text/plain",
+    )
+
+
+@sock.route("/ws/session/<project_name>/<session_id>")
+def ws_session_log(ws, project_name: str, session_id: str) -> None:
+    """Stream a running session's raw ``.log`` file to the browser line-by-line."""
+    data = scanner.get_session(project_name, session_id)
+    if data is None:
+        ws.send(json.dumps({"error": "session_not_found"}))
+        return
+
+    log_path = _log_file_for(data)
+
+    def still_running() -> bool:
+        current = scanner.get_session(project_name, session_id)
+        return current is not None and current["status"] == "running"
+
+    def paced_sleep(seconds: float) -> None:
+        # ws.receive() doubles as our poll interval and disconnect detector:
+        # it returns None on timeout, or raises ConnectionClosed if the
+        # browser tab closed/navigated away — either way flask-sock's
+        # wrapper handles cleanup once that exception escapes this route.
+        ws.receive(timeout=seconds)
+
+    for line in iter_new_lines(
+        log_path,
+        from_start=True,
+        poll_interval=_WS_POLL_INTERVAL_S,
+        sleep_fn=paced_sleep,
+        should_continue=still_running,
+    ):
+        ws.send(json.dumps({"line": line}))
+
+    final = scanner.get_session(project_name, session_id)
+    ws.send(
+        json.dumps({"done": True, "status": final["status"] if final else "unknown"})
+    )
+
+
+@app.route("/api/session/<project_name>/<session_id>/pause", methods=["POST"])
+def api_session_pause(
+    project_name: str, session_id: str
+) -> tuple[Response, int] | Response:
+    running = template_runner.find_by_session(session_id)
+    if running is None:
+        return run_not_managed(session_id), 404
+    try:
+        template_runner.pause(running.run_id)
+    except PauseUnsupportedError as exc:
+        return unsupported_platform(exc), 501
+    return jsonify({"paused": True})
+
+
+@app.route("/api/session/<project_name>/<session_id>/resume", methods=["POST"])
+def api_session_resume(
+    project_name: str, session_id: str
+) -> tuple[Response, int] | Response:
+    running = template_runner.find_by_session(session_id)
+    if running is None:
+        return run_not_managed(session_id), 404
+    try:
+        template_runner.resume(running.run_id)
+    except PauseUnsupportedError as exc:
+        return unsupported_platform(exc), 501
+    return jsonify({"paused": False})
+
+
 @app.route("/api/templates")
 def api_templates() -> tuple[Response, int] | Response:
     """Return the templates available from the official template repository."""
@@ -638,6 +753,9 @@ def api_template_run_status(run_id: str) -> tuple[Response, int] | Response:
     match = scanner.find_matching_session(running.log_dir, running.started_at)
 
     if match is not None:
+        # Remember the match so pause/resume can later resolve this session
+        # back to its process (see api_session_pause/api_session_resume).
+        running.session_id = match["session_id"]
         return jsonify(
             {
                 "status": "found",
@@ -901,7 +1019,10 @@ def run(
     logger.info(f"Fenn dashboard started at http://{host}:{port}")
     from werkzeug.serving import make_server
 
-    make_server(host, port, app).serve_forever()
+    # threaded=True: a session page's live-terminal WebSocket connection is
+    # long-lived, and would otherwise block every other request on this
+    # single-process dev server for as long as it stays open.
+    make_server(host, port, app, threaded=True).serve_forever()
 
 
 # --------------------------------------------------------------------------- #

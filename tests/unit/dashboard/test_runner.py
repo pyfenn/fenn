@@ -1,10 +1,17 @@
 """Unit tests for TemplateRunner."""
 
+import signal
+import sys
 import textwrap
+import time
 
 import pytest
 
-from fenn.dashboard.runner import TemplateLaunchError, TemplateRunner
+from fenn.dashboard.runner import (
+    PauseUnsupportedError,
+    TemplateLaunchError,
+    TemplateRunner,
+)
 from fenn.dashboard.scanner import FennScanner
 
 
@@ -140,3 +147,120 @@ class TestListActive:
         running.process.kill()
         running.process.wait()
         assert running.run_id not in {r.run_id for r in runner.list_active()}
+
+
+class TestFindBySession:
+    def test_finds_by_session_id(self, tmp_path, scanner, runner):
+        _write_template(
+            tmp_path,
+            "import time\ntime.sleep(2)\n",
+            fenn_yaml="logger:\n  dir: logs\n",
+        )
+        running = runner.launch(tmp_path, scanner=scanner)
+        try:
+            running.session_id = "abc123"
+            assert runner.find_by_session("abc123") is running
+            assert runner.find_by_session("unknown") is None
+        finally:
+            running.process.kill()
+            running.process.wait()
+
+
+class TestPauseResumeSignalDelivery:
+    """Signal delivery, mocked — portable and doesn't depend on process timing."""
+
+    def test_pause_sends_sigstop_and_sets_flag(
+        self, tmp_path, scanner, runner, monkeypatch
+    ):
+        _write_template(
+            tmp_path,
+            "import time\ntime.sleep(2)\n",
+            fenn_yaml="logger:\n  dir: logs\n",
+        )
+        running = runner.launch(tmp_path, scanner=scanner)
+        try:
+            calls = []
+            monkeypatch.setattr(
+                "fenn.dashboard.runner.os.kill",
+                lambda pid, sig: calls.append((pid, sig)),
+            )
+            runner.pause(running.run_id)
+            assert calls == [(running.process.pid, signal.SIGSTOP)]
+            assert running.paused is True
+        finally:
+            running.process.kill()
+            running.process.wait()
+
+    def test_resume_sends_sigcont_and_clears_flag(
+        self, tmp_path, scanner, runner, monkeypatch
+    ):
+        _write_template(
+            tmp_path,
+            "import time\ntime.sleep(2)\n",
+            fenn_yaml="logger:\n  dir: logs\n",
+        )
+        running = runner.launch(tmp_path, scanner=scanner)
+        try:
+            calls = []
+            monkeypatch.setattr(
+                "fenn.dashboard.runner.os.kill",
+                lambda pid, sig: calls.append((pid, sig)),
+            )
+            running.paused = True
+            runner.resume(running.run_id)
+            assert calls == [(running.process.pid, signal.SIGCONT)]
+            assert running.paused is False
+        finally:
+            running.process.kill()
+            running.process.wait()
+
+    def test_pause_unknown_run_id_is_noop(self, runner, monkeypatch):
+        calls = []
+        monkeypatch.setattr(
+            "fenn.dashboard.runner.os.kill", lambda pid, sig: calls.append((pid, sig))
+        )
+        runner.pause("unknown-run-id")  # should not raise
+        assert calls == []
+
+    def test_signal_none_raises_unsupported(self, runner):
+        with pytest.raises(PauseUnsupportedError):
+            runner._signal("whatever", None)
+
+
+@pytest.mark.skipif(
+    sys.platform != "linux", reason="Verifies real stopped-process state via /proc"
+)
+class TestPauseResumeRealProcess:
+    def test_pause_actually_stops_the_process(self, tmp_path, scanner, runner):
+        _write_template(
+            tmp_path,
+            "import time\ntime.sleep(5)\n",
+            fenn_yaml="logger:\n  dir: logs\n",
+        )
+        running = runner.launch(tmp_path, scanner=scanner)
+        try:
+            runner.pause(running.run_id)
+            assert _wait_for_state(running.process.pid, "T") == "T"
+
+            runner.resume(running.run_id)
+            assert _wait_for_state(running.process.pid, "T", negate=True) != "T"
+        finally:
+            running.process.kill()
+            running.process.wait()
+
+
+def _proc_state(pid: int) -> str:
+    with open(f"/proc/{pid}/stat", encoding="utf-8") as f:
+        fields = f.read().rsplit(")", 1)[1].split()
+    return fields[0]
+
+
+def _wait_for_state(pid: int, target: str, *, negate: bool = False) -> str:
+    """Poll /proc/<pid>/stat until it reaches (or leaves) ``target`` state."""
+    state = _proc_state(pid)
+    for _ in range(20):
+        state = _proc_state(pid)
+        if (state != target) if negate else (state == target):
+            return state
+        time.sleep(0.05)
+    return state

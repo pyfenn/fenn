@@ -37,7 +37,7 @@ https://github.com/sponsors/blkdmr
 
 - **Template Ready**: Built-in support for reproducible, shareable experiment templates.
 
-- **Live Dashboard**: Browse, filter, and rename experiment sessions in a local web UI, and launch any pulled template with one click - straight to its live session view.
+- **Live Dashboard**: Browse, filter, and rename experiment sessions in a local web UI, and launch any pulled template with one click - straight to its live session view. Watch a running session's raw output stream live in a terminal-style view, then review or download the full log once it's done.
 
 
 ## Quickstart

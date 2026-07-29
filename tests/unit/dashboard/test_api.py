@@ -465,6 +465,135 @@ class TestSessionMutationRoutes:
         assert "a1" in include_ids
 
 
+class TestSessionDownload:
+    """GET /api/session/<project>/<session_id>/download"""
+
+    def test_download_log_returns_raw_text(self, client, tmp_path):
+        (tmp_path / "a1.log").write_text(
+            "[2026-05-21 07:00:00] INFO | hello\n", encoding="utf-8"
+        )
+        resp = client.get("/api/session/alpha/a1/download")
+        assert resp.status_code == 200
+        assert resp.get_data(as_text=True) == "[2026-05-21 07:00:00] INFO | hello\n"
+        assert "a1.log" in resp.headers.get("Content-Disposition", "")
+
+    def test_download_fn_returns_xml(self, client):
+        resp = client.get("/api/session/alpha/a1/download?format=fn")
+        assert resp.status_code == 200
+        assert b"<fenn-log" in resp.get_data()
+        assert "a1.fn" in resp.headers.get("Content-Disposition", "")
+
+    def test_download_missing_log_file_404s(self, client):
+        # a1.fn exists (from the fixture) but no companion a1.log was written.
+        resp = client.get("/api/session/alpha/a1/download")
+        assert resp.status_code == 404
+
+    def test_download_unknown_session_404s(self, client):
+        resp = client.get("/api/session/alpha/nope/download")
+        assert resp.status_code == 404
+
+    def test_download_invalid_format_400s(self, client, tmp_path):
+        (tmp_path / "a1.log").write_text("x", encoding="utf-8")
+        resp = client.get("/api/session/alpha/a1/download?format=bogus")
+        assert resp.status_code == 400
+        assert resp.get_json()["error"]["code"] == "invalid_param"
+
+
+class TestSessionPauseResume:
+    """POST /api/session/<project>/<session_id>/{pause,resume}"""
+
+    def test_pause_success(self, client, monkeypatch):
+        import fenn.dashboard.app as app_module
+
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        fake_running = type("FakeRunning", (), {"run_id": "run1"})()
+        calls = []
+        monkeypatch.setattr(
+            app_module.template_runner, "find_by_session", lambda sid: fake_running
+        )
+        monkeypatch.setattr(
+            app_module.template_runner, "pause", lambda run_id: calls.append(run_id)
+        )
+
+        resp = client.post(
+            "/api/session/alpha/a1/pause",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["paused"] is True
+        assert calls == ["run1"]
+
+    def test_resume_success(self, client, monkeypatch):
+        import fenn.dashboard.app as app_module
+
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        fake_running = type("FakeRunning", (), {"run_id": "run1"})()
+        calls = []
+        monkeypatch.setattr(
+            app_module.template_runner, "find_by_session", lambda sid: fake_running
+        )
+        monkeypatch.setattr(
+            app_module.template_runner, "resume", lambda run_id: calls.append(run_id)
+        )
+
+        resp = client.post(
+            "/api/session/alpha/a1/resume",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["paused"] is False
+        assert calls == ["run1"]
+
+    def test_pause_unmanaged_session_returns_404(self, client, monkeypatch):
+        import fenn.dashboard.app as app_module
+
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        monkeypatch.setattr(
+            app_module.template_runner, "find_by_session", lambda sid: None
+        )
+
+        resp = client.post(
+            "/api/session/alpha/a1/pause",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 404
+        assert resp.get_json()["error"]["code"] == "run_not_managed"
+
+    def test_pause_unsupported_platform_returns_501(self, client, monkeypatch):
+        import fenn.dashboard.app as app_module
+        from fenn.dashboard.runner import PauseUnsupportedError
+
+        token = _extract_csrf_token(client.get("/").get_data(as_text=True))
+        assert token
+
+        fake_running = type("FakeRunning", (), {"run_id": "run1"})()
+
+        def _raise(run_id):
+            raise PauseUnsupportedError("no signals here")
+
+        monkeypatch.setattr(
+            app_module.template_runner, "find_by_session", lambda sid: fake_running
+        )
+        monkeypatch.setattr(app_module.template_runner, "pause", _raise)
+
+        resp = client.post(
+            "/api/session/alpha/a1/pause",
+            json={},
+            headers={"X-CSRFToken": token},
+        )
+        assert resp.status_code == 501
+        assert resp.get_json()["error"]["code"] == "unsupported_platform"
+
+
 # ---------------------------------------------------------------------------
 # Date range filtering
 # ---------------------------------------------------------------------------

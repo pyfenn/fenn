@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import os
+import signal
 import subprocess
 import sys
 import threading
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -31,6 +33,10 @@ class TemplateLaunchError(Exception):
     """Raised when a template cannot be launched or fails during startup."""
 
 
+class PauseUnsupportedError(Exception):
+    """Raised when pause/resume is attempted on a platform without POSIX signals."""
+
+
 @dataclass
 class RunningTemplate:
     """A tracked, launched template process."""
@@ -40,6 +46,8 @@ class RunningTemplate:
     log_dir: Path
     process: subprocess.Popen
     started_at: float
+    session_id: Optional[str] = None
+    paused: bool = field(default=False)
 
     def poll(self) -> Optional[int]:
         """Return the exit code if the process has finished, else None."""
@@ -181,3 +189,45 @@ class TemplateRunner:
             for rid in finished:
                 del self._active[rid]
             return list(self._active.values())
+
+    def find_by_session(self, session_id: str) -> Optional[RunningTemplate]:
+        """Resolve a tracked process from the session it was matched to.
+
+        Only runs launched via ``launch()`` and since matched to a session
+        (see the dashboard's ``/api/templates/run/<run_id>/status`` polling
+        endpoint, which records the match) are found this way — sessions
+        from scripts run outside the dashboard have no tracked process.
+        """
+        for running in self.list_active():
+            if running.session_id == session_id:
+                return running
+        return None
+
+    # ------------------------------------------------------------------
+    # Pause / resume
+    # ------------------------------------------------------------------
+
+    def pause(self, run_id: str) -> None:
+        """Suspend a tracked process with SIGSTOP."""
+        self._signal(run_id, signal.SIGSTOP if hasattr(signal, "SIGSTOP") else None)
+        running = self.get(run_id)
+        if running is not None:
+            running.paused = True
+
+    def resume(self, run_id: str) -> None:
+        """Resume a previously paused process with SIGCONT."""
+        self._signal(run_id, signal.SIGCONT if hasattr(signal, "SIGCONT") else None)
+        running = self.get(run_id)
+        if running is not None:
+            running.paused = False
+
+    def _signal(self, run_id: str, sig: Optional[int]) -> None:
+        if sig is None:
+            raise PauseUnsupportedError(
+                "Pause/resume requires POSIX signals (SIGSTOP/SIGCONT), "
+                "not available on this platform"
+            )
+        running = self.get(run_id)
+        if running is None or running.poll() is not None:
+            return
+        os.kill(running.process.pid, sig)

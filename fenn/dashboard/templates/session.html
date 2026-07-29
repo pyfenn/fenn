@@ -58,6 +58,14 @@
             class="btn btn-sm delete-session-btn"
             data-project="{{ project }}"
             data-session="{{ session_id }}">Delete</button>
+        {% if status == 'running' %}
+        <button type="button"
+            class="btn btn-sm session-pause-btn"
+            id="session-pause-toggle"
+            data-project="{{ project }}"
+            data-session="{{ session_id }}"
+            data-paused="false">Pause</button>
+        {% endif %}
   </p>
 </div>
 
@@ -88,6 +96,9 @@
        onclick="navigator.clipboard.writeText('{{ file_path }}')"
        class="btn btn-sm"
        title="Copy file path">⧉ Copy path</a>
+    <a href="/api/session/{{ project | urlencode }}/{{ session_id | urlencode }}/download"
+       class="btn btn-sm"
+       title="Download raw .log file">⬇ Download log</a>
   </div>
 </div>
 
@@ -118,30 +129,50 @@
 </div>
 {% endif %}
 
-<!-- Log entries -->
+<!-- Logs: live terminal (while running) + full structured log -->
 <div class="card">
-  <div class="log-entries">
-    {% if entries %}
-      {% for entry in entries %}
-      <div class="log-entry level-{{ entry.level }} kind-{{ entry.kind }}"
-           data-level="{{ entry.level }}"
-           data-kind="{{ entry.kind }}">
-        <span class="log-ts">{{ entry.ts }}</span>
-        <span class="log-kind">
-          <span class="badge badge-{{ entry.kind }}" style="font-size:10px;">{{ entry.kind }}</span>
-        </span>
-        <span class="log-level">
-          <span class="badge badge-{{ entry.level }}" style="font-size:10px;">{{ entry.level }}</span>
-        </span>
-        <span class="log-msg">{{ entry.message }}</span>
-      </div>
-      {% endfor %}
+  <div class="card-header">
+    <span class="card-title">
+      <button type="button" class="tab-btn{% if status == 'running' %} active{% endif %}" data-tab="live-terminal-panel" id="tab-btn-live">Live Terminal</button>
+      <button type="button" class="tab-btn{% if status != 'running' %} active{% endif %}" data-tab="full-log-panel" id="tab-btn-full">Full Log</button>
+    </span>
+  </div>
+
+  <div id="live-terminal-panel" class="tab-panel{% if status != 'running' %} hidden{% endif %}">
+    {% if status == 'running' %}
+    <pre id="live-terminal" class="terminal"></pre>
     {% else %}
     <div class="empty" style="padding:40px 20px;">
-      <div class="empty-title">No log entries</div>
-      <div class="empty-desc">This session has no recorded entries yet.</div>
+      <div class="empty-title">Session finished</div>
+      <div class="empty-desc">This session is no longer running — see the Full Log tab for the complete record, or download the log file above.</div>
     </div>
     {% endif %}
+  </div>
+
+  <div id="full-log-panel" class="tab-panel{% if status == 'running' %} hidden{% endif %}">
+    <div class="log-entries">
+      {% if entries %}
+        {% for entry in entries %}
+        <div class="log-entry level-{{ entry.level }} kind-{{ entry.kind }}"
+             data-level="{{ entry.level }}"
+             data-kind="{{ entry.kind }}">
+          <span class="log-ts">{{ entry.ts }}</span>
+          <span class="log-kind">
+            <span class="badge badge-{{ entry.kind }}" style="font-size:10px;">{{ entry.kind }}</span>
+          </span>
+          <span class="log-level">
+            <span class="badge badge-{{ entry.level }}" style="font-size:10px;">{{ entry.level }}</span>
+          </span>
+          <span class="log-msg">{{ entry.message }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty" style="padding:40px 20px;">
+        <div class="empty-title">No log entries</div>
+        <div class="empty-desc">This session has no recorded entries yet.</div>
+      </div>
+      {% endif %}
+    </div>
   </div>
 </div>
 

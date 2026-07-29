@@ -485,6 +485,90 @@
     }
   });
 
+  // ── Session log tabs (Live Terminal / Full Log) ──────────────────────────── //
+
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.dataset.tab;
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      document.querySelectorAll(".tab-panel").forEach((panel) => {
+        panel.classList.toggle("hidden", panel.id !== targetId);
+      });
+    });
+  });
+
+  // ── Pause / resume a dashboard-launched session ──────────────────────────── //
+
+  const pauseBtn = document.getElementById("session-pause-toggle");
+  if (pauseBtn) {
+    pauseBtn.addEventListener("click", async () => {
+      const project = pauseBtn.dataset.project;
+      const sessionId = pauseBtn.dataset.session;
+      const paused = pauseBtn.dataset.paused === "true";
+      const endpoint = paused ? "resume" : "pause";
+      pauseBtn.disabled = true;
+      try {
+        const resp = await postJson(
+          `/api/session/${encodeURIComponent(project)}/${encodeURIComponent(sessionId)}/${endpoint}`,
+          {}
+        );
+        const body = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          if (body?.error?.code === "run_not_managed") {
+            // Not a dashboard-launched run — there's no process to control.
+            pauseBtn.remove();
+            return;
+          }
+          window.alert(body?.error?.message || `${endpoint} failed`);
+          return;
+        }
+        pauseBtn.dataset.paused = String(Boolean(body.paused));
+        pauseBtn.textContent = body.paused ? "Resume" : "Pause";
+      } catch (_err) {
+        window.alert(`${endpoint} failed`);
+      } finally {
+        pauseBtn.disabled = false;
+      }
+    });
+  }
+
+  // ── Live terminal (WebSocket-tailed raw .log) ────────────────────────────── //
+
+  const liveTerminal = document.getElementById("live-terminal");
+  const liveTerminalStatusEl = document.getElementById("session-status");
+  if (liveTerminal && liveTerminalStatusEl) {
+    const project   = liveTerminalStatusEl.dataset.project;
+    const sessionId = liveTerminalStatusEl.dataset.session;
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(
+      `${proto}//${window.location.host}/ws/session/${encodeURIComponent(project)}/${encodeURIComponent(sessionId)}`
+    );
+
+    function appendLine(text) {
+      const atBottom =
+        liveTerminal.scrollHeight - liveTerminal.scrollTop - liveTerminal.clientHeight < 24;
+      liveTerminal.appendChild(document.createTextNode(text + "\n"));
+      if (atBottom) liveTerminal.scrollTop = liveTerminal.scrollHeight;
+    }
+
+    ws.addEventListener("message", (event) => {
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch (_err) {
+        return;
+      }
+      if (typeof data.line === "string") {
+        appendLine(data.line);
+      } else if (data.done) {
+        appendLine(`\n— session ${data.status || "finished"} —`);
+        ws.close();
+      } else if (data.error) {
+        appendLine(`\n— ${data.error} —`);
+      }
+    });
+  }
+
   // ── Logout confirmation dialog ─────────────────────────────────────────── //
 
   const logoutForm    = document.getElementById("logout-form");

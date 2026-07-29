@@ -101,3 +101,21 @@ def template_launch_failed(exc: Exception) -> Response:
         message=str(exc),
         param="path",
     )
+
+
+def run_not_managed(session_id: str) -> Response:
+    return error_response(
+        code="run_not_managed",
+        message=(
+            f"Session '{session_id}' has no dashboard-managed process to pause or "
+            "resume (it wasn't launched via the dashboard, or has already exited)"
+        ),
+        param="session_id",
+    )
+
+
+def unsupported_platform(exc: Exception) -> Response:
+    return error_response(
+        code="unsupported_platform",
+        message=str(exc),
+    )

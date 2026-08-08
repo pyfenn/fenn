@@ -98,8 +98,8 @@ class TestGenerateSessionId:
 
     def test_format_matches_pattern(self):
         session_id = generate_session_id()
-        # Expected: YYYYMMDD_HHMM_<4 hex chars>
-        assert re.match(r"^\d{8}_\d{4}_[0-9a-f]{4}$", session_id), (
+        # Expected: YYYYMMDD_HHMM_<adjective>_<noun>_<4 hex chars>
+        assert re.match(r"^\d{8}_\d{4}_[a-z]+_[a-z]+_[0-9a-f]{4}$", session_id), (
             f"Session ID '{session_id}' does not match expected format"
         )
 

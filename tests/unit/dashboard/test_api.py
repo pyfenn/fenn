@@ -1471,3 +1471,98 @@ class TestApiTemplateRunStatus:
         resp = templates_client_no_auth.get("/api/templates/run/anything/status")
         assert resp.status_code == 302
         assert "/connect" in resp.headers["Location"]
+
+
+class TestSessionMetricDetailPage:
+    """GET /session/<project>/<id>/metric/<name> — response codes, auth
+    enforcement, and content for the metric detail route."""
+
+    def test_returns_200_for_known_metric(self, metrics_client):
+        """A metric with recorded points must return 200 and render its data."""
+        resp = metrics_client.get("/session/metrics-proj/m1/metric/train_loss")
+        assert resp.status_code == 200
+        assert b"train_loss" in resp.data
+
+    def test_content_includes_correct_point_values(self, metrics_client):
+        """The embedded metrics JSON blob must contain this metric's exact
+        step/value pairs, not another metric's or the full unfiltered list."""
+        resp = metrics_client.get("/session/metrics-proj/m1/metric/train_loss")
+        html = resp.get_data(as_text=True)
+        assert '"step": 0' in html or '"step":0' in html
+        assert '"value": 0.9' in html or '"value":0.9' in html
+        # val_loss/acc points should not leak into this page's data blob
+        assert '"name": "val_loss"' not in html and '"name":"val_loss"' not in html
+
+    def test_content_includes_breadcrumb_to_session(self, metrics_client):
+        """Breadcrumb must link back to the parent session page."""
+        resp = metrics_client.get("/session/metrics-proj/m1/metric/train_loss")
+        assert b"/session/metrics-proj/m1" in resp.data
+
+    def test_returns_404_for_unknown_metric(self, metrics_client):
+        """A metric name with no recorded points must 404, not render empty."""
+        resp = metrics_client.get("/session/metrics-proj/m1/metric/does_not_exist")
+        assert resp.status_code == 404
+
+    def test_returns_404_for_unknown_session(self, metrics_client):
+        resp = metrics_client.get("/session/metrics-proj/nope/metric/train_loss")
+        assert resp.status_code == 404
+
+    def test_returns_404_for_unknown_project(self, metrics_client):
+        resp = metrics_client.get("/session/nope-proj/m1/metric/train_loss")
+        assert resp.status_code == 404
+
+    def test_returns_404_for_metric_on_session_with_no_metrics(self, metrics_client):
+        """m2 has zero <metric> nodes — any metric name 404s here too, since
+        there's no metric registry independent of recorded data."""
+        resp = metrics_client.get("/session/metrics-proj/m2/metric/train_loss")
+        assert resp.status_code == 404
+
+    def test_requires_authentication(self, client_no_auth):
+        """Unauthenticated requests must redirect to /connect, same as the
+        parent session route."""
+        resp = client_no_auth.get("/session/alpha/a1/metric/train_loss")
+        assert resp.status_code == 302
+        assert "/connect" in resp.headers["Location"]
+
+    def test_session_page_links_to_metric_detail(self, metrics_client):
+        """Each Graphs-tab chart card must link to its own detail page."""
+        resp = metrics_client.get("/session/metrics-proj/m1")
+        assert resp.status_code == 200
+        assert b"/session/metrics-proj/m1/metric/train_loss" in resp.data
+        assert b"/session/metrics-proj/m1/metric/val_loss" in resp.data
+        assert b"/session/metrics-proj/m1/metric/acc" in resp.data
+
+    def test_session_page_without_metrics_does_not_break(self, tmp_path, monkeypatch):
+        """A completed session with no <metric> elements must still render
+        its Graphs tab (and links) without erroring — regression guard for
+        the empty-metrics case predating this feature."""
+        import fenn.dashboard.app as app_module
+
+        _write(
+            tmp_path / "nometrics.fn",
+            _FN_TMPL.format(
+                project="plain",
+                sid="nometrics",
+                started="2026-05-21 07:00:00",
+                ended="2026-05-21 07:00:10",
+                dur=10,
+                status="completed",
+            ),
+        )
+        monkeypatch.setenv(
+            "FENN_DASHBOARD_OVERRIDES_PATH", str(tmp_path / "dashboard_overrides.json")
+        )
+        scanner = FennScanner(extra_dirs=[str(tmp_path)])
+
+        original = app_module.scanner
+        app_module.scanner = scanner
+        app.config["TESTING"] = True
+        try:
+            with app.test_client() as c:
+                with c.session_transaction() as sess:
+                    sess["user"] = {"email": "test@example.com"}
+                resp = c.get("/session/plain/nometrics")
+                assert resp.status_code == 200
+                assert b"/session/plain/nometrics/metric/train_loss" in resp.data
+        finally:
+            app_module.scanner = original

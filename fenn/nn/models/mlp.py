@@ -145,8 +145,8 @@ class BaseMLP:
             )
         if not (0.0 < validation_fraction < 1.0):
             raise ValueError("validation_fraction must be between 0 and 1.")
-        if len(hidden_layer_sizes) == 0:
-            raise ValueError("hidden_layer_sizes must contain at least one layer.")
+        if not isinstance(hidden_layer_sizes, (list, tuple)):
+            raise TypeError("hidden_layer_sizes must be a sequence.")
 
         self.hidden_layer_sizes = tuple(hidden_layer_sizes)
         self.activation = activation

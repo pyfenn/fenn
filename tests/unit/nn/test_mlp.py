@@ -100,11 +100,7 @@ class TestBaseMLPValidation:
         ):
             MLPRegressor(validation_fraction=1.5)
 
-    def test_empty_hidden_layer_sizes_raises(self):
-        with pytest.raises(
-            ValueError, match="hidden_layer_sizes must contain at least one"
-        ):
-            MLPClassifier(hidden_layer_sizes=())
+
 
     def test_predict_before_fit_raises(self):
         with pytest.raises(RuntimeError, match="not fitted yet"):

@@ -139,8 +139,8 @@ fenn = "fenn.cli:main"
 [project.urls]
 "Homepage" = "https://pyfenn.org"
 "Documentation" = "https://pyfenn.org"
-"Source Code" = "https://github.com/blkdmr/fenn"
-"Bug Tracker" = "https://github.com/blkdmr/fenn/issues"
+"Source Code" = "https://github.com/pyfenn/fenn"
+"Bug Tracker" = "https://github.com/pyfenn/fenn/issues"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

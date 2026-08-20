@@ -119,6 +119,10 @@ class TestPullCommand:
         captured = capsys.readouterr()
         assert "Template" in captured.out
         assert "nonexistent" in captured.out
+        # The not-found hint must point to the real `fenn list` command,
+        # not the non-existent `fenn pull --list` flag (see issue #312).
+        assert "fenn list" in captured.out
+        assert "fenn pull --list" not in captured.out
 
     def test_pull_network_error_on_check(self, requests_mock, capsys, tmp_path):
         """Test pull with network error during template check."""

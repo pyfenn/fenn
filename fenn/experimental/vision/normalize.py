@@ -291,7 +291,7 @@ def _normalize_imagenet_stats(array: np.ndarray) -> np.ndarray:
 
         # Auto-normalize only RGB channels to [0, 1] if needed
         rgb_max = np.max(rgb_channels_float)
-        rgb_min = np.max(rgb_channels_float)
+        rgb_min = np.min(rgb_channels_float)
 
         if rgb_min < 0.0:
             if rgb_max <= 1.0:

@@ -106,7 +106,7 @@ def _normalize_0_1(array: np.ndarray) -> np.ndarray:
                 normalized_alpha = alpha_channel / dtype_max
             else:
                 # Float type: if > 1, assume [0, 255] range, else already normalized
-                if alpha_channel.max() > 1.0:
+                if np.max(alpha_channel) > 1.0:
                     normalized_alpha = alpha_channel / 255.0
                 else:
                     normalized_alpha = alpha_channel
@@ -130,7 +130,7 @@ def _normalize_0_1(array: np.ndarray) -> np.ndarray:
                 normalized_alpha = alpha_channel / dtype_max
             else:
                 # Float type: if > 1, assume [0, 255] range, else already normalized
-                if alpha_channel.max() > 1.0:
+                if np.max(alpha_channel) > 1.0:
                     normalized_alpha = alpha_channel / 255.0
                 else:
                     normalized_alpha = alpha_channel
@@ -198,7 +198,7 @@ def _normalize_minus1_1(array: np.ndarray) -> np.ndarray:
                 normalized_alpha = 2.0 * (alpha_channel / dtype_max) - 1.0
             else:
                 # Float type: if > 1, assume [0, 255] range, else already in [0, 1]
-                if alpha_channel.max() > 1.0:
+                if np.max(alpha_channel) > 1.0:
                     normalized_alpha = 2.0 * (alpha_channel / 255.0) - 1.0
                 else:
                     # Already in [0, 1], map to [-1, 1]
@@ -223,7 +223,7 @@ def _normalize_minus1_1(array: np.ndarray) -> np.ndarray:
                 normalized_alpha = 2.0 * (alpha_channel / dtype_max) - 1.0
             else:
                 # Float type: if > 1, assume [0, 255] range, else already in [0, 1]
-                if alpha_channel.max() > 1.0:
+                if np.max(alpha_channel) > 1.0:
                     normalized_alpha = 2.0 * (alpha_channel / 255.0) - 1.0
                 else:
                     # Already in [0, 1], map to [-1, 1]
@@ -290,8 +290,8 @@ def _normalize_imagenet_stats(array: np.ndarray) -> np.ndarray:
             alpha_channel_original = array_float[:, 3:4, ...].copy()
 
         # Auto-normalize only RGB channels to [0, 1] if needed
-        rgb_max = rgb_channels_float.max()
-        rgb_min = rgb_channels_float.min()
+        rgb_max = np.max(rgb_channels_float)
+        rgb_min = np.min(rgb_channels_float)
 
         if rgb_min < 0.0:
             if rgb_max <= 1.0:
@@ -306,8 +306,8 @@ def _normalize_imagenet_stats(array: np.ndarray) -> np.ndarray:
                 rgb_channels_float = rgb_channels_float / 255.0
     else:
         # Auto-normalize entire array to [0, 1] if values are outside expected [0, 1] range
-        array_max = array_float.max()
-        array_min = array_float.min()
+        array_max = np.max(array_float)
+        array_min = np.min(array_float)
 
         if array_min < 0.0:
             # Values are < 0, likely in [-1, 1] range
@@ -341,7 +341,7 @@ def _normalize_imagenet_stats(array: np.ndarray) -> np.ndarray:
                 normalized_alpha = alpha_channel_original / dtype_max
             else:
                 # Float type: if > 1, assume [0, 255] range, else already in [0, 1]
-                if alpha_channel_original.max() > 1.0:
+                if np.max(alpha_channel_original) > 1.0:
                     normalized_alpha = alpha_channel_original / 255.0
                 else:
                     # Already in [0, 1], preserve as-is
@@ -359,7 +359,7 @@ def _normalize_imagenet_stats(array: np.ndarray) -> np.ndarray:
                 normalized_alpha = alpha_channel_original / dtype_max
             else:
                 # Float type: if > 1, assume [0, 255] range, else already in [0, 1]
-                if alpha_channel_original.max() > 1.0:
+                if np.max(alpha_channel_original) > 1.0:
                     normalized_alpha = alpha_channel_original / 255.0
                 else:
                     # Already in [0, 1], preserve as-is
@@ -435,7 +435,7 @@ def _normalize_zscore(array: np.ndarray) -> np.ndarray:
                 normalized_alpha = alpha_channel / dtype_max
             else:
                 # Float type: if > 1, assume [0, 255] range, else already in [0, 1]
-                if alpha_channel.max() > 1.0:
+                if np.max(alpha_channel) > 1.0:
                     normalized_alpha = alpha_channel / 255.0
                 else:
                     # Already in [0, 1], preserve as-is
@@ -459,7 +459,7 @@ def _normalize_zscore(array: np.ndarray) -> np.ndarray:
                 normalized_alpha = alpha_channel / dtype_max
             else:
                 # Float type: if > 1, assume [0, 255] range, else already in [0, 1]
-                if alpha_channel.max() > 1.0:
+                if np.max(alpha_channel) > 1.0:
                     normalized_alpha = alpha_channel / 255.0
                 else:
                     # Already in [0, 1], preserve as-is

@@ -215,6 +215,31 @@ class TestBuildFaiss:
                 r._build_faiss()
 
 
+class TestIndexWithoutChunks:
+    def test_faiss_index_with_no_docs_does_not_build(self):
+        r = Retriever(use_faiss=True)
+        with patch.object(r, "_build_faiss") as build:
+            r.index([])
+        build.assert_not_called()
+        assert r._faiss_index is None
+
+    def test_faiss_index_with_only_blank_docs_does_not_build(self):
+        r = Retriever(use_faiss=True)
+        with patch.object(r, "_build_faiss") as build:
+            r.index(["   \n\n  "])
+        build.assert_not_called()
+        assert r.chunks == []
+
+    def test_bm25_index_with_no_docs_does_not_raise(self):
+        r = Retriever(use_faiss=False)
+        r.index([])
+        assert r.query("anything") == []
+
+    def test_query_faiss_returns_empty_when_index_never_built(self):
+        r = Retriever(use_faiss=True)
+        assert r.query("anything", top_k=5) == []
+
+
 # ── Embedding method ImportError paths ────────────────────────────────────────
 
 

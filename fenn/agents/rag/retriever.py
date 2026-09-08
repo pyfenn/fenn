@@ -262,6 +262,12 @@ class Retriever:
             for chunk in chunk_text(doc, mode=self.chunk_mode):
                 self.chunks.append(chunk)
 
+        if not self.chunks:
+            logger.warning(
+                "[cofone] nothing to index: the source(s) produced no text chunks."
+            )
+            return
+
         if self.use_faiss:
             self._build_faiss()
             if self.persist_path:
@@ -344,6 +350,8 @@ class Retriever:
         return self._query_bm25(text, top_k)
 
     def _query_faiss(self, text, top_k):
+        if self._faiss_index is None or not self.chunks:
+            return []
         faiss_mod = self._get_faiss()
         vec = self._embed([text], input_type="search_query")
         faiss_mod.normalize_L2(vec)

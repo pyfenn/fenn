@@ -105,9 +105,11 @@ def generate_session_id() -> str:
         "grass",
     ]
 
-    # Select words
-    adj = random.choice(adjectives)
-    noun = random.choice(nouns)
+    # Select words with `secrets`, not `random`: a session id must identify a
+    # run, and `set_seed()` reseeds the global `random` state, which would
+    # otherwise make every run under the same seed pick the same adjective/noun.
+    adj = secrets.choice(adjectives)
+    noun = secrets.choice(nouns)
 
     # Add a secure hex suffix (2 bytes = 4 hex chars) to ensure uniqueness
     hex_suffix = secrets.token_hex(2)

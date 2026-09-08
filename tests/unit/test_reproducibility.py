@@ -123,6 +123,21 @@ class TestGenerateSessionId:
         # With 2-byte hex suffix, collisions should be extremely rare
         assert len(ids) > 45
 
+    def test_word_choice_is_independent_of_the_global_seed(self):
+        # `set_seed()` reseeds `random`; a session id must still vary run to run.
+        set_seed(1234)
+        first = generate_session_id().rsplit("_", 1)[0]
+        set_seed(1234)
+        second = generate_session_id().rsplit("_", 1)[0]
+
+        seen = set()
+        for _ in range(30):
+            set_seed(1234)
+            seen.add(generate_session_id().rsplit("_", 1)[0])
+        # first/second are the timestamp+words; more than one distinct value
+        # means the words are not pinned by the seed
+        assert len(seen) > 1 or first != second
+
     def test_uses_secrets_for_hex(self):
         with patch(
             "fenn.reproducibility.secrets.token_hex", return_value="abcd"

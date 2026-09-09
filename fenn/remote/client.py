@@ -121,10 +121,10 @@ class RemoteClient:
         kwargs.setdefault("timeout", (_CONNECT_TIMEOUT, _REQUEST_TIMEOUT))
         try:
             response = self._session.request(method, self._url(path), **kwargs)
-        except requests.exceptions.SSLError:
-            raise
-        except requests.exceptions.ConnectionError:
-            raise
+        except requests.exceptions.SSLError as exc:
+            raise NetworkError(f"TLS error connecting to {self._host}: {exc}") from exc
+        except requests.exceptions.ConnectionError as exc:
+            raise NetworkError(f"Could not connect to {self._host}: {exc}") from exc
         except requests.exceptions.Timeout as exc:
             raise NetworkError(f"Request to {self._host} timed out: {exc}") from exc
         self._raise_for_status(response)

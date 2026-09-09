@@ -45,6 +45,12 @@ class Parser:
             self._config_file,
         )
 
+    def _config_invalid(self, detail: str) -> None:
+        message = f"Configuration file {self._config_file} is invalid: {detail}"
+        logger.exception(message)
+
+        raise ValueError(message)
+
     def load_configuration(self) -> Any:
         """Loads the YAML configuration into the _args dictionary."""
 
@@ -53,8 +59,17 @@ class Parser:
 
         # File exists → load YAML
         with open(self._config_file) as f:
-            self._args = yaml.safe_load(f)
-            self._args["project"] = self._config_file.stem
+            loaded = yaml.safe_load(f)
+
+        if loaded is None:
+            self._config_invalid("the file is empty")
+        if not isinstance(loaded, dict):
+            self._config_invalid(
+                f"the top level must be a mapping, got {type(loaded).__name__}"
+            )
+
+        self._args = loaded
+        self._args["project"] = self._config_file.stem
 
         return self._args
 

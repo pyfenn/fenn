@@ -8,17 +8,17 @@ from typing import Any
 from colorama import Fore, Style
 from rich.console import Console
 from rich.table import Table
-from whenever import Instant, PlainDateTime
+from whenever import Instant, PlainDateTime, SYSTEM_TZ
 
 console: Console = Console()
 
 _ansi_escape: re.Pattern[str] = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-_SPACE_SEP_PATTERN = "YYYY-MM-DD hh:mm:ss"
+_SPACE_SEP_PATTERN = "YYYY-MM-DD HH:mm:ss"
 
 
 def _now_local() -> PlainDateTime:
     """Returns the current local time as a PlainDateTime object, with nanoseconds set to zero using `whenever`."""
-    return Instant.now().to_system_tz().to_plain().replace(nanosecond=0)
+    return Instant.now().to_tz(SYSTEM_TZ).to_plain().replace(nanosecond=0)
 
 
 class XmlMixin:

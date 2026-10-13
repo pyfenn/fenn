@@ -2,7 +2,7 @@ import random
 import secrets
 
 import numpy as np
-from whenever import Instant
+from whenever import SYSTEM_TZ, Instant
 
 
 def set_seed(seed: int) -> None:
@@ -29,7 +29,7 @@ def set_seed(seed: int) -> None:
 
 def generate_session_id() -> str:
 
-    timestamp = Instant.now().to_system_tz().to_plain().format("YYYYMMDD_hhmm")
+    timestamp = Instant.now().to_tz(SYSTEM_TZ).to_plain().format("YYYYMMDD_HHmm")
 
     # A curated list of "beautiful" words
     adjectives = [

@@ -760,7 +760,7 @@ def api_sessions() -> tuple[Response, int] | Response:
         if started_after_raw is not None:
             try:
                 started_after = PlainDateTime.parse(
-                    started_after_raw, format="YYYY-MM-DD hh:mm:ss"
+                    started_after_raw, pattern="YYYY-MM-DD HH:mm:ss"
                 )
             except ValueError:
                 raise _ApiBadRequest(
@@ -773,7 +773,7 @@ def api_sessions() -> tuple[Response, int] | Response:
         if started_before_raw is not None:
             try:
                 started_before = PlainDateTime.parse(
-                    started_before_raw, format="YYYY-MM-DD hh:mm:ss"
+                    started_before_raw, pattern="YYYY-MM-DD HH:mm:ss"
                 )
             except ValueError:
                 raise _ApiBadRequest(

@@ -249,7 +249,7 @@ def _register_pulled_template(template_name: str, target_dir: Path) -> None:
                 path=str(target_dir),
                 source_template=template_name,
                 pulled_at=Instant.now()
-                .to_fixed_offset(0)
+                .to_fixed_offset()
                 .format_iso(unit="microsecond"),
             )
         )

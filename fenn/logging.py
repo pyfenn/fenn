@@ -8,17 +8,17 @@ from typing import Any
 from colorama import Fore, Style
 from rich.console import Console
 from rich.table import Table
-from whenever import Instant, PlainDateTime
+from whenever import SYSTEM_TZ, Instant, PlainDateTime
 
 console: Console = Console()
 
 _ansi_escape: re.Pattern[str] = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-_SPACE_SEP_PATTERN = "YYYY-MM-DD hh:mm:ss"
+_SPACE_SEP_PATTERN = "YYYY-MM-DD HH:mm:ss"
 
 
 def _now_local() -> PlainDateTime:
     """Returns the current local time as a PlainDateTime object, with nanoseconds set to zero using `whenever`."""
-    return Instant.now().to_system_tz().to_plain().replace(nanosecond=0)
+    return Instant.now().to_tz(SYSTEM_TZ).to_plain().replace(nanosecond=0)
 
 
 class XmlMixin:
@@ -89,14 +89,8 @@ class XmlMixin:
     def _write_stop_info(self, started_at: PlainDateTime) -> None:
         ended_at = _now_local()
         ended = ended_at.format(_SPACE_SEP_PATTERN)
-        duration_s = (
-            int(
-                ended_at.difference(started_at, naive_arithmetic_ok=True).total(
-                    "seconds"
-                )
-            )
-            if started_at
-            else 0
+        duration_s = int(
+            ended_at.difference(started_at, naive_arithmetic_ok=True).total("seconds")
         )
 
         with open(self.fn_file, "a", encoding="utf-8") as f:

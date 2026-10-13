@@ -158,14 +158,11 @@ class FennScanner:
     def _with_overrides(self, session: SessionData) -> SessionData:
         """Return a copy of a session dict with persisted overrides merged in."""
         display_name, archived = self._overrides_for(session["session_id"])
-        return cast(
-            SessionData,
-            {
-                **session,
-                "display_name": display_name,
-                "archived": archived,
-            },
-        )
+        return {
+            **session,
+            "display_name": display_name,
+            "archived": archived,
+        }
 
     def _upsert_override(
         self,
@@ -429,7 +426,7 @@ class FennScanner:
         """
         if parsed.get("status") == "running" and mtime > 0:
             if time.time() - mtime > _running_timeout_s():
-                return cast(SessionData, {**parsed, "status": "crashed"})
+                return {**parsed, "status": "crashed"}
         return parsed
 
     def get_all_sessions(self, include_archived: bool = False) -> list[SessionData]:
@@ -547,15 +544,12 @@ class FennScanner:
             ):
                 parsed = self._with_overrides(parsed)
                 overview = self.get_overview()
-                return cast(
-                    SessionPagePayload,
-                    {
-                        **parsed,
-                        "projects": overview["projects"],
-                        "active_page": "session",
-                        "active_project": project_name,
-                    },
-                )
+                return {
+                    **parsed,
+                    "projects": overview["projects"],
+                    "active_page": "session",
+                    "active_project": project_name,
+                }
         return None
 
     # ------------------------------------------------------------------
@@ -614,7 +608,9 @@ class FennScanner:
                     if not raw:
                         continue
                     try:
-                        started = PlainDateTime.parse(raw, format="YYYY-MM-DD hh:mm:ss")
+                        started = PlainDateTime.parse(
+                            raw, pattern="YYYY-MM-DD HH:mm:ss"
+                        )
                     except (ValueError, TypeError):
                         continue
                     if started_after is not None and started < started_after:

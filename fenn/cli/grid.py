@@ -69,4 +69,4 @@ def _execute_fenn(
         train_data.update({key: value})
     with open(yaml_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
-    subprocess.run(["python3", main_path], cwd=main_path.parent)
+    subprocess.run([sys.executable, main_path], cwd=main_path.parent)

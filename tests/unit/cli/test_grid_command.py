@@ -64,3 +64,22 @@ def test_execute(monkeypatch) -> None:
     )
     execute(args=args)
     assert not Path("tests/unit/mock/templates/with_grid/fenn_copy.yaml").exists()
+
+
+def test_execute_fenn_uses_sys_executable(monkeypatch, tmp_path: Path) -> None:
+    import sys
+    from unittest.mock import MagicMock
+
+    from fenn.cli import grid
+
+    yaml_path: Path = tmp_path / "fenn.yaml"
+    yaml_path.write_text("train:\n  lr: 0.1\n", encoding="utf-8")
+    main_path: Path = tmp_path / "main.py"
+    run_mock = MagicMock()
+    monkeypatch.setattr(grid.subprocess, "run", run_mock)
+
+    grid._execute_fenn({"lr": 0.2}, main_path, yaml_path)
+
+    run_mock.assert_called_once()
+    assert run_mock.call_args.args[0][0] == sys.executable
+    assert run_mock.call_args.args[0][1] == main_path

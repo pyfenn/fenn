@@ -53,7 +53,16 @@ class Parser:
 
         # File exists → load YAML
         with open(self._config_file) as f:
-            self._args = yaml.safe_load(f)
+            data = yaml.safe_load(f)
+            if not isinstance(data, dict):
+                msg = (
+                    f"Configuration file {self._config_file} must contain a "
+                    f"YAML mapping at the top level, got "
+                    f"{type(data).__name__}."
+                )
+                logger.exception(msg)
+                raise ValueError(msg)
+            self._args = data
             self._args["project"] = self._config_file.stem
 
         return self._args

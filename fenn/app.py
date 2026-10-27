@@ -7,6 +7,8 @@ from colorama import Fore, Style
 from fenn.exporter import Exporter
 from fenn.keystore import KeyStore
 from fenn.logging import logger, original_print, redirect_prints, restore_prints
+from fenn.notification.notifier import Notifier
+from fenn.notification.service import Service
 from fenn.parser import Parser
 from fenn.reproducibility import generate_session_id
 
@@ -34,6 +36,7 @@ class Fenn:
         self._parser: Parser = Parser()
         self._keystore: KeyStore = KeyStore()
         self._exporter: Exporter = Exporter()
+        self._notifier: Notifier = Notifier()
 
         # DISCLAIMER:
         # This class is the base class for all Fenn applications.
@@ -69,6 +72,21 @@ class Fenn:
         """
         self._entrypoint_fn = entrypoint_fn
         return entrypoint_fn
+
+    def add_notification_service(self, service: Service | type[Service]) -> None:
+        """Register a notification service used by :meth:`run`.
+
+        When at least one service is registered, :meth:`run` notifies on
+        start, completion and failure.
+
+        Example:
+            >>> app.add_notification_service(Discord(webhook_url=url))
+
+        Args:
+            service: A configured Service instance (or a Service class that
+                needs no constructor arguments).
+        """
+        self._notifier.add_service(service)
 
     def run(self) -> Any:
         """Execute the application.
@@ -118,8 +136,17 @@ class Fenn:
                 f"Application starting from entrypoint: {self._entrypoint_fn.__name__}"  # ty: ignore[unresolved-attribute]
             )
 
+            project = self._args.get("project", "fenn")
+            tag = f"[{project}] session {self._session_id}"
+            self._notifier.notify(f"{tag} started")
+
             # Execute user function
-            result = self._entrypoint_fn(self._args)
+            try:
+                result = self._entrypoint_fn(self._args)
+            except Exception as e:
+                self._notifier.notify(f"{tag} failed: {type(e).__name__}")
+                raise
+            self._notifier.notify(f"{tag} completed")
             return result
 
         finally:

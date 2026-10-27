@@ -14,41 +14,48 @@ class Notifier:
 
     def add_services(
         self,
-        services: Iterable[type[Service]],
+        services: Iterable[Service | type[Service]],
     ) -> None:
         """
         Add a list of notification services.
 
         Example:
-            app.register_notification_services([Discord, Telegram])
+            notifier.add_services([Discord(webhook_url=url), Telegram(...)])
         """
 
-        for service_cls in services:
-            self.add_service(service_cls)
+        for service in services:
+            self.add_service(service)
 
-    def add_service(self, service: type[Service]) -> None:
+    def add_service(self, service: Service | type[Service]) -> None:
         """Add a notification service.
 
         Args:
-            service: A service implementing the Service interface.
+            service: A configured Service instance. A Service class is also
+                accepted and instantiated without arguments (only works for
+                services that need no constructor parameters).
         """
-        self._services.append(service())
+        if isinstance(service, type):
+            service = service()
+        self._services.append(service)
 
-    def remove_service(self, service: type[Service]) -> None:
+    def remove_service(self, service: Service | type[Service]) -> None:
         """Remove a notification service.
 
         Args:
-            service: The service to remove.
+            service: The instance to remove, or a Service class to remove
+                the first registered instance of that class.
 
         Raises:
             ValueError: If the service is not found.
         """
-        try:
-            self._services.remove(service())
-        except ValueError as err:
-            raise ValueError(
-                f"Service {service.__name__} not found in services list"
-            ) from err
+        for i, registered in enumerate(self._services):
+            if registered is service or (
+                isinstance(service, type) and isinstance(registered, service)
+            ):
+                del self._services[i]
+                return
+        name = service.__name__ if isinstance(service, type) else type(service).__name__
+        raise ValueError(f"Service {name} not found in services list")
 
     def notify(self, message: str) -> None:
         """Send notification to all registered services.

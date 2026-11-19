@@ -109,7 +109,7 @@ class TestGenerateSessionId:
         session_id = generate_session_id()
         timestamp_part = "_".join(session_id.split("_")[:2])
         # Should parse as a valid date/time
-        parsed = PlainDateTime.parse(timestamp_part, format="YYYYMMDD_hhmm")
+        parsed = PlainDateTime.parse(timestamp_part, pattern="YYYYMMDD_HHmm")
         assert parsed is not None
 
     def test_hex_suffix_is_four_chars(self):
@@ -133,12 +133,12 @@ class TestGenerateSessionId:
 
     def test_timestamp_uses_current_time(self):
         mock_instant = MagicMock()
-        mock_plain = mock_instant.to_system_tz.return_value.to_plain.return_value
+        mock_plain = mock_instant.to_tz.return_value.to_plain.return_value
         mock_plain.format.return_value = "20240615_0930"
 
         with patch("fenn.reproducibility.Instant") as mock_instant_cls:
             mock_instant_cls.now.return_value = mock_instant
             session_id = generate_session_id()
 
-        mock_plain.format.assert_called_once_with("YYYYMMDD_hhmm")
+        mock_plain.format.assert_called_once_with("YYYYMMDD_HHmm")
         assert session_id.startswith("20240615_0930")

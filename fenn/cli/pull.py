@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 from colorama import Fore, Style
-from whenever import Instant
+from whenever import Instant, hours
 
 from fenn.dashboard.templates_registry import TemplateEntry, TemplatesRegistry
 from fenn.exceptions import NetworkError, TemplateError, TemplateNotFoundError
@@ -249,7 +249,7 @@ def _register_pulled_template(template_name: str, target_dir: Path) -> None:
                 path=str(target_dir),
                 source_template=template_name,
                 pulled_at=Instant.now()
-                .to_fixed_offset(0)
+                .to_fixed_offset(hours(0))
                 .format_iso(unit="microsecond"),
             )
         )

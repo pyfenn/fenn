@@ -614,7 +614,7 @@ class FennScanner:
                     if not raw:
                         continue
                     try:
-                        started = PlainDateTime.parse(raw, format="YYYY-MM-DD hh:mm:ss")
+                        started = PlainDateTime.parse(raw, pattern="YYYY-MM-DD HH:mm:ss")
                     except (ValueError, TypeError):
                         continue
                     if started_after is not None and started < started_after:

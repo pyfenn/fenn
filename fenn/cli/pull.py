@@ -285,7 +285,7 @@ def _download_template(template_name: str, target_dir: Path, force: bool) -> Non
         if e.response.status_code == 404:  # ty: ignore[unresolved-attribute]
             raise TemplateNotFoundError(
                 f"Template {Fore.LIGHTYELLOW_EX}{template_name}{Fore.RED} not found. "
-                f"Use {Fore.LIGHTYELLOW_EX}fenn pull --list{Fore.RED} to see available templates, "
+                f"Use {Fore.LIGHTYELLOW_EX}fenn list{Fore.RED} to see available templates, "
                 f"or visit {Fore.CYAN}https://github.com/{TEMPLATES_REPO}{Style.RESET_ALL}"
             )
         raise NetworkError(f"Failed to check template existence: {e}")
